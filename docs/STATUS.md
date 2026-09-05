@@ -1,6 +1,6 @@
 # Implementation Status
 
-Updated: 2026-09-05
+Updated: 2026-09-06
 
 ## Overall
 
@@ -8,7 +8,7 @@ Updated: 2026-09-05
 
 **North star:** one command produces a publishable Hindi mythology video.
 
-**Current engineering focus:** make the pipeline genuinely manifest-driven and resumable before wiring model-specific local adapters.
+**Current engineering focus:** provider-neutral local image generation with master-asset prompts, while keeping the renderer deterministic and resumable.
 
 ## Done — verified in repository
 
@@ -23,9 +23,9 @@ Updated: 2026-09-05
 - [x] Frontier/Work creative artifact workflow documented
 - [x] Goals and quality criteria tracking
 - [x] Sample/reference tracking
-- [x] JSON Short manifest contract started
+- [x] JSON Short manifest contract
 - [x] Shared production manifest types
-- [x] Strict duration/beat/duplicate-ID validation module
+- [x] Strict duration/beat/duplicate-ID validation
 - [x] Manifest-driven Remotion beat timeline
 - [x] 1080x1920 / 30fps Short composition
 - [x] Procedural illustrated fallback renderer
@@ -35,16 +35,22 @@ Updated: 2026-09-05
 - [x] Project path manager
 - [x] Resumable per-project asset registry/cache contract
 - [x] Automatic unique asset-plan derivation from a manifest
-- [x] Project preparation stage that creates manifest, asset-plan and registry state
+- [x] Project preparation stage
 - [x] Shared validation wired into CLI
 - [x] One-command entry point exists (`bash run.sh <manifest>`)
+- [x] Provider-neutral image adapter interface
+- [x] Command-based local image adapter contract
+- [x] Master-asset prompt planner derived from beat references
+- [x] Sacred-figure prompt guardrails in the generated image contract
+- [x] Local adapter configuration documented in `config/.env.example`
 
 ## In progress
 
-- [ ] FLUX local adapter
-- [ ] Character master-art generation + consistency controls
-- [ ] Environment/prop generation adapters
-- [ ] Asset image normalization/cropping
+- [ ] Connect the image adapter to the user's actual FLUX/ComfyUI installation
+- [ ] Generate and validate real character master art
+- [ ] Environment/prop generation and normalization
+- [ ] Transparent/layered asset preparation
+- [ ] Asset registry updates after real generation
 - [ ] Chatterbox adapter
 - [ ] Deep Hindi voice-clone adapter
 - [ ] Voice asset cache + timing alignment
@@ -57,19 +63,23 @@ Updated: 2026-09-05
 - [ ] Automated visual/technical QA report
 - [ ] End-to-end real Karna render on the user's machine
 
+## Blockers
+
+No repository-level blocker is preventing further coding. The remaining integration blocker is machine-specific: the exact local FLUX/ComfyUI invocation and Chatterbox invocation are not verified in this environment. Do not invent those commands.
+
 ## Pending user inputs — only when adapter wiring begins
 
 1. FLUX model location **or** local API/ComfyUI endpoint.
 2. Chatterbox installation/command **or** local API endpoint.
 3. Deep Hindi voice-clone model location/invocation method.
-4. Optional local music/SFX model if available; otherwise use the built-in adapter contract.
+4. Optional local music/SFX model if available; otherwise use the adapter contract.
 5. Approved visual samples/references when available.
 
 Do not commit credentials, tokens, private keys, or model weights.
 
-## Current limitation
+## Verification boundary
 
-Repository implementation can be advanced and structurally reviewed here, but final M1 cannot be marked complete until the local dependencies/models are actually installed and a real MP4 is rendered and visually reviewed on the target machine.
+Repository implementation is not the same as runtime verification. M1 cannot be marked complete until local dependencies/models are actually executed and a real MP4 is rendered and visually reviewed on the target machine.
 
 ## Exact reproducible commands
 
@@ -81,7 +91,7 @@ npm run prepare -- examples/karna-short.json
 bash run.sh examples/karna-short.json
 ```
 
-The intended final user workflow remains a single production command; setup/model placement is a one-time configuration step.
+The preparation stage should produce a project-local `manifest.json`, `asset-plan.json`, and `assets/registry.json`. The current image adapter is a contract only until a real local command is configured.
 
 ## Release gates
 
