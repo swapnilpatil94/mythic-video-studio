@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.env
+.DS_Store
+*.mp4
+*.mov
+*.wav
+*.mp3
+projects/*
+!projects/.gitkeep
+assets/*
+!assets/.gitkeep
+renders/
+logs/
