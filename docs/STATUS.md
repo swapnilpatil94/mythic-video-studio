@@ -8,7 +8,7 @@ Updated: 2026-09-06
 
 **North star:** one command produces a publishable Hindi mythology video.
 
-**Current engineering focus:** asset generation/validation and narration timing correctness before generated-art compositing.
+**Current engineering focus:** trustworthy master-asset provenance/retries, then character references and generated-art compositing.
 
 ## Done — implemented and structurally verified in repository
 
@@ -53,14 +53,18 @@ Updated: 2026-09-06
 - [x] Audio duration report persisted under project logs
 - [x] Strict narration-duration gate before rendering
 - [x] One-command runner executes audio validation in strict mode
+- [x] SHA-256 asset provenance fields in the registry
+- [x] Asset generation attempt counting
+- [x] Asset generation runtime measurement
+- [x] Asset generation last-error persistence
+- [x] Automatic retry loop for missing generated assets
 
 ## In progress
 
 - [ ] Runtime verification against the user's actual FLUX/ComfyUI installation
 - [ ] Runtime verification against the user's actual Chatterbox/deep-Hindi voice setup
-- [ ] Record image generation runtime, retries and SHA-256 hashes in registry
 - [ ] Reference-image inputs for consistent characters and controlled edits
-- [ ] Better semantic asset requirements (transparent character vs opaque environment)
+- [ ] Semantic asset requirements (transparent character vs opaque environment)
 - [ ] Per-segment narration duration/alignment and waveform inspection
 - [ ] Music/SFX adapter
 - [ ] SVG draw-on animation primitives
@@ -75,6 +79,18 @@ Updated: 2026-09-06
 
 No repository-level blocker is preventing further coding. The remaining integration blockers are machine-specific: the exact local FLUX/ComfyUI invocation and Chatterbox/deep-Hindi invocation are not verified in this environment. The adapters deliberately do not invent model-specific commands.
 
+## Asset provenance contract
+
+Every successful generated/adopted asset can now carry a SHA-256 digest, generation timestamp, total generation runtime, cumulative attempt count and last error. Missing/failed jobs remain resumable. Existing ready files without a digest are hashed when encountered, without regenerating them.
+
+Useful variable:
+
+```bash
+IMAGE_GENERATION_MAX_ATTEMPTS=2
+```
+
+This is repository implementation only; it does not prove model quality or local generation performance.
+
 ## Audio inspection contract
 
 `src/inspect-audio.ts` probes the configured narration WAV using `ffprobe`, records duration/target/delta/tolerance in `projects/<project_id>/logs/audio-report.json`, and fails strict production when the total narration differs from the manifest target by more than `AUDIO_DURATION_TOLERANCE_SECONDS` (default `0.35`).
@@ -88,24 +104,6 @@ REQUIRE_TTS=1
 ```
 
 This is a total-duration gate only; beat-level waveform alignment is still pending.
-
-## Current audio contract
-
-The voice stage reads `beat.narration` and falls back to `beat.text`. It writes a deterministic job at `projects/<project_id>/logs/narration-job.json`. A configured command receives the job JSON as its final argument and must create the requested WAV output. Optional command arguments support `{job}` and `{output}` placeholders.
-
-Environment variables:
-
-```bash
-TTS_COMMAND=<local executable>
-TTS_ARGS=<optional arguments with {job} and/or {output}>
-TTS_VOICE=<optional voice identifier>
-TTS_REFERENCE_AUDIO=<optional reference voice path>
-REQUIRE_TTS=1
-```
-
-`CHATTERBOX_COMMAND`, `CHATTERBOX_ARGS`, `CHATTERBOX_VOICE`, and `CHATTERBOX_REFERENCE_AUDIO` are accepted aliases.
-
-The repository does not claim Chatterbox compatibility is runtime-proven until the user's actual installation executes successfully and the resulting audio is inspected.
 
 ## Current image contract
 
@@ -122,12 +120,13 @@ FFMPEG_COMMAND=ffmpeg
 
 ## Image adapter contract
 
-Set `FLUX_COMMAND` (or `IMAGE_GENERATOR_COMMAND`) to an executable that receives one JSON job as its final argument. The job contains `project_id`, `asset_id`, `kind`, `role`, `prompt`, and `output_path`. Optional `FLUX_ARGS` / `IMAGE_GENERATOR_ARGS` may contain `{job}` and `{output}` placeholders. The command must create the requested output file; otherwise the job is marked failed.
+Set `FLUX_COMMAND` (or `IMAGE_GENERATOR_COMMAND`) to an executable that receives one JSON job as its final argument. The job contains `project_id`, `asset_id`, `kind`, `role`, `prompt`, and `output_path`. Optional `FLUX_ARGS` / `IMAGE_GENERATOR_ARGS` may contain `{job}` and `{output}` placeholders. The command must create the requested output file; otherwise the job is retried and eventually marked failed.
 
 For unattended strict generation:
 
 ```bash
 REQUIRE_GENERATED_ASSETS=1
+IMAGE_GENERATION_MAX_ATTEMPTS=2
 ```
 
 ## Pending user inputs — only when adapter wiring begins
@@ -162,7 +161,7 @@ bash run.sh examples/karna-short.json
 Strict real-model run:
 
 ```bash
-REQUIRE_GENERATED_ASSETS=1 REQUIRE_TTS=1 NORMALIZE_ASSETS=1 bash run.sh examples/karna-short.json
+REQUIRE_GENERATED_ASSETS=1 REQUIRE_TTS=1 NORMALIZE_ASSETS=1 IMAGE_GENERATION_MAX_ATTEMPTS=2 bash run.sh examples/karna-short.json
 ```
 
 ## Release gates
