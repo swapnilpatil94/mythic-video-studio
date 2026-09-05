@@ -4,11 +4,61 @@ A local-first production system for high-retention Hindi mythology storytelling 
 
 **Current strategy:** prove the complete 60–90s Short pipeline first, then scale the same engine to 8–12 minute long-form episodes and serialized source-based seasons.
 
+## The rule
+
+**You run one command. The pipeline does the work.**
+
+The long-term command is:
+
+```bash
+bash run.sh examples/your-short.json
+```
+
+That command will install Node dependencies when needed, validate the manifest, prepare the runtime manifest, generate/resolve required assets through adapters, run Hindi TTS, compose the animation and render the MP4.
+
+During M1 the image/TTS adapters are intentionally being wired separately; the current renderer already proves the animation/compositing layer with procedural fallback artwork.
+
 ## Vision
 
 ChatGPT Frontier/Work is the creative director and research/writing environment. The local Mac is the production studio: asset generation, TTS, animation, compositing and rendering.
 
 We do **not** generate one AI image per shot. We generate a small set of high-quality master assets, then reuse, crop, layer, animate and transform them into many visual beats.
+
+## Visual target
+
+The target is **premium hand-illustrated Indian storytelling**:
+
+- cream/parchment paper base
+- expressive black ink linework
+- restrained gold/red accents
+- detailed Indian-inspired illustration
+- hand-drawn reveal and stroke animation
+- 2.5D camera movement, pans, pushes and parallax
+- strong Hindi typography
+- meaningful visual change every few seconds
+- respectful treatment of sacred/revered figures
+
+This is **not** a stock-footage documentary, generic slideshow, or crude stick-figure whiteboard.
+
+## Production architecture
+
+```text
+Frontier/Work
+   ↓
+research → story → source notes → character bible → storyboard
+   ↓
+local production package
+   ↓
+FLUX/local image adapter → master art/cache
+Chatterbox/deep Hindi voice adapter → narration
+music/SFX adapters
+   ↓
+asset preparation → SVG/procedural motion → 2.5D camera
+   ↓
+Remotion → FFmpeg → final.mp4
+```
+
+Remotion is the core animation/rendering engine because it lets the movie be generated from React/code, parameterized, and rendered to real MP4 files. urlRemotion official sitehttps://www.remotion.dev/
 
 ## First milestone
 
@@ -23,10 +73,11 @@ Then stress-test with 3 Shorts. Only after that do we enable long-form mode.
 - `docs/` — product vision, architecture, quality gates, progress
 - `prompts/` — Frontier prompts used to create production artifacts
 - `schemas/` — machine-readable contracts
-- `src/` — local orchestration/validation code
+- `src/` — local orchestration, adapters and rendering code
 - `examples/` — example project manifests
-- `projects/` — generated project data (ignored/generated in production)
-- `assets/` — generated media (ignored/generated in production)
+- `projects/` — generated project data
+- `assets/` — generated media
+- `renders/` — final MP4 output
 
 ## Design principles
 
@@ -36,7 +87,8 @@ Then stress-test with 3 Shorts. Only after that do we enable long-form mode.
 4. **Local-first production** — no dependency on an LLM API for the creative workflow.
 5. **Small artifacts** — long projects are split into series/episode/scene files instead of one giant prompt/output.
 6. **Recoverable execution** — every stage is resumable and idempotent.
-7. **Quality before speed** — optimize only after the visual target is good.
+7. **AI creates the artwork. Code creates the movie.**
+8. **No shot-per-image generation** — master assets are reused through crops, layers, motion and procedural effects.
 
 ## Status
 
