@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Mythic Character",
+  "type": "object",
+  "required": ["character_id", "name", "type", "visual_rules", "generation_prompt"],
+  "properties": {
+    "character_id": {"type": "string"},
+    "name": {"type": "string"},
+    "type": {"enum": ["revered_mythological", "historical", "generic", "creature", "symbolic"]},
+    "visual_rules": {"type": "array", "items": {"type": "string"}},
+    "required_poses": {"type": "array", "items": {"type": "string"}},
+    "generation_prompt": {"type": "string", "minLength": 20}
+  }
+}
