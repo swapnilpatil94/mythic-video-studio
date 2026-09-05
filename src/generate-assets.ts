@@ -3,8 +3,9 @@ import {readFile, writeFile} from 'node:fs/promises';
 import {buildAssetPlan, type AssetRequest} from './pipeline/asset-plan';
 import {projectPaths, ensureProjectPaths} from './pipeline/paths';
 import {loadRegistry, registerAsset} from './pipeline/asset-registry';
-import type {ProductionManifest, AssetRecord} from './pipeline/types';
+import type {ProductionManifest} from './pipeline/types';
 import {runCommand} from './adapters/command';
+import {sha256File} from './pipeline/file-hash';
 
 const input = process.argv[2] ?? 'examples/karna-short.json';
 const manifest = JSON.parse(await readFile(input, 'utf8')) as ProductionManifest;
@@ -16,6 +17,7 @@ const plan = buildAssetPlan(manifest);
 const command = (process.env.IMAGE_GENERATOR_COMMAND ?? process.env.FLUX_COMMAND)?.trim();
 const argsTemplate = (process.env.IMAGE_GENERATOR_ARGS ?? process.env.FLUX_ARGS ?? '').trim();
 const strict = process.env.REQUIRE_GENERATED_ASSETS === '1';
+const maxAttempts = Math.max(1, Number(process.env.IMAGE_GENERATION_MAX_ATTEMPTS ?? 2));
 
 function outputFor(request: AssetRequest): string {
   const bucket = request.kind === 'character' ? 'characters' : request.kind === 'environment' ? 'environments' : request.kind === 'prop' ? 'props' : 'assets';
@@ -38,6 +40,9 @@ for (const request of plan) {
   const existing = registry.assets[request.id];
 
   if (existing?.status === 'ready' && existsSync(existing.path)) {
+    if (!existing.sha256) {
+      await registerAsset(paths, registry, {...existing, sha256: await sha256File(existing.path)});
+    }
     ready += 1;
     continue;
   }
@@ -46,6 +51,7 @@ for (const request of plan) {
     await registerAsset(paths, registry, {
       ...(existing ?? {}), id: request.id, kind: request.kind, path: outputPath,
       prompt: request.promptHint, source: 'generated', status: 'ready',
+      sha256: await sha256File(outputPath), generated_at: existing?.generated_at ?? new Date().toISOString(),
     });
     ready += 1;
     continue;
@@ -56,6 +62,7 @@ for (const request of plan) {
     await registerAsset(paths, registry, {
       ...(existing ?? {}), id: request.id, kind: request.kind, path: outputPath,
       prompt: request.promptHint, source: 'generated', status: 'missing',
+      attempts: existing?.attempts ?? 0,
     });
     continue;
   }
@@ -71,26 +78,42 @@ for (const request of plan) {
   };
   await writeFile(jobPath, `${JSON.stringify(job, null, 2)}\n`, 'utf8');
 
-  console.log(`[image] generating ${request.id}`);
-  const result = await runCommand(command, [...commandArgs(argsTemplate, jobPath, outputPath), JSON.stringify(job)]);
+  let success = false;
+  let lastError = '';
+  const startedAt = Date.now();
+  const priorAttempts = existing?.attempts ?? 0;
 
-  if (result.code !== 0 || !existsSync(outputPath)) {
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    console.log(`[image] generating ${request.id} (attempt ${attempt}/${maxAttempts})`);
+    const result = await runCommand(command, [...commandArgs(argsTemplate, jobPath, outputPath), JSON.stringify(job)]);
+    const exists = existsSync(outputPath);
+    if (result.code === 0 && exists) {
+      success = true;
+      const now = new Date().toISOString();
+      await registerAsset(paths, registry, {
+        ...(existing ?? {}), id: request.id, kind: request.kind, path: outputPath,
+        prompt: request.promptHint, source: 'generated', status: 'ready',
+        sha256: await sha256File(outputPath), generated_at: now,
+        generation_runtime_ms: Date.now() - startedAt, attempts: priorAttempts + attempt,
+        last_error: undefined,
+      });
+      generated += 1;
+      break;
+    }
+    lastError = result.stderr?.trim() || `generator exited with code ${result.code}; output exists=${exists}`;
+  }
+
+  if (!success) {
     failed += 1;
     await registerAsset(paths, registry, {
       ...(existing ?? {}), id: request.id, kind: request.kind, path: outputPath,
       prompt: request.promptHint, source: 'generated', status: 'failed',
+      attempts: priorAttempts + maxAttempts, generation_runtime_ms: Date.now() - startedAt,
+      last_error: lastError,
     });
-    console.error(`[image] FAILED ${request.id}`);
-    if (result.stderr) console.error(result.stderr.trim());
+    console.error(`[image] FAILED ${request.id}: ${lastError}`);
     if (strict) throw new Error(`Image generation failed for ${request.id}`);
-    continue;
   }
-
-  await registerAsset(paths, registry, {
-    ...(existing ?? {}), id: request.id, kind: request.kind, path: outputPath,
-    prompt: request.promptHint, source: 'generated', status: 'ready',
-  });
-  generated += 1;
 }
 
 console.log(`Image stage: ready=${ready}, generated=${generated}, skipped=${skipped}, failed=${failed}`);
