@@ -8,9 +8,9 @@ Updated: 2026-09-06
 
 **North star:** one command produces a publishable Hindi mythology video.
 
-**Current engineering focus:** resumable local master-asset generation, with a provider-neutral FLUX/ComfyUI command boundary and deterministic renderer fallback.
+**Current engineering focus:** validating and normalizing generated master artwork before it enters the renderer, while preserving resumable local generation and a provider-neutral FLUX/ComfyUI boundary.
 
-## Done — verified in repository
+## Done — implemented and structurally verified in repository
 
 - [x] GitHub repository created
 - [x] Product vision documented
@@ -42,22 +42,25 @@ Updated: 2026-09-06
 - [x] Command-based local image adapter contract
 - [x] Master-asset prompt planner derived from beat references
 - [x] Sacred-figure prompt guardrails in the generated image contract
-- [x] Local adapter configuration documented
 - [x] Resumable missing-master-asset generation runner
 - [x] Existing output adoption into the asset registry
 - [x] Per-job JSON handoff containing prompt, role, asset ID and output path
 - [x] Optional strict image-generation mode (`REQUIRE_GENERATED_ASSETS=1`)
-- [x] One-command runner now prepares the project and executes the image stage before rendering
+- [x] One-command runner prepares the project and executes the image stage before rendering
+- [x] Pure-TypeScript PNG/JPEG image probing
+- [x] Image dimension and minimum-size validation
+- [x] PNG alpha-channel detection from image color type
+- [x] Asset inspection command
+- [x] Optional FFmpeg-based oversized-image normalization to PNG
+- [x] Registry width/height metadata populated after inspection/normalization
+- [x] Strict production gate now inspects generated assets before rendering
 
 ## In progress
 
-- [ ] Verify the image runner against the user's actual FLUX/ComfyUI installation
-- [ ] Generate and validate real character master art
-- [ ] Environment/prop generation and normalization
-- [ ] Transparent/layered asset preparation
-- [ ] Image dimensions/format validation
-- [ ] Asset registry metadata such as dimensions/hash/runtime
-- [ ] Optional reference-image paths for character consistency/editing
+- [ ] Runtime verification against the user's actual FLUX/ComfyUI installation
+- [ ] Record image-generation runtime, retries and hashes in registry
+- [ ] Reference-image inputs for consistent characters and controlled edits
+- [ ] Better semantic asset requirements (transparent character vs opaque environment)
 - [ ] Chatterbox adapter
 - [ ] Deep Hindi voice-clone adapter
 - [ ] Voice asset cache + timing alignment
@@ -74,9 +77,24 @@ Updated: 2026-09-06
 
 No repository-level blocker is preventing further coding. The remaining integration blocker is machine-specific: the exact local FLUX/ComfyUI invocation is not verified in this environment. The runner accepts a configured command but deliberately does not invent a model-specific command.
 
+## Current asset contract
+
+Supported inspection inputs are PNG and JPEG. Default validation requires dimensions of at least 256px and no dimension above 4096px. `NORMALIZE_ASSETS=1` enables FFmpeg conversion of oversized assets to deterministic PNG outputs, targeting 2048px maximum dimension by default.
+
+Useful environment variables:
+
+```bash
+MAX_ASSET_DIMENSION=4096
+NORMALIZED_ASSET_DIMENSION=2048
+NORMALIZE_ASSETS=1
+FFMPEG_COMMAND=ffmpeg
+```
+
+The validator intentionally does not claim that an image is visually good, semantically correct, or consistent with a character. Those remain visual QA responsibilities.
+
 ## Image adapter contract
 
-Set `FLUX_COMMAND` (or the more generic `IMAGE_GENERATOR_COMMAND`) to an executable that receives one JSON job as its final argument. The job contains `project_id`, `asset_id`, `kind`, `role`, `prompt`, and `output_path`. Optional `FLUX_ARGS` / `IMAGE_GENERATOR_ARGS` may contain `{job}` and `{output}` placeholders. The command must create the requested output file; otherwise the job is marked failed.
+Set `FLUX_COMMAND` (or `IMAGE_GENERATOR_COMMAND`) to an executable that receives one JSON job as its final argument. The job contains `project_id`, `asset_id`, `kind`, `role`, `prompt`, and `output_path`. Optional `FLUX_ARGS` / `IMAGE_GENERATOR_ARGS` may contain `{job}` and `{output}` placeholders. The command must create the requested output file; otherwise the job is marked failed.
 
 For unattended strict generation, set:
 
@@ -108,6 +126,8 @@ npm run validate -- examples/karna-short.json
 npm run inspect -- examples/karna-short.json
 npm run prepare -- examples/karna-short.json
 npm run generate:assets -- examples/karna-short.json
+npm run inspect:assets -- examples/karna-short.json
+npm run normalize:assets -- examples/karna-short.json
 bash run.sh examples/karna-short.json
 ```
 
@@ -115,6 +135,12 @@ For the first real FLUX run, configure the local command in `.env` and use stric
 
 ```bash
 REQUIRE_GENERATED_ASSETS=1 bash run.sh examples/karna-short.json
+```
+
+To allow automatic normalization of oversized generated images:
+
+```bash
+REQUIRE_GENERATED_ASSETS=1 NORMALIZE_ASSETS=1 bash run.sh examples/karna-short.json
 ```
 
 ## Release gates
