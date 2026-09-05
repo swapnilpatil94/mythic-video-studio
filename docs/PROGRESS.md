@@ -1,62 +1,94 @@
 # Progress
 
-## 2026-09-05 — Repository + M1 implementation
+## 2026-09-05 — Pipeline foundation iteration
 
-- [x] Define Short-first strategy
-- [x] Define long-form scaling strategy
-- [x] Define generative-first asset model
-- [x] Define mythology respect mode
-- [x] Define artifact-based architecture
-- [x] Create repository scaffold
-- [x] Create Frontier prompt contracts
-- [x] Create JSON schemas
-- [x] Create validation CLI
-- [x] Add Remotion composition
-- [x] Add 1080×1920 illustrated/procedural visual system
-- [x] Make visual beats manifest-driven
-- [x] Enforce exact beat-duration validation
-- [x] Add one-command runner
+### Completed this iteration
 
-## Current milestone: M1 — First rendered Short
+- [x] Replaced loose CLI validation with shared production-manifest validation.
+- [x] Validation now requires the beat-duration sum to equal the manifest duration exactly (0.01s tolerance).
+- [x] Duplicate beat IDs are rejected.
+- [x] Added typed production pipeline contracts for manifests and assets.
+- [x] Added deterministic project directory/path management.
+- [x] Added per-project asset registry with missing/ready/failed states.
+- [x] Added asset existence reconciliation so stale `ready` records become `missing`.
+- [x] Added automatic unique asset-plan generation from manifest references.
+- [x] Added resumable project-preparation stage.
+- [x] Preparation persists `manifest.json`, `asset-plan.json` and `assets/registry.json` inside the project.
+- [x] Remotion composition consumes the generated runtime manifest rather than a hard-coded beat list.
+- [x] Added `npm run prepare` to the supported local workflow.
+- [x] Updated status tracking to distinguish implementation completion from machine-level verification.
 
-### Implemented
-- Remotion renderer at 1080×1920 / 30fps
-- parchment/ink/gold/red visual language
-- procedural character and visitor fallback art
-- draw/reveal motion
-- camera push/zoom behavior
-- beat-driven typography
-- manifest-driven timeline
-- one-command local runner
+### Not claimed complete
 
-### Still to wire
-1. FLUX master-art adapter.
-2. Asset registry/cache and image preparation.
-3. Chatterbox/deep-Hindi voice adapter.
-4. Music/SFX adapter and mix rules.
-5. Real generated-art compositing in place of procedural fallback where assets exist.
-6. End-to-end MP4 QA and timing report.
+The following are intentionally still open:
 
-### Important test note
-The repository code has been written and checked structurally, but the current sandbox could not complete the full npm dependency installation within the execution window. Do not mark M1 complete until the user's Mac performs a real install + render and the output is visually reviewed.
+- FLUX generation/editing adapter
+- character identity/consistency workflow
+- environment and prop generation
+- image normalization and transparent/layered asset preparation
+- Chatterbox and deep-Hindi voice integration
+- audio timing/mixing
+- generated-art compositing
+- true SVG stroke/path draw-on system
+- 2.5D layered camera/parallax
+- captions
+- automated QA
+- real end-to-end MP4 verification
 
-## Exact execution target
+## Current milestone: M1 — First real Short
+
+### Immediate next engineering sequence
+
+1. Define provider-neutral image-generation adapter.
+2. Implement local FLUX/ComfyUI-compatible adapter without hard-coding a user's installation.
+3. Add asset prompt files generated from the visual bible and asset plan.
+4. Add image normalization/validation and registry updates.
+5. Define provider-neutral TTS adapter and Chatterbox command/API adapter.
+6. Add narration timing metadata to manifests.
+7. Replace procedural-only visuals with generated assets when available, while retaining fallback rendering.
+8. Add audio mix and captions.
+9. Run the complete Karna Short on the user's Mac.
+10. Record runtime, failures, generated asset count, final render status and visual QA.
+
+## Exact reproducible commands
 
 ```bash
+npm install
+npm run validate -- examples/karna-short.json
+npm run inspect -- examples/karna-short.json
+npm run prepare -- examples/karna-short.json
 bash run.sh examples/karna-short.json
 ```
 
-The same command will eventually remain the production command for both Shorts and long-form manifests.
+## Verification policy
 
-## Rules for progress
+A checkbox means the repository implementation exists and has been structurally reviewed. It does **not** mean the local model has been executed successfully. M1 remains open until a real MP4 is rendered and reviewed.
 
-Every milestone records:
-- what works
-- what failed
-- exact command to reproduce
+For every completed milestone we record:
+
+- implementation status
+- exact command
+- machine/model
 - runtime
-- machine/model used
+- generated asset count
+- failures/retries
 - visual quality notes
+- audio quality notes
 - next bottleneck
 
-Never mark a component complete just because it technically runs.
+## Product goal remains unchanged
+
+**AI creates the artwork. Code creates the movie.**
+
+The final system must support:
+
+- 60–90s high-retention Hindi mythology Shorts
+- reusable master assets rather than shot-per-image generation
+- dignified/source-aware mythology treatment
+- fast visual pacing with controlled camera/motion
+- deep Hindi narration
+- sound design/music
+- one-command local production after one-time setup
+- three-Short daily batching
+- 8–12 minute long-form episodes using the same engine
+- serialized season/episode automation later
