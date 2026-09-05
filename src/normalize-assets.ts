@@ -1,6 +1,6 @@
 import {existsSync} from 'node:fs';
-import {mkdir, readFile} from 'node:fs/promises';
-import {dirname, extname, join} from 'node:path';
+import {mkdir, readFile, unlink} from 'node:fs/promises';
+import {dirname, join} from 'node:path';
 import {buildAssetPlan} from './pipeline/asset-plan';
 import {projectPaths, ensureProjectPaths} from './pipeline/paths';
 import {loadRegistry, registerAsset} from './pipeline/asset-registry';
@@ -19,7 +19,8 @@ const maxDimension = Number(process.env.MAX_ASSET_DIMENSION ?? 4096);
 const targetDimension = Number(process.env.NORMALIZED_ASSET_DIMENSION ?? 2048);
 const normalize = process.env.NORMALIZE_ASSETS === '1';
 
-if (normalize && !Number.isFinite(targetDimension)) throw new Error('NORMALIZED_ASSET_DIMENSION must be a number');
+if (!Number.isFinite(maxDimension) || maxDimension < 256) throw new Error('MAX_ASSET_DIMENSION must be >= 256');
+if (!Number.isFinite(targetDimension) || targetDimension < 256 || targetDimension > maxDimension) throw new Error('NORMALIZED_ASSET_DIMENSION must be >= 256 and <= MAX_ASSET_DIMENSION');
 
 for (const request of plan) {
   const record = registry.assets[request.id];
@@ -27,25 +28,27 @@ for (const request of plan) {
   try {
     const probe = await probeImage(record.path);
     if (probe.width <= maxDimension && probe.height <= maxDimension) {
+      validateImage(probe, {maxDimension});
       await registerAsset(paths, registry, {...record, status: 'ready', width: probe.width, height: probe.height});
       console.log(`[asset] validated ${request.id}: ${probe.width}x${probe.height}`);
       continue;
     }
     if (!normalize) throw new Error(`exceeds ${maxDimension}px; rerun with NORMALIZE_ASSETS=1`);
-    const output = join(dirname(record.path), `.normalized-${request.id.replaceAll('.', '_')}.png`);
-    await mkdir(dirname(output), {recursive: true});
+
+    const normalized = join(dirname(record.path), `${request.id.replaceAll('.', '_')}.png`);
+    const temp = join(dirname(record.path), `.normalizing-${request.id.replaceAll('.', '_')}.png`);
+    await mkdir(dirname(normalized), {recursive: true});
     const scale = `scale='min(${targetDimension},iw)':'min(${targetDimension},ih)':force_original_aspect_ratio=decrease`;
-    const result = await runCommand(ffmpeg, ['-y', '-i', record.path, '-vf', scale, '-frames:v', '1', output]);
-    if (result.code !== 0 || !existsSync(output)) throw new Error(result.stderr || 'ffmpeg normalization failed');
-    const normalized = record.path.replace(new RegExp(`${extname(record.path)}$`), '.png');
-    if (normalized !== record.path) {
-      const moveResult = await runCommand(ffmpeg, ['-y', '-i', output, normalized]);
-      if (moveResult.code !== 0 || !existsSync(normalized)) throw new Error(moveResult.stderr || 'ffmpeg finalization failed');
-    }
-    const finalPath = normalized === record.path ? output : normalized;
-    const checked = await probeImage(finalPath);
+    const result = await runCommand(ffmpeg, ['-y', '-i', record.path, '-vf', scale, '-frames:v', '1', '-c:v', 'png', temp]);
+    if (result.code !== 0 || !existsSync(temp)) throw new Error(result.stderr || 'ffmpeg normalization failed');
+    if (normalized !== record.path) await unlink(normalized).catch(() => undefined);
+    await runCommand(ffmpeg, ['-y', '-i', temp, '-frames:v', '1', '-c:v', 'png', normalized]);
+    await unlink(temp).catch(() => undefined);
+    if (!existsSync(normalized)) throw new Error('normalized output was not created');
+    const checked = await probeImage(normalized);
     validateImage(checked, {maxDimension});
-    await registerAsset(paths, registry, {...record, path: finalPath, status: 'ready', width: checked.width, height: checked.height, source: record.source ?? 'generated'});
+    if (record.path !== normalized) await unlink(record.path).catch(() => undefined);
+    await registerAsset(paths, registry, {...record, path: normalized, status: 'ready', width: checked.width, height: checked.height});
     console.log(`[asset] normalized ${request.id}: ${checked.width}x${checked.height}`);
   } catch (error) {
     await registerAsset(paths, registry, {...record, status: 'failed'});
