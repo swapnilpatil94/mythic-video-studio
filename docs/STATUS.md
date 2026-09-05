@@ -8,7 +8,7 @@ Updated: 2026-09-06
 
 **North star:** one command produces a publishable Hindi mythology video.
 
-**Current engineering focus:** provider-neutral local image generation with master-asset prompts, while keeping the renderer deterministic and resumable.
+**Current engineering focus:** resumable local master-asset generation, with a provider-neutral FLUX/ComfyUI command boundary and deterministic renderer fallback.
 
 ## Done — verified in repository
 
@@ -42,34 +42,53 @@ Updated: 2026-09-06
 - [x] Command-based local image adapter contract
 - [x] Master-asset prompt planner derived from beat references
 - [x] Sacred-figure prompt guardrails in the generated image contract
-- [x] Local adapter configuration documented in `config/.env.example`
+- [x] Local adapter configuration documented
+- [x] Resumable missing-master-asset generation runner
+- [x] Existing output adoption into the asset registry
+- [x] Per-job JSON handoff containing prompt, role, asset ID and output path
+- [x] Optional strict image-generation mode (`REQUIRE_GENERATED_ASSETS=1`)
+- [x] One-command runner now prepares the project and executes the image stage before rendering
 
 ## In progress
 
-- [ ] Connect the image adapter to the user's actual FLUX/ComfyUI installation
+- [ ] Verify the image runner against the user's actual FLUX/ComfyUI installation
 - [ ] Generate and validate real character master art
 - [ ] Environment/prop generation and normalization
 - [ ] Transparent/layered asset preparation
-- [ ] Asset registry updates after real generation
+- [ ] Image dimensions/format validation
+- [ ] Asset registry metadata such as dimensions/hash/runtime
+- [ ] Optional reference-image paths for character consistency/editing
 - [ ] Chatterbox adapter
 - [ ] Deep Hindi voice-clone adapter
 - [ ] Voice asset cache + timing alignment
 - [ ] Music/SFX adapter
 - [ ] SVG draw-on animation primitives
 - [ ] True layered 2.5D camera/parallax system
+- [ ] Generated-art compositing with procedural fallback
 - [ ] Automated subtitles/captions
 - [ ] Final audio mix
-- [ ] Generated-art compositing with procedural fallback
 - [ ] Automated visual/technical QA report
 - [ ] End-to-end real Karna render on the user's machine
 
 ## Blockers
 
-No repository-level blocker is preventing further coding. The remaining integration blocker is machine-specific: the exact local FLUX/ComfyUI invocation and Chatterbox invocation are not verified in this environment. Do not invent those commands.
+No repository-level blocker is preventing further coding. The remaining integration blocker is machine-specific: the exact local FLUX/ComfyUI invocation is not verified in this environment. The runner accepts a configured command but deliberately does not invent a model-specific command.
+
+## Image adapter contract
+
+Set `FLUX_COMMAND` (or the more generic `IMAGE_GENERATOR_COMMAND`) to an executable that receives one JSON job as its final argument. The job contains `project_id`, `asset_id`, `kind`, `role`, `prompt`, and `output_path`. Optional `FLUX_ARGS` / `IMAGE_GENERATOR_ARGS` may contain `{job}` and `{output}` placeholders. The command must create the requested output file; otherwise the job is marked failed.
+
+For unattended strict generation, set:
+
+```bash
+REQUIRE_GENERATED_ASSETS=1
+```
+
+Without strict mode, missing/unconfigured image generation is recorded and the procedural renderer may continue. This preserves recoverability while preventing a missing model from being mistaken for a successful generated-art stage.
 
 ## Pending user inputs — only when adapter wiring begins
 
-1. FLUX model location **or** local API/ComfyUI endpoint.
+1. FLUX model location **or** local API/ComfyUI endpoint/command.
 2. Chatterbox installation/command **or** local API endpoint.
 3. Deep Hindi voice-clone model location/invocation method.
 4. Optional local music/SFX model if available; otherwise use the adapter contract.
@@ -88,10 +107,15 @@ npm install
 npm run validate -- examples/karna-short.json
 npm run inspect -- examples/karna-short.json
 npm run prepare -- examples/karna-short.json
+npm run generate:assets -- examples/karna-short.json
 bash run.sh examples/karna-short.json
 ```
 
-The preparation stage should produce a project-local `manifest.json`, `asset-plan.json`, and `assets/registry.json`. The current image adapter is a contract only until a real local command is configured.
+For the first real FLUX run, configure the local command in `.env` and use strict mode:
+
+```bash
+REQUIRE_GENERATED_ASSETS=1 bash run.sh examples/karna-short.json
+```
 
 ## Release gates
 
