@@ -1,5 +1,5 @@
 import {existsSync} from 'node:fs';
-import {readFile} from 'node:fs/promises';
+import {readFile, writeFile} from 'node:fs/promises';
 import {buildAssetPlan, type AssetRequest} from './pipeline/asset-plan';
 import {projectPaths, ensureProjectPaths} from './pipeline/paths';
 import {loadRegistry, registerAsset} from './pipeline/asset-registry';
@@ -13,8 +13,8 @@ await ensureProjectPaths(paths);
 const registry = await loadRegistry(paths, manifest.project_id);
 const plan = buildAssetPlan(manifest);
 
-const command = process.env.IMAGE_GENERATOR_COMMAND?.trim();
-const argsTemplate = process.env.IMAGE_GENERATOR_ARGS?.trim() ?? '';
+const command = (process.env.IMAGE_GENERATOR_COMMAND ?? process.env.FLUX_COMMAND)?.trim();
+const argsTemplate = (process.env.IMAGE_GENERATOR_ARGS ?? process.env.FLUX_ARGS ?? '').trim();
 const strict = process.env.REQUIRE_GENERATED_ASSETS === '1';
 
 function outputFor(request: AssetRequest): string {
@@ -22,7 +22,7 @@ function outputFor(request: AssetRequest): string {
   return `${paths.root}/assets/${bucket}/${request.id.replaceAll('.', '_')}.png`;
 }
 
-function shellArgs(template: string, jobPath: string, outputPath: string): string[] {
+function commandArgs(template: string, jobPath: string, outputPath: string): string[] {
   return template.split(/\s+/).filter(Boolean).map((token) => token
     .replaceAll('{job}', jobPath)
     .replaceAll('{output}', outputPath));
@@ -43,32 +43,20 @@ for (const request of plan) {
   }
 
   if (existsSync(outputPath)) {
-    const adopted: AssetRecord = {
-      ...(existing ?? {}),
-      id: request.id,
-      kind: request.kind,
-      path: outputPath,
-      prompt: request.promptHint,
-      source: 'generated',
-      status: 'ready',
-    };
-    await registerAsset(paths, registry, adopted);
+    await registerAsset(paths, registry, {
+      ...(existing ?? {}), id: request.id, kind: request.kind, path: outputPath,
+      prompt: request.promptHint, source: 'generated', status: 'ready',
+    });
     ready += 1;
     continue;
   }
 
   if (!command) {
     skipped += 1;
-    registry.assets[request.id] = {
-      ...(existing ?? {}),
-      id: request.id,
-      kind: request.kind,
-      path: outputPath,
-      prompt: request.promptHint,
-      source: 'generated',
-      status: 'missing',
-    };
-    await registerAsset(paths, registry, registry.assets[request.id]);
+    await registerAsset(paths, registry, {
+      ...(existing ?? {}), id: request.id, kind: request.kind, path: outputPath,
+      prompt: request.promptHint, source: 'generated', status: 'missing',
+    });
     continue;
   }
 
@@ -81,23 +69,17 @@ for (const request of plan) {
     prompt: request.promptHint,
     output_path: outputPath,
   };
-  await (await import('node:fs/promises')).writeFile(jobPath, `${JSON.stringify(job, null, 2)}\n`, 'utf8');
+  await writeFile(jobPath, `${JSON.stringify(job, null, 2)}\n`, 'utf8');
 
   console.log(`[image] generating ${request.id}`);
-  const result = await runCommand(command, [...shellArgs(argsTemplate, jobPath, outputPath), JSON.stringify(job)]);
+  const result = await runCommand(command, [...commandArgs(argsTemplate, jobPath, outputPath), JSON.stringify(job)]);
 
   if (result.code !== 0 || !existsSync(outputPath)) {
     failed += 1;
-    registry.assets[request.id] = {
-      ...(existing ?? {}),
-      id: request.id,
-      kind: request.kind,
-      path: outputPath,
-      prompt: request.promptHint,
-      source: 'generated',
-      status: 'failed',
-    };
-    await registerAsset(paths, registry, registry.assets[request.id]);
+    await registerAsset(paths, registry, {
+      ...(existing ?? {}), id: request.id, kind: request.kind, path: outputPath,
+      prompt: request.promptHint, source: 'generated', status: 'failed',
+    });
     console.error(`[image] FAILED ${request.id}`);
     if (result.stderr) console.error(result.stderr.trim());
     if (strict) throw new Error(`Image generation failed for ${request.id}`);
@@ -105,13 +87,8 @@ for (const request of plan) {
   }
 
   await registerAsset(paths, registry, {
-    ...(existing ?? {}),
-    id: request.id,
-    kind: request.kind,
-    path: outputPath,
-    prompt: request.promptHint,
-    source: 'generated',
-    status: 'ready',
+    ...(existing ?? {}), id: request.id, kind: request.kind, path: outputPath,
+    prompt: request.promptHint, source: 'generated', status: 'ready',
   });
   generated += 1;
 }
