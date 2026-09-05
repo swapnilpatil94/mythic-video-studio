@@ -1,35 +1,35 @@
 # Progress
 
-## 2026-09-06 — Audio duration validation gate
+## 2026-09-06 — Asset provenance, retry and runtime tracking
 
 ### Completed this iteration
 
-- [x] Added `src/inspect-audio.ts`.
-- [x] Added `npm run inspect:audio`.
-- [x] Narration WAV is probed with `ffprobe` rather than trusted solely because the TTS command exited successfully.
-- [x] Total narration duration is compared with the manifest duration.
-- [x] Configurable tolerance via `AUDIO_DURATION_TOLERANCE_SECONDS` (default `0.35`).
-- [x] Persisted `projects/<project_id>/logs/audio-report.json` with measured duration, target, delta and tolerance.
-- [x] Strict production now fails before rendering when narration duration is outside tolerance.
-- [x] Updated `package.json`, `src/produce.ts`, and `docs/STATUS.md`.
+- [x] Added SHA-256 hashing for asset files.
+- [x] Extended `AssetRecord` with provenance fields: `sha256`, `generated_at`, `generation_runtime_ms`, `attempts`, and `last_error`.
+- [x] Existing ready assets without a hash are hashed instead of regenerated.
+- [x] Existing output files are adopted with a SHA-256 digest.
+- [x] Image generation now has a configurable retry loop via `IMAGE_GENERATION_MAX_ATTEMPTS` (default `2`).
+- [x] Each successful generation records total wall-clock generation time.
+- [x] Failed generation records cumulative attempts and the last error.
+- [x] Strict mode still stops on failed or missing assets.
+- [x] Updated `docs/STATUS.md` with the new contract and exact commands.
 
 ### Verification boundary
 
-This milestone is repository-implemented and structurally reviewed. It is **not** runtime verification of Chatterbox. No claim is made about the user's actual TTS installation until a real WAV is generated and successfully inspected on the target machine.
+The implementation is repository-complete for this milestone and was written against the current asset-generation contract. It is **not** runtime verification of FLUX/ComfyUI. No claim is made about actual model generation speed, image quality, or provider-specific behavior until the configured local command executes on the target machine.
 
 ## Current milestone: M1 — First real Short
 
 ### Immediate next engineering sequence
 
-1. Verify FLUX/ComfyUI and Chatterbox against the user's actual local installations.
-2. Add image runtime, retry and SHA-256 metadata to the asset registry.
-3. Add reference-image inputs and semantic asset requirements for character/environment outputs.
-4. Add per-segment narration timing/alignment and waveform inspection.
-5. Add music/SFX adapter and final audio mix.
-6. Connect generated master artwork to the Remotion compositor with layered crops, pans, zooms and draw-on transitions.
-7. Add true 2.5D/parallax and SVG stroke primitives.
-8. Add automated captions and technical/visual QA report.
-9. Run the complete Karna Short on the target Mac and record real runtime/quality metrics.
+1. Add reference-image inputs and semantic asset requirements for character/environment outputs.
+2. Add per-segment narration timing/alignment and waveform inspection.
+3. Add music/SFX adapter and final audio mix.
+4. Connect generated master artwork to the Remotion compositor with layered crops, pans, zooms and draw-on transitions.
+5. Add true 2.5D/parallax and SVG stroke primitives.
+6. Add automated captions and technical/visual QA report.
+7. Verify FLUX/ComfyUI and Chatterbox/deep-Hindi against the user's actual local installations.
+8. Run the complete Karna Short on the target Mac and record real runtime/quality metrics.
 
 ## Exact reproducible commands
 
@@ -48,7 +48,7 @@ bash run.sh examples/karna-short.json
 Strict first real-model run:
 
 ```bash
-REQUIRE_GENERATED_ASSETS=1 REQUIRE_TTS=1 NORMALIZE_ASSETS=1 bash run.sh examples/karna-short.json
+REQUIRE_GENERATED_ASSETS=1 REQUIRE_TTS=1 NORMALIZE_ASSETS=1 IMAGE_GENERATION_MAX_ATTEMPTS=2 bash run.sh examples/karna-short.json
 ```
 
 ## Verification policy
