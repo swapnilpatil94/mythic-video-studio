@@ -1,26 +1,21 @@
 # Progress
 
-## 2026-09-06 — Provider-neutral Hindi narration stage
+## 2026-09-06 — Audio duration validation gate
 
 ### Completed this iteration
 
-- [x] Added `src/generate-voice.ts` as the executable narration stage.
-- [x] The stage extracts `beat.narration`, falling back to `beat.text` for existing manifests.
-- [x] Each narration segment receives beat ID, start time and target beat duration metadata.
-- [x] Persisted `projects/<project_id>/logs/narration-job.json` as the stable handoff between the creative manifest and a local TTS engine.
-- [x] Added provider-neutral command configuration through `TTS_COMMAND` / `CHATTERBOX_COMMAND`.
-- [x] Added optional `{job}` and `{output}` argument placeholders.
-- [x] Added optional voice and reference-audio fields for deep Hindi voice cloning.
-- [x] Existing narration output is reused rather than regenerated.
-- [x] A narration job is accepted only when the command succeeds and the requested output exists.
-- [x] Added `REQUIRE_TTS=1` for a strict first real voice run.
-- [x] Added `npm run generate:voice`.
-- [x] Wired the narration stage into `src/produce.ts` before the Remotion render.
-- [x] Updated `docs/STATUS.md` with the audio contract and exact strict command.
+- [x] Added `src/inspect-audio.ts`.
+- [x] Added `npm run inspect:audio`.
+- [x] Narration WAV is probed with `ffprobe` rather than trusted solely because the TTS command exited successfully.
+- [x] Total narration duration is compared with the manifest duration.
+- [x] Configurable tolerance via `AUDIO_DURATION_TOLERANCE_SECONDS` (default `0.35`).
+- [x] Persisted `projects/<project_id>/logs/audio-report.json` with measured duration, target, delta and tolerance.
+- [x] Strict production now fails before rendering when narration duration is outside tolerance.
+- [x] Updated `package.json`, `src/produce.ts`, and `docs/STATUS.md`.
 
-### Not claimed complete
+### Verification boundary
 
-Chatterbox/deep-Hindi voice generation is **not runtime-verified**. The repository now exposes the integration boundary, but no claim is made about the user's installed Chatterbox command/API, voice-clone model, Hindi pronunciation, generation speed, WAV format, or timing accuracy until it runs on the target machine.
+This milestone is repository-implemented and structurally reviewed. It is **not** runtime verification of Chatterbox. No claim is made about the user's actual TTS installation until a real WAV is generated and successfully inspected on the target machine.
 
 ## Current milestone: M1 — First real Short
 
@@ -29,7 +24,7 @@ Chatterbox/deep-Hindi voice generation is **not runtime-verified**. The reposito
 1. Verify FLUX/ComfyUI and Chatterbox against the user's actual local installations.
 2. Add image runtime, retry and SHA-256 metadata to the asset registry.
 3. Add reference-image inputs and semantic asset requirements for character/environment outputs.
-4. Add WAV inspection and actual narration-duration validation against the beat timeline.
+4. Add per-segment narration timing/alignment and waveform inspection.
 5. Add music/SFX adapter and final audio mix.
 6. Connect generated master artwork to the Remotion compositor with layered crops, pans, zooms and draw-on transitions.
 7. Add true 2.5D/parallax and SVG stroke primitives.
@@ -46,6 +41,7 @@ npm run generate:assets -- examples/karna-short.json
 npm run inspect:assets -- examples/karna-short.json
 npm run normalize:assets -- examples/karna-short.json
 npm run generate:voice -- examples/karna-short.json
+npm run inspect:audio -- examples/karna-short.json
 bash run.sh examples/karna-short.json
 ```
 
