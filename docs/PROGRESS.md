@@ -1,54 +1,37 @@
 # Progress
 
-## 2026-09-05 — Pipeline foundation iteration
+## 2026-09-06 — Local image integration foundation
 
 ### Completed this iteration
 
-- [x] Replaced loose CLI validation with shared production-manifest validation.
-- [x] Validation now requires the beat-duration sum to equal the manifest duration exactly (0.01s tolerance).
-- [x] Duplicate beat IDs are rejected.
-- [x] Added typed production pipeline contracts for manifests and assets.
-- [x] Added deterministic project directory/path management.
-- [x] Added per-project asset registry with missing/ready/failed states.
-- [x] Added asset existence reconciliation so stale `ready` records become `missing`.
-- [x] Added automatic unique asset-plan generation from manifest references.
-- [x] Added resumable project-preparation stage.
-- [x] Preparation persists `manifest.json`, `asset-plan.json` and `assets/registry.json` inside the project.
-- [x] Remotion composition consumes the generated runtime manifest rather than a hard-coded beat list.
-- [x] Added `npm run prepare` to the supported local workflow.
-- [x] Updated status tracking to distinguish implementation completion from machine-level verification.
+- [x] Added a provider-neutral `ImageAdapter` contract.
+- [x] Added a JSON-command image adapter that can wrap a local FLUX/ComfyUI runner without hard-coding its installation.
+- [x] Added deterministic output-path and missing-output checks to the image adapter.
+- [x] Added a master-asset prompt planner that deduplicates asset references across beats.
+- [x] Prompt planning now carries story-role context into each unique asset job instead of creating one generation job per shot.
+- [x] Added explicit sacred-figure visual guardrails to generated prompts: dignified, non-comedic, non-caricatured, no UI/text/watermarks.
+- [x] Rewired the asset plan to use the richer prompt planner.
+- [x] Documented the local adapter configuration surface in `config/.env.example`.
+- [x] Updated `docs/STATUS.md` with the new milestone, blocker boundary and verification rules.
 
 ### Not claimed complete
 
-The following are intentionally still open:
-
-- FLUX generation/editing adapter
-- character identity/consistency workflow
-- environment and prop generation
-- image normalization and transparent/layered asset preparation
-- Chatterbox and deep-Hindi voice integration
-- audio timing/mixing
-- generated-art compositing
-- true SVG stroke/path draw-on system
-- 2.5D layered camera/parallax
-- captions
-- automated QA
-- real end-to-end MP4 verification
+The adapter is intentionally **not** marked as FLUX-integrated. The repository has a stable contract, but the user's actual FLUX/ComfyUI command or endpoint has not been executed here. No model runtime, generation speed, image quality, or output compatibility is being claimed.
 
 ## Current milestone: M1 — First real Short
 
 ### Immediate next engineering sequence
 
-1. Define provider-neutral image-generation adapter.
-2. Implement local FLUX/ComfyUI-compatible adapter without hard-coding a user's installation.
-3. Add asset prompt files generated from the visual bible and asset plan.
-4. Add image normalization/validation and registry updates.
+1. Add a concrete local FLUX/ComfyUI bridge against the configured command or endpoint.
+2. Generate only missing master assets from `asset-plan.json` and update the registry after each successful file.
+3. Add image dimensions/format validation and normalization.
+4. Add optional reference-image paths for character consistency/editing.
 5. Define provider-neutral TTS adapter and Chatterbox command/API adapter.
-6. Add narration timing metadata to manifests.
-7. Replace procedural-only visuals with generated assets when available, while retaining fallback rendering.
-8. Add audio mix and captions.
-9. Run the complete Karna Short on the user's Mac.
-10. Record runtime, failures, generated asset count, final render status and visual QA.
+6. Add narration timing metadata and audio cache.
+7. Replace procedural-only visuals with generated assets when available, retaining fallback rendering.
+8. Add SVG stroke/path draw-on primitives and true layered 2.5D camera/parallax.
+9. Add audio mix, captions and automated technical QA.
+10. Run the complete Karna Short on the user's Mac and record real runtime/quality metrics.
 
 ## Exact reproducible commands
 
@@ -62,9 +45,9 @@ bash run.sh examples/karna-short.json
 
 ## Verification policy
 
-A checkbox means the repository implementation exists and has been structurally reviewed. It does **not** mean the local model has been executed successfully. M1 remains open until a real MP4 is rendered and reviewed.
+A checkbox means the repository implementation exists and has been structurally reviewed. It does **not** mean a local model executed successfully. M1 remains open until a real MP4 is rendered and reviewed.
 
-For every completed milestone we record:
+For every completed milestone record:
 
 - implementation status
 - exact command
