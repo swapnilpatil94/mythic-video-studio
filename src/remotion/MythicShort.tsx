@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useMemo} from 'react';
 import {AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig} from 'remotion';
 
 const INK = '#171510';
@@ -6,13 +6,21 @@ const CREAM = '#F4E8CF';
 const GOLD = '#B8872D';
 const RED = '#8E2F24';
 
-const beatData = [
-  {start: 0, end: 5, role: 'hook', text: 'कर्ण की सबसे बड़ी ताकत...', label: 'कर्ण'},
-  {start: 5, end: 11, role: 'armor', text: 'कवच और कुंडल', label: 'कवच • कुंडल'},
-  {start: 11, end: 18, role: 'threat', text: 'लेकिन एक दिन...', label: 'एक अनजान याचक'},
-  {start: 18, end: 26, role: 'visitor', text: 'एक याचक आया', label: 'याचक'},
-  {start: 26, end: 34, role: 'decision', text: 'कर्ण ने मना नहीं किया', label: 'दान'},
-];
+type Manifest = {
+  title: string;
+  duration_seconds: number;
+  beats: Array<{
+    beat_id: string;
+    duration_seconds: number;
+    visual_role: string;
+    asset_refs: string[];
+    camera?: string;
+    animation?: string;
+    text?: string;
+  }>;
+};
+
+type Beat = Manifest['beats'][number] & {start: number; end: number; label: string};
 
 function SketchSun({opacity = 1}: {opacity?: number}) {
   return <g opacity={opacity}>
@@ -60,26 +68,40 @@ function Visitor({progress}: {progress: number}) {
   </g>;
 }
 
-export const MythicShort: React.FC<{manifestPath?: string}> = () => {
+const labelForRole = (role: string) => role.replaceAll('_', ' ').toUpperCase();
+
+export const MythicShort: React.FC<{manifest: Manifest}> = ({manifest}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const t = frame / fps;
-  const beat = beatData.find((b) => t >= b.start && t < b.end) ?? beatData[beatData.length - 1];
+  const beats = useMemo<Beat[]>(() => {
+    let cursor = 0;
+    return manifest.beats.map((b) => {
+      const start = cursor;
+      cursor += b.duration_seconds;
+      return {...b, start, end: cursor, label: labelForRole(b.visual_role)};
+    });
+  }, [manifest]);
+
+  const beat = beats.find((b) => t >= b.start && t < b.end) ?? beats[beats.length - 1];
   const local = Math.max(0, Math.min(1, (t - beat.start) / Math.max(0.1, beat.end - beat.start)));
   const draw = interpolate(local, [0, 0.35, 1], [0, 0.65, 1]);
   const camera = interpolate(local, [0, 1], [1.08, 1]);
   const titleOpacity = interpolate(local, [0, 0.18, 0.8, 1], [0, 1, 1, 0]);
+  const isVisitor = beat.visual_role.includes('visitor') || beat.visual_role === 'decision' || beat.visual_role === 'request' || beat.visual_role === 'sacrifice';
+  const isArmor = beat.visual_role.includes('armor') || beat.visual_role === 'sacrifice';
+  const isThreat = beat.visual_role === 'threat' || beat.visual_role === 'stakes';
 
   return <AbsoluteFill style={{backgroundColor: CREAM, fontFamily: 'Noto Sans Devanagari, Noto Sans, sans-serif', color: INK}}>
     <AbsoluteFill style={{transform: `scale(${camera})`, transformOrigin: '50% 50%'}}>
       <svg width="100%" height="100%" viewBox="0 0 1080 1920">
         <rect width="1080" height="1920" fill={CREAM}/>
         <path d="M70 90 Q540 40 1010 90 M70 1830 Q540 1880 1010 1830" fill="none" stroke={INK} strokeWidth="4" opacity="0.25"/>
-        <SketchSun opacity={beat.role === 'hook' || beat.role === 'armor' ? 1 : 0.25}/>
-        <KarnaFigure progress={beat.role === 'visitor' ? 1 : draw}/>
-        {beat.role === 'visitor' || beat.role === 'decision' ? <Visitor progress={draw}/> : null}
-        {beat.role === 'threat' ? <path d="M70 1450 Q250 1320 430 1460 T800 1420 T1010 1470" fill="none" stroke={RED} strokeWidth="18" opacity={draw}/> : null}
-        {beat.role === 'armor' ? <g opacity={draw}><path d="M350 980 Q540 820 730 980" fill="none" stroke={GOLD} strokeWidth="26"/><circle cx="540" cy="980" r="22" fill={GOLD}/></g> : null}
+        <SketchSun opacity={beat.visual_role === 'hook' || isArmor ? 1 : 0.25}/>
+        <KarnaFigure progress={isVisitor ? 1 : draw}/>
+        {isVisitor ? <Visitor progress={draw}/> : null}
+        {isThreat ? <path d="M70 1450 Q250 1320 430 1460 T800 1420 T1010 1470" fill="none" stroke={RED} strokeWidth="18" opacity={draw}/> : null}
+        {isArmor ? <g opacity={draw}><path d="M350 980 Q540 820 730 980" fill="none" stroke={GOLD} strokeWidth="26"/><circle cx="540" cy="980" r="22" fill={GOLD}/></g> : null}
       </svg>
     </AbsoluteFill>
 
@@ -94,7 +116,7 @@ export const MythicShort: React.FC<{manifestPath?: string}> = () => {
     </div>
 
     <div style={{position: 'absolute', left: 70, bottom: 55, fontSize: 18, opacity: 0.45}}>
-      hand-illustrated • procedural motion prototype
+      hand-illustrated • procedural motion
     </div>
   </AbsoluteFill>;
 };
