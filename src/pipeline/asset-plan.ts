@@ -1,4 +1,5 @@
 import type {ProductionManifest} from './types';
+import {buildAssetPromptJobs} from './asset-prompts';
 
 export type AssetRequest = {
   id: string;
@@ -9,26 +10,12 @@ export type AssetRequest = {
 };
 
 export function buildAssetPlan(manifest: ProductionManifest): AssetRequest[] {
-  const requests = new Map<string, AssetRequest>();
-  for (const beat of manifest.beats) {
-    for (const ref of beat.asset_refs) {
-      if (requests.has(ref)) continue;
-      const [prefix, name] = ref.split('.', 2);
-      const kind = prefix === 'character' || ['karna', 'indra'].includes(name ?? prefix)
-        ? 'character'
-        : prefix === 'environment' || prefix === 'battlefield'
-          ? 'environment'
-          : prefix === 'prop' || prefix === 'armor'
-            ? 'prop'
-            : 'background';
-      requests.set(ref, {
-        id: ref,
-        kind,
-        role: beat.visual_role,
-        promptHint: `Create a ${kind} master asset for the beat role "${beat.visual_role}". Reference: ${ref}. Preserve the Mythic Video Studio Indian ink-and-wash visual bible, dignified mythology treatment, parchment background, black ink linework, restrained gold/red accents.`,
-        required: true,
-      });
-    }
-  }
-  return [...requests.values()];
+  const jobs = buildAssetPromptJobs(manifest);
+  return jobs.map((job) => ({
+    id: job.asset_id,
+    kind: job.kind,
+    role: job.prompt.match(/story roles: ([^.]+)/)?.[1] ?? 'story asset',
+    promptHint: job.prompt,
+    required: job.required,
+  }));
 }
