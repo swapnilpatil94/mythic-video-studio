@@ -42,9 +42,9 @@ for (const request of plan) {
     const result = await runCommand(ffmpeg, ['-y', '-i', record.path, '-vf', scale, '-frames:v', '1', '-c:v', 'png', temp]);
     if (result.code !== 0 || !existsSync(temp)) throw new Error(result.stderr || 'ffmpeg normalization failed');
     if (normalized !== record.path) await unlink(normalized).catch(() => undefined);
-    await runCommand(ffmpeg, ['-y', '-i', temp, '-frames:v', '1', '-c:v', 'png', normalized]);
+    const finalize = await runCommand(ffmpeg, ['-y', '-i', temp, '-frames:v', '1', '-c:v', 'png', normalized]);
     await unlink(temp).catch(() => undefined);
-    if (!existsSync(normalized)) throw new Error('normalized output was not created');
+    if (finalize.code !== 0 || !existsSync(normalized)) throw new Error(finalize.stderr || 'ffmpeg finalization failed');
     const checked = await probeImage(normalized);
     validateImage(checked, {maxDimension});
     if (record.path !== normalized) await unlink(record.path).catch(() => undefined);
