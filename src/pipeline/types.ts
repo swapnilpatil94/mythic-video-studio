@@ -9,6 +9,11 @@ export type AssetRecord = {
   status: 'missing' | 'ready' | 'failed';
   width?: number;
   height?: number;
+  sha256?: string;
+  generated_at?: string;
+  generation_runtime_ms?: number;
+  attempts?: number;
+  last_error?: string;
 };
 
 export type ProductionBeat = {
