@@ -24,9 +24,7 @@ if (process.env.REQUIRE_GENERATED_ASSETS === '1') {
 }
 await run('npx', ['tsx', 'src/generate-voice.ts', input]);
 if (process.env.REQUIRE_TTS === '1') {
-  const manifest = JSON.parse(await readFile(input, 'utf8'));
-  const narrationPath = manifest.audio?.narration_path ?? `projects/${manifest.project_id}/audio/narration.wav`;
-  if (!existsSync(narrationPath)) throw new Error(`Required narration missing: ${narrationPath}`);
+  await run('npx', ['tsx', 'src/inspect-audio.ts', input]);
 }
 
 const manifest = JSON.parse(await readFile(input, 'utf8'));
