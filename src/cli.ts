@@ -1,4 +1,4 @@
-import { readFile } from 'node:fs/promises';
+import {readFile} from 'node:fs/promises';
 
 interface Beat {
   beat_id: string;
@@ -20,15 +20,16 @@ interface Manifest {
   beats: Beat[];
 }
 
-function validate(m: Manifest): string[] {
+export function validateManifest(m: Manifest): string[] {
   const errors: string[] = [];
   if (!m.project_id) errors.push('project_id is required');
   if (!m.title) errors.push('title is required');
   if (m.language !== 'hi-IN') errors.push('language must be hi-IN');
   if (m.duration_seconds < 45 || m.duration_seconds > 120) errors.push('Short duration must be 45–120 seconds');
+  if (!Array.isArray(m.characters) || m.characters.length === 0) errors.push('at least 1 character is required');
   if (!Array.isArray(m.beats) || m.beats.length < 5) errors.push('at least 5 beats are required');
   const sum = m.beats.reduce((n, b) => n + Number(b.duration_seconds || 0), 0);
-  if (Math.abs(sum - m.duration_seconds) > 15) errors.push(`beat duration sum ${sum.toFixed(1)}s differs from manifest duration ${m.duration_seconds}s by >15s`);
+  if (Math.abs(sum - m.duration_seconds) > 0.5) errors.push(`beat duration sum ${sum.toFixed(1)}s must match manifest duration ${m.duration_seconds}s`);
   m.beats.forEach((b, i) => {
     if (!b.beat_id) errors.push(`beat[${i}] missing beat_id`);
     if (!(b.duration_seconds > 0)) errors.push(`beat[${i}] duration must be > 0`);
@@ -45,8 +46,8 @@ async function main() {
     process.exit(1);
   }
   const manifest = JSON.parse(await readFile(file, 'utf8')) as Manifest;
+  const errors = validateManifest(manifest);
   if (command === 'validate') {
-    const errors = validate(manifest);
     if (errors.length) {
       console.error('FAIL');
       errors.forEach(e => console.error(`- ${e}`));
@@ -60,18 +61,17 @@ async function main() {
     return;
   }
   if (command === 'inspect') {
-    const errors = validate(manifest);
     console.log(JSON.stringify({
       project_id: manifest.project_id,
       title: manifest.title,
       duration_seconds: manifest.duration_seconds,
       beats: manifest.beats.length,
       new_assets: manifest.beats.filter(b => b.new_asset_required).length,
-      validation: errors.length ? { status: 'FAIL', errors } : { status: 'PASS' }
+      validation: errors.length ? {status: 'FAIL', errors} : {status: 'PASS'}
     }, null, 2));
     return;
   }
   throw new Error(`Unknown command: ${command}`);
 }
 
-main().catch(err => { console.error(err); process.exit(1); });
+main().catch(err => {console.error(err); process.exit(1);});
