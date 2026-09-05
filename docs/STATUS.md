@@ -8,7 +8,7 @@ Updated: 2026-09-06
 
 **North star:** one command produces a publishable Hindi mythology video.
 
-**Current engineering focus:** local asset generation/validation plus the provider-neutral Hindi narration boundary, while preserving resumability and the master-asset strategy.
+**Current engineering focus:** asset generation/validation and narration timing correctness before generated-art compositing.
 
 ## Done — implemented and structurally verified in repository
 
@@ -49,7 +49,10 @@ Updated: 2026-09-06
 - [x] Optional reference-voice path passed through the TTS job
 - [x] Resumable narration output check
 - [x] Optional strict TTS gate (`REQUIRE_TTS=1`)
-- [x] One-command runner now executes the narration stage before rendering
+- [x] WAV duration inspection with `ffprobe`
+- [x] Audio duration report persisted under project logs
+- [x] Strict narration-duration gate before rendering
+- [x] One-command runner executes audio validation in strict mode
 
 ## In progress
 
@@ -58,7 +61,7 @@ Updated: 2026-09-06
 - [ ] Record image generation runtime, retries and SHA-256 hashes in registry
 - [ ] Reference-image inputs for consistent characters and controlled edits
 - [ ] Better semantic asset requirements (transparent character vs opaque environment)
-- [ ] Voice asset cache plus actual duration/waveform inspection
+- [ ] Per-segment narration duration/alignment and waveform inspection
 - [ ] Music/SFX adapter
 - [ ] SVG draw-on animation primitives
 - [ ] True layered 2.5D camera/parallax system
@@ -71,6 +74,20 @@ Updated: 2026-09-06
 ## Blockers
 
 No repository-level blocker is preventing further coding. The remaining integration blockers are machine-specific: the exact local FLUX/ComfyUI invocation and Chatterbox/deep-Hindi invocation are not verified in this environment. The adapters deliberately do not invent model-specific commands.
+
+## Audio inspection contract
+
+`src/inspect-audio.ts` probes the configured narration WAV using `ffprobe`, records duration/target/delta/tolerance in `projects/<project_id>/logs/audio-report.json`, and fails strict production when the total narration differs from the manifest target by more than `AUDIO_DURATION_TOLERANCE_SECONDS` (default `0.35`).
+
+Useful variables:
+
+```bash
+FFPROBE_COMMAND=ffprobe
+AUDIO_DURATION_TOLERANCE_SECONDS=0.35
+REQUIRE_TTS=1
+```
+
+This is a total-duration gate only; beat-level waveform alignment is still pending.
 
 ## Current audio contract
 
@@ -138,6 +155,7 @@ npm run generate:assets -- examples/karna-short.json
 npm run inspect:assets -- examples/karna-short.json
 npm run normalize:assets -- examples/karna-short.json
 npm run generate:voice -- examples/karna-short.json
+npm run inspect:audio -- examples/karna-short.json
 bash run.sh examples/karna-short.json
 ```
 
