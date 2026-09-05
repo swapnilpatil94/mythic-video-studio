@@ -1,58 +1,58 @@
 # Progress
 
-## 2026-09-06 — Resumable local image generation stage
+## 2026-09-06 — Provider-neutral Hindi narration stage
 
 ### Completed this iteration
 
-- [x] Added `src/generate-assets.ts` as the executable image-generation stage.
-- [x] The stage reads the manifest-derived asset plan and processes unique master assets only.
-- [x] Existing ready files are skipped instead of regenerated.
-- [x] Existing files found on disk can be adopted into the registry.
-- [x] Each missing asset receives a deterministic output path and a JSON job file under the project logs directory.
-- [x] Each job includes project ID, asset ID, kind, story role, prompt and output path.
-- [x] Local image generation is provider-neutral: `IMAGE_GENERATOR_COMMAND` or `FLUX_COMMAND` can be used.
-- [x] Optional argument templates support `{job}` and `{output}` placeholders.
-- [x] A generation job is accepted only when the command succeeds and the requested output file exists.
-- [x] Registry status is persisted after each asset, so a later run can resume without repeating successful work.
-- [x] `REQUIRE_GENERATED_ASSETS=1` provides a strict gate for the first real model run.
-- [x] Added `npm run generate:assets`.
-- [x] Updated `src/produce.ts` so the one-command flow now validates → prepares → generates/adopts assets → renders.
-- [x] Updated status documentation with the exact adapter contract and verification boundary.
+- [x] Added `src/generate-voice.ts` as the executable narration stage.
+- [x] The stage extracts `beat.narration`, falling back to `beat.text` for existing manifests.
+- [x] Each narration segment receives beat ID, start time and target beat duration metadata.
+- [x] Persisted `projects/<project_id>/logs/narration-job.json` as the stable handoff between the creative manifest and a local TTS engine.
+- [x] Added provider-neutral command configuration through `TTS_COMMAND` / `CHATTERBOX_COMMAND`.
+- [x] Added optional `{job}` and `{output}` argument placeholders.
+- [x] Added optional voice and reference-audio fields for deep Hindi voice cloning.
+- [x] Existing narration output is reused rather than regenerated.
+- [x] A narration job is accepted only when the command succeeds and the requested output exists.
+- [x] Added `REQUIRE_TTS=1` for a strict first real voice run.
+- [x] Added `npm run generate:voice`.
+- [x] Wired the narration stage into `src/produce.ts` before the Remotion render.
+- [x] Updated `docs/STATUS.md` with the audio contract and exact strict command.
 
 ### Not claimed complete
 
-The local image-generation stage is implemented in the repository, but **FLUX itself is not runtime-verified**. No claim is made yet about the user's model path, ComfyUI workflow, generation speed, image quality, alpha/background handling, or output dimensions. Those require execution on the target machine.
+Chatterbox/deep-Hindi voice generation is **not runtime-verified**. The repository now exposes the integration boundary, but no claim is made about the user's installed Chatterbox command/API, voice-clone model, Hindi pronunciation, generation speed, WAV format, or timing accuracy until it runs on the target machine.
 
 ## Current milestone: M1 — First real Short
 
 ### Immediate next engineering sequence
 
-1. Verify the image runner against the user's actual FLUX/ComfyUI installation.
-2. Add image inspection/normalization: readable image, PNG/JPEG policy, dimensions, optional alpha, file size and metadata.
-3. Record generation runtime, retry count and output dimensions in the asset registry.
-4. Add optional reference-image inputs for consistent characters and controlled edits.
-5. Define provider-neutral TTS adapter and Chatterbox command/API adapter.
-6. Add narration timing metadata and audio cache.
-7. Build generated-art compositor with procedural fallback.
-8. Add SVG stroke/path draw-on primitives and true layered 2.5D camera/parallax.
-9. Add audio mix, captions and automated technical QA.
-10. Run the complete Karna Short on the user's Mac and record real runtime/quality metrics.
+1. Verify FLUX/ComfyUI and Chatterbox against the user's actual local installations.
+2. Add image runtime, retry and SHA-256 metadata to the asset registry.
+3. Add reference-image inputs and semantic asset requirements for character/environment outputs.
+4. Add WAV inspection and actual narration-duration validation against the beat timeline.
+5. Add music/SFX adapter and final audio mix.
+6. Connect generated master artwork to the Remotion compositor with layered crops, pans, zooms and draw-on transitions.
+7. Add true 2.5D/parallax and SVG stroke primitives.
+8. Add automated captions and technical/visual QA report.
+9. Run the complete Karna Short on the target Mac and record real runtime/quality metrics.
 
 ## Exact reproducible commands
 
 ```bash
 npm install
 npm run validate -- examples/karna-short.json
-npm run inspect -- examples/karna-short.json
 npm run prepare -- examples/karna-short.json
 npm run generate:assets -- examples/karna-short.json
+npm run inspect:assets -- examples/karna-short.json
+npm run normalize:assets -- examples/karna-short.json
+npm run generate:voice -- examples/karna-short.json
 bash run.sh examples/karna-short.json
 ```
 
-For a strict first model run:
+Strict first real-model run:
 
 ```bash
-REQUIRE_GENERATED_ASSETS=1 bash run.sh examples/karna-short.json
+REQUIRE_GENERATED_ASSETS=1 REQUIRE_TTS=1 NORMALIZE_ASSETS=1 bash run.sh examples/karna-short.json
 ```
 
 ## Verification policy
