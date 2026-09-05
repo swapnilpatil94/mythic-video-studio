@@ -8,7 +8,9 @@ Updated: 2026-09-05
 
 **North star:** one command produces a publishable Hindi mythology video.
 
-## Done
+**Current engineering focus:** make the pipeline genuinely manifest-driven and resumable before wiring model-specific local adapters.
+
+## Done — verified in repository
 
 - [x] GitHub repository created
 - [x] Product vision documented
@@ -19,67 +21,86 @@ Updated: 2026-09-05
 - [x] High-retention story structure documented
 - [x] Master-asset generation strategy documented
 - [x] Frontier/Work creative artifact workflow documented
-- [x] JSON manifest contract started
-- [x] Character contract started
-- [x] Validation CLI
-- [x] Remotion project skeleton
-- [x] 1080x1920 Short composition
+- [x] Goals and quality criteria tracking
+- [x] Sample/reference tracking
+- [x] JSON Short manifest contract started
+- [x] Shared production manifest types
+- [x] Strict duration/beat/duplicate-ID validation module
+- [x] Manifest-driven Remotion beat timeline
+- [x] 1080x1920 / 30fps Short composition
 - [x] Procedural illustrated fallback renderer
 - [x] Beat-driven camera/animation system
 - [x] Hindi text layer
 - [x] Local production runner skeleton
-- [x] npm scripts for validate/inspect/studio/render/produce
-- [x] Goals and quality criteria tracking
-- [x] Sample/reference tracking document
+- [x] Project path manager
+- [x] Resumable per-project asset registry/cache contract
+- [x] Automatic unique asset-plan derivation from a manifest
+- [x] Project preparation stage that creates manifest, asset-plan and registry state
+- [x] Shared validation wired into CLI
+- [x] One-command entry point exists (`bash run.sh <manifest>`)
 
 ## In progress
 
-- [ ] Replace hard-coded sample beat data with manifest-driven composition
-- [ ] Asset registry and cache
-- [ ] FLUX adapter
-- [ ] Character master-art generation pipeline
-- [ ] Environment/prop generation pipeline
+- [ ] FLUX local adapter
+- [ ] Character master-art generation + consistency controls
+- [ ] Environment/prop generation adapters
+- [ ] Asset image normalization/cropping
 - [ ] Chatterbox adapter
-- [ ] Voice asset cache
+- [ ] Deep Hindi voice-clone adapter
+- [ ] Voice asset cache + timing alignment
 - [ ] Music/SFX adapter
 - [ ] SVG draw-on animation primitives
-- [ ] 2.5D layered camera system
+- [ ] True layered 2.5D camera/parallax system
 - [ ] Automated subtitles/captions
 - [ ] Final audio mix
-- [ ] One-command `run.sh`
-- [ ] End-to-end Karna render
-- [ ] Automated visual/technical quality checks
+- [ ] Generated-art compositing with procedural fallback
+- [ ] Automated visual/technical QA report
+- [ ] End-to-end real Karna render on the user's machine
 
-## Pending user inputs
+## Pending user inputs — only when adapter wiring begins
 
-The user can provide these when requested by the pipeline:
+1. FLUX model location **or** local API/ComfyUI endpoint.
+2. Chatterbox installation/command **or** local API endpoint.
+3. Deep Hindi voice-clone model location/invocation method.
+4. Optional local music/SFX model if available; otherwise use the built-in adapter contract.
+5. Approved visual samples/references when available.
 
-1. FLUX model location or local API/ComfyUI endpoint.
-2. Chatterbox installation/command or local API endpoint.
-3. Deep Hindi voice clone model location or invocation method.
-4. Optional music/SFX models if available.
-5. Approved visual samples/references.
+Do not commit credentials, tokens, private keys, or model weights.
 
-No credentials or private keys should be committed to Git.
+## Current limitation
+
+Repository implementation can be advanced and structurally reviewed here, but final M1 cannot be marked complete until the local dependencies/models are actually installed and a real MP4 is rendered and visually reviewed on the target machine.
+
+## Exact reproducible commands
+
+```bash
+npm install
+npm run validate -- examples/karna-short.json
+npm run inspect -- examples/karna-short.json
+npm run prepare -- examples/karna-short.json
+bash run.sh examples/karna-short.json
+```
+
+The intended final user workflow remains a single production command; setup/model placement is a one-time configuration step.
 
 ## Release gates
 
 ### Gate M1 — first real Short
 
-A Short is not considered complete until the system can produce a final MP4 from one manifest using the local adapters.
+Final MP4 from one manifest using local FLUX/TTS/audio adapters, with technical and visual QA passed.
 
 ### Gate M2 — repeatability
 
-Run three different Shorts through the same pipeline without modifying renderer code for each story.
+Three different Shorts through the same pipeline without renderer code changes.
 
 ### Gate M3 — daily production
 
-Support a queue of three Shorts/day with caching and resumable jobs.
+Queue of three Shorts/day with caching, resumability and failure recovery.
 
 ### Gate M4 — long-form
 
-Support 8–12 minute episodes using the same visual engine and a larger manifest.
+8–12 minute episodes using the same visual engine and larger manifests.
 
 ### Gate M5 — season automation
 
-Support a source/season bible, episode manifests and a recoverable batch queue.
+Source/season bible, episode manifests and recoverable batch queue.
