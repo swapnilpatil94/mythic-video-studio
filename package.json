@@ -1,0 +1,17 @@
+{
+  "name": "mythic-video-studio",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "validate": "tsx src/cli.ts validate examples/karna-short.json",
+    "inspect": "tsx src/cli.ts inspect examples/karna-short.json"
+  },
+  "dependencies": {
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.0"
+  }
+}
