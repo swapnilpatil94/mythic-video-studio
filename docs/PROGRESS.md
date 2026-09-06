@@ -1,38 +1,35 @@
 # Progress
 
-## 2026-09-06 — Deterministic pipeline-contract audit
+## 2026-09-06 — Caption render/source alignment
 
 ### Completed this iteration
 
-- [x] Added `src/check-pipeline.ts`.
-- [x] Added `npm run check:pipeline -- examples/karna-short.json`.
-- [x] Audit verifies the manifest exists.
-- [x] Audit verifies every required production entrypoint exists.
-- [x] Audit verifies expected npm scripts are exposed.
-- [x] Audit verifies every major production stage is referenced by `src/produce.ts`.
-- [x] Audit verifies all strict release gates are wired into the production runner.
-- [x] Audit emits a machine-readable JSON report and exits non-zero on a contract mismatch.
-- [x] Updated `docs/STATUS.md` with the new gate, command, blocker state and next milestone.
+- [x] Updated `src/remotion/MythicShort.tsx` so the on-video caption uses `beat.narration` when present, falling back to `beat.text`.
+- [x] Kept the same beat timing model used by `src/generate-captions.ts`, so the burned-in caption content and generated SRT/VTT content share the same authoritative source field.
+- [x] Added an explicit mobile-safe caption layout with 70px side margins and a 150px bottom baseline.
+- [x] Added a high-contrast backing panel and centered typography for caption readability over generated artwork.
+- [x] Preserved the beat-role label beneath the caption without changing the mythology-respect content model.
+- [x] Updated `docs/STATUS.md` to record the new renderer contract and verification boundary.
 
 ### Why this milestone
 
-The repository has accumulated enough independent stages that a future refactor could silently leave a stage file or quality gate disconnected from the one-command path. This audit creates a cheap deterministic guard against that class of regression before spending time on local FLUX/TTS generation.
+The previous pipeline generated subtitle files, but the compositor displayed `beat.text` independently. That created a real consistency risk when narration differed from the short display text. This iteration closes that source-of-truth mismatch before real MP4 review.
 
 ### Verification boundary
 
-The implementation is committed to GitHub and source-reviewed. It has **not** been executed in this environment, so this turn does not claim that the audit command itself has passed locally. It is a structural contract check only and intentionally does not pretend to validate model quality or final-video quality.
+The renderer change is committed and source-reviewed. It has **not** been rendered against a real FLUX/ComfyUI asset set in this environment. Caption readability, line wrapping, safe-area behavior and visual interaction with generated characters therefore remain runtime review items. This iteration does not claim M1 completion.
 
 ## Current milestone: M1 — First real Short
 
 ### Immediate next engineering sequence
 
 1. Run `npm install` and `npm run check:pipeline -- examples/karna-short.json` locally.
-2. Run `npm run preflight -- examples/karna-short.json` and resolve any local runtime failures.
+2. Run `npm run preflight -- examples/karna-short.json` and resolve local runtime failures.
 3. Execute the strict one-command Karna production with the real FLUX/ComfyUI and Chatterbox/deep-Hindi commands.
 4. Record actual model runtimes, retries, generated asset count, reference usage and failures.
 5. Review the rendered MP4, contact sheet, captions and technical/visual/audio QA reports.
-6. Tune caption safe areas, camera/parallax strength, black-frame threshold and audio balance from real evidence.
-7. Only after the real MP4 passes technical, visual and audible gates, record M1 as complete.
+6. Tune caption wrapping/safe area, camera/parallax strength, black-frame threshold and audio balance from real evidence.
+7. Only after the real MP4 passes technical, visual, audible, caption and mythology-respect gates, record M1 as complete.
 
 ## Exact reproducible commands
 
@@ -42,6 +39,21 @@ npm run check:pipeline -- examples/karna-short.json
 npm run preflight -- examples/karna-short.json
 npm run validate -- examples/karna-short.json
 npm run check:motion
+npm run inspect -- examples/karna-short.json
+npm run prepare -- examples/karna-short.json
+npm run generate:assets -- examples/karna-short.json
+npm run inspect:assets -- examples/karna-short.json
+npm run normalize:assets -- examples/karna-short.json
+npm run check:asset-requirements -- examples/karna-short.json
+npm run generate:voice -- examples/karna-short.json
+npm run inspect:audio -- examples/karna-short.json
+npm run align:audio -- examples/karna-short.json
+npm run mix:audio -- examples/karna-short.json
+npm run generate:captions -- examples/karna-short.json
+npm run stage:assets -- examples/karna-short.json
+bash run.sh examples/karna-short.json
+npm run generate:visual-qa -- examples/karna-short.json renders/karna-short.mp4
+npm run check:output -- examples/karna-short.json renders/karna-short.mp4
 ```
 
 Strict first real-model run:
