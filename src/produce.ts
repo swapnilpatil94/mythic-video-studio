@@ -28,6 +28,7 @@ if (process.env.REQUIRE_ASSET_REQUIREMENTS === '1') {
 await run('npx', ['tsx', 'src/generate-voice.ts', input]);
 if (process.env.REQUIRE_TTS === '1') {
   await run('npx', ['tsx', 'src/inspect-audio.ts', input]);
+  await run('npx', ['tsx', 'src/align-audio.ts', input]);
 }
 await run('npx', ['tsx', 'src/stage-assets.ts', input]);
 
