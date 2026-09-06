@@ -8,7 +8,7 @@ Updated: 2026-09-06
 
 **North star:** one command produces a publishable Hindi mythology video.
 
-**Current engineering focus:** trustworthy master-asset provenance/retries, then character references and generated-art compositing.
+**Current engineering focus:** reference-aware master assets and semantic generation requirements, then audio alignment and generated-art compositing.
 
 ## Done — implemented and structurally verified in repository
 
@@ -58,13 +58,16 @@ Updated: 2026-09-06
 - [x] Asset generation runtime measurement
 - [x] Asset generation last-error persistence
 - [x] Automatic retry loop for missing generated assets
+- [x] Optional local character-reference image resolver
+- [x] Reference-aware character master prompts
+- [x] Strict missing-reference failure mode
+- [x] Reference path persisted in image job JSON and passed through `{reference}` command placeholder
 
 ## In progress
 
 - [ ] Runtime verification against the user's actual FLUX/ComfyUI installation
 - [ ] Runtime verification against the user's actual Chatterbox/deep-Hindi voice setup
-- [ ] Reference-image inputs for consistent characters and controlled edits
-- [ ] Semantic asset requirements (transparent character vs opaque environment)
+- [ ] Semantic asset requirements beyond character references (transparent/isolated character vs opaque environment)
 - [ ] Per-segment narration duration/alignment and waveform inspection
 - [ ] Music/SFX adapter
 - [ ] SVG draw-on animation primitives
@@ -79,6 +82,12 @@ Updated: 2026-09-06
 
 No repository-level blocker is preventing further coding. The remaining integration blockers are machine-specific: the exact local FLUX/ComfyUI invocation and Chatterbox/deep-Hindi invocation are not verified in this environment. The adapters deliberately do not invent model-specific commands.
 
+## Character reference contract
+
+Character reference images are optional by default and can be discovered from `<project>/references/<asset-id>.<png|jpg|jpeg|webp>` or `ASSET_REFERENCE_DIR`. For example, `karna.master.png` can anchor the Karna master. Set `REQUIRE_CHARACTER_REFERENCES=1` to make missing references a strict generation failure for character assets. A configured image command can receive the path with the `{reference}` argument placeholder; the complete path is also persisted in the JSON job.
+
+This is a repository-level control mechanism, not proof that a specific FLUX workflow actually consumes reference images correctly. Provider-specific reference-image behavior still requires runtime verification.
+
 ## Asset provenance contract
 
 Every successful generated/adopted asset can now carry a SHA-256 digest, generation timestamp, total generation runtime, cumulative attempt count and last error. Missing/failed jobs remain resumable. Existing ready files without a digest are hashed when encountered, without regenerating them.
@@ -88,8 +97,6 @@ Useful variable:
 ```bash
 IMAGE_GENERATION_MAX_ATTEMPTS=2
 ```
-
-This is repository implementation only; it does not prove model quality or local generation performance.
 
 ## Audio inspection contract
 
@@ -120,7 +127,7 @@ FFMPEG_COMMAND=ffmpeg
 
 ## Image adapter contract
 
-Set `FLUX_COMMAND` (or `IMAGE_GENERATOR_COMMAND`) to an executable that receives one JSON job as its final argument. The job contains `project_id`, `asset_id`, `kind`, `role`, `prompt`, and `output_path`. Optional `FLUX_ARGS` / `IMAGE_GENERATOR_ARGS` may contain `{job}` and `{output}` placeholders. The command must create the requested output file; otherwise the job is retried and eventually marked failed.
+Set `FLUX_COMMAND` (or `IMAGE_GENERATOR_COMMAND`) to an executable that receives one JSON job as its final argument. The job contains `project_id`, `asset_id`, `kind`, `role`, `prompt`, `output_path`, `reference_path`, and `reference_required`. Optional `FLUX_ARGS` / `IMAGE_GENERATOR_ARGS` may contain `{job}`, `{output}`, and `{reference}` placeholders. The command must create the requested output file; otherwise the job is retried and eventually marked failed.
 
 For unattended strict generation:
 
@@ -158,10 +165,10 @@ npm run inspect:audio -- examples/karna-short.json
 bash run.sh examples/karna-short.json
 ```
 
-Strict real-model run:
+Reference-aware strict run:
 
 ```bash
-REQUIRE_GENERATED_ASSETS=1 REQUIRE_TTS=1 NORMALIZE_ASSETS=1 IMAGE_GENERATION_MAX_ATTEMPTS=2 bash run.sh examples/karna-short.json
+REQUIRE_CHARACTER_REFERENCES=1 REQUIRE_GENERATED_ASSETS=1 REQUIRE_TTS=1 NORMALIZE_ASSETS=1 IMAGE_GENERATION_MAX_ATTEMPTS=2 bash run.sh examples/karna-short.json
 ```
 
 ## Release gates
