@@ -6,6 +6,7 @@ export type AssetPromptJob = {
   prompt: string;
   references: string[];
   required: boolean;
+  reference_required: boolean;
 };
 
 const roleHint: Record<string, string> = {
@@ -50,6 +51,7 @@ export function buildAssetPromptJobs(manifest: ProductionManifest): AssetPromptJ
     const kind = inferKind(asset_id);
     const role = meta.roles.map((r) => roleHint[r] ?? r.replaceAll('_', ' ')).join('; ');
     const sacred = asset_id.startsWith('karna') || asset_id.startsWith('indra');
+    const reference_required = kind === 'character' && process.env.REQUIRE_CHARACTER_REFERENCES === '1';
     const prompt = [
       'Indian hand-illustrated mythology storytelling artwork',
       'cream parchment background, expressive black ink linework, restrained antique gold and muted red accents',
@@ -57,8 +59,9 @@ export function buildAssetPromptJobs(manifest: ProductionManifest): AssetPromptJ
       `asset: ${describe(asset_id)}`,
       `story roles: ${role}`,
       sacred ? 'reverent and dignified sacred-figure depiction, non-comedic, non-caricatured, culturally respectful' : 'story-specific supporting visual, grounded and believable',
-      'clean silhouette and separable visual hierarchy, avoid text, logos, watermarks, UI elements and modern objects',
+      kind === 'character' ? 'single readable full-body or three-quarter character master, stable facial features, costume and proportions, isolated enough for later compositing' : 'clear subject hierarchy with useful negative space for camera crops and text overlays',
+      'avoid text, logos, watermarks, UI elements and modern objects',
     ].join('. ');
-    return {asset_id, kind, prompt, references: [], required: meta.required};
+    return {asset_id, kind, prompt, references: [], required: meta.required, reference_required};
   });
 }
