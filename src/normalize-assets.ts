@@ -29,8 +29,8 @@ for (const request of plan) {
     const probe = await probeImage(record.path);
     if (probe.width <= maxDimension && probe.height <= maxDimension) {
       validateImage(probe, {maxDimension});
-      await registerAsset(paths, registry, {...record, status: 'ready', width: probe.width, height: probe.height});
-      console.log(`[asset] validated ${request.id}: ${probe.width}x${probe.height}`);
+      await registerAsset(paths, registry, {...record, status: 'ready', width: probe.width, height: probe.height, alpha: probe.hasAlpha});
+      console.log(`[asset] validated ${request.id}: ${probe.width}x${probe.height}${probe.hasAlpha ? ' alpha' : ''}`);
       continue;
     }
     if (!normalize) throw new Error(`exceeds ${maxDimension}px; rerun with NORMALIZE_ASSETS=1`);
@@ -48,10 +48,10 @@ for (const request of plan) {
     const checked = await probeImage(normalized);
     validateImage(checked, {maxDimension});
     if (record.path !== normalized) await unlink(record.path).catch(() => undefined);
-    await registerAsset(paths, registry, {...record, path: normalized, status: 'ready', width: checked.width, height: checked.height});
-    console.log(`[asset] normalized ${request.id}: ${checked.width}x${checked.height}`);
+    await registerAsset(paths, registry, {...record, path: normalized, status: 'ready', width: checked.width, height: checked.height, alpha: checked.hasAlpha});
+    console.log(`[asset] normalized ${request.id}: ${checked.width}x${checked.height}${checked.hasAlpha ? ' alpha' : ''}`);
   } catch (error) {
-    await registerAsset(paths, registry, {...record, status: 'failed'});
+    await registerAsset(paths, registry, {...record, status: 'failed', last_error: error instanceof Error ? error.message : String(error)});
     console.error(`[asset] FAILED ${request.id}: ${error instanceof Error ? error.message : String(error)}`);
     if (process.env.REQUIRE_GENERATED_ASSETS === '1') process.exitCode = 1;
   }
