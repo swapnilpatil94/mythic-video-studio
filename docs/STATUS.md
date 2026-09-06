@@ -8,7 +8,7 @@ Updated: 2026-09-06
 
 **North star:** one command produces a publishable Hindi mythology video.
 
-**Current engineering focus:** reference-aware master assets and semantic generation requirements, then audio alignment and generated-art compositing.
+**Current engineering focus:** generated master-art compositing inside Remotion, after validated assets are staged into the renderer's public asset space.
 
 ## Done — implemented and structurally verified in repository
 
@@ -62,6 +62,10 @@ Updated: 2026-09-06
 - [x] Reference-aware character master prompts
 - [x] Strict missing-reference failure mode
 - [x] Reference path persisted in image job JSON and passed through `{reference}` command placeholder
+- [x] Renderer asset staging from validated project assets into `public/generated/<project_id>`
+- [x] Runtime asset-reference map generated before Remotion render
+- [x] Remotion can layer staged master artwork behind/alongside procedural illustration
+- [x] Generated-art camera entrance/drift and character/environment/prop placement fallback rules
 
 ## In progress
 
@@ -70,9 +74,9 @@ Updated: 2026-09-06
 - [ ] Semantic asset requirements beyond character references (transparent/isolated character vs opaque environment)
 - [ ] Per-segment narration duration/alignment and waveform inspection
 - [ ] Music/SFX adapter
-- [ ] SVG draw-on animation primitives
+- [ ] SVG draw-on animation primitives beyond the current procedural fallback
 - [ ] True layered 2.5D camera/parallax system
-- [ ] Generated-art compositing with procedural fallback
+- [ ] Generated-art visual QA and character consistency review
 - [ ] Automated subtitles/captions
 - [ ] Final audio mix
 - [ ] Automated visual/technical QA report
@@ -82,15 +86,15 @@ Updated: 2026-09-06
 
 No repository-level blocker is preventing further coding. The remaining integration blockers are machine-specific: the exact local FLUX/ComfyUI invocation and Chatterbox/deep-Hindi invocation are not verified in this environment. The adapters deliberately do not invent model-specific commands.
 
-## Character reference contract
+## Generated-art compositing contract
 
-Character reference images are optional by default and can be discovered from `<project>/references/<asset-id>.<png|jpg|jpeg|webp>` or `ASSET_REFERENCE_DIR`. For example, `karna.master.png` can anchor the Karna master. Set `REQUIRE_CHARACTER_REFERENCES=1` to make missing references a strict generation failure for character assets. A configured image command can receive the path with the `{reference}` argument placeholder; the complete path is also persisted in the JSON job.
+`src/stage-assets.ts` copies registry assets with `status=ready` into `public/generated/<project_id>/` and writes `src/remotion/runtime-assets.ts`. The Remotion compositor resolves beat `asset_refs` through that map. Environment/background-like refs are treated as full-frame layers; character/master refs are placed as isolated foreground layers; other refs receive a restrained supporting layer. When no generated asset is available, the existing procedural illustration remains visible instead of producing a blank frame.
 
-This is a repository-level control mechanism, not proof that a specific FLUX workflow actually consumes reference images correctly. Provider-specific reference-image behavior still requires runtime verification.
+This stage is implemented but has **not** been runtime-verified with real FLUX-generated artwork. The compositor's placement rules are intentionally conservative until actual sample assets reveal the model's framing, transparency and subject scale.
 
 ## Asset provenance contract
 
-Every successful generated/adopted asset can now carry a SHA-256 digest, generation timestamp, total generation runtime, cumulative attempt count and last error. Missing/failed jobs remain resumable. Existing ready files without a digest are hashed when encountered, without regenerating them.
+Every successful generated/adopted asset can carry a SHA-256 digest, generation timestamp, total generation runtime, cumulative attempt count and last error. Missing/failed jobs remain resumable. Existing ready files without a digest are hashed when encountered, without regenerating them.
 
 Useful variable:
 
@@ -162,6 +166,7 @@ npm run inspect:assets -- examples/karna-short.json
 npm run normalize:assets -- examples/karna-short.json
 npm run generate:voice -- examples/karna-short.json
 npm run inspect:audio -- examples/karna-short.json
+npm run stage:assets -- examples/karna-short.json
 bash run.sh examples/karna-short.json
 ```
 
