@@ -8,7 +8,7 @@ Updated: 2026-09-06
 
 **North star:** one command produces a publishable Hindi mythology video.
 
-**Current engineering focus:** the production path now has local-runtime preflight plus a deterministic pipeline-contract audit. The contract audit catches missing stage files, npm scripts, render stages and strict-gate wiring before a model run. The remaining decisive work is still real FLUX/ComfyUI + Chatterbox/deep-Hindi execution and review of the resulting MP4.
+**Current engineering focus:** the production path has local-runtime preflight, a deterministic pipeline-contract audit, and captions that now render from the same beat narration source used to generate SRT/VTT files. The remaining decisive work is still real FLUX/ComfyUI + Chatterbox/deep-Hindi execution and review of the resulting MP4.
 
 ## Done — implemented and structurally verified in repository
 
@@ -90,6 +90,8 @@ Updated: 2026-09-06
 - [x] Motion primitive smoke-check command (`npm run check:motion`)
 - [x] Manifest-driven SRT/VTT caption generation from beat narration/text
 - [x] Caption generation report persisted under project captions
+- [x] Remotion caption text uses the same `narration` source as generated SRT/VTT when available
+- [x] Caption overlay has explicit mobile-safe margins and readable backing treatment
 - [x] Final MP4 technical QA command using ffprobe/FFmpeg
 - [x] Output QA checks resolution, fps, duration, black-frame intervals and audio peak
 - [x] Output QA report persisted under project logs
@@ -111,7 +113,7 @@ Updated: 2026-09-06
 - [ ] Validate semantic audio alignment and mix levels against real generated narration
 - [ ] Visual review of the new 2.5D camera language on real generated master assets
 - [ ] Expand SVG draw-on beyond the current armor/highlight primitive
-- [ ] Burn-in/visual styling review of generated captions against real footage
+- [ ] Burn-in/caption styling review against real footage and mobile-safe content
 - [ ] Human review of automated contact-sheet findings
 - [ ] End-to-end real Karna render on the user's machine
 
@@ -125,7 +127,11 @@ No repository-level blocker is preventing further coding. Machine-specific block
 
 ## Runtime preflight contract
 
-`src/preflight.ts` checks the manifest, Node, FFmpeg, FFprobe, npx, configured image-generator executable, configured TTS executable, and the required character-reference directory when strict references are enabled. It persists `projects/<project_id>/logs/preflight-report.json`. A failed required check exits non-zero. `src/produce.ts` invokes this gate before generation whenever `REQUIRE_GENERATED_ASSETS=1` or `REQUIRE_TTS=1` is enabled.
+`src/preflight.ts` checks the manifest, Node, FFmpeg, FFprobe, npx, configured image-generator executable, TTS executable, and the required character-reference directory when strict references are enabled. It persists `projects/<project_id>/logs/preflight-report.json`. A failed required check exits non-zero. `src/produce.ts` invokes this gate before generation whenever `REQUIRE_GENERATED_ASSETS=1` or `REQUIRE_TTS=1` is enabled.
+
+## Caption contract
+
+`src/generate-captions.ts` remains the authoritative file-output path for SRT/VTT. The Remotion compositor now consumes `beat.narration` when available, falling back to `beat.text`, so the burned-in caption source and external subtitle source are aligned to the same manifest field. The overlay uses explicit 70px side margins, a 150px bottom baseline and a readable backing panel. This does not yet prove caption readability on a real rendered MP4; that remains a runtime visual-review gate.
 
 ## Exact reproducible commands
 
