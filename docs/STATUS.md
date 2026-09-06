@@ -8,7 +8,7 @@ Updated: 2026-09-06
 
 **North star:** one command produces a publishable Hindi mythology video.
 
-**Current engineering focus:** semantic asset contracts and animation-ready compositing. The pipeline must distinguish isolated transparent characters from opaque environments before real FLUX output is trusted by the renderer.
+**Current engineering focus:** semantic asset contracts are now persisted through image inspection/normalization. The next focus is per-segment narration timing and audio synchronization.
 
 ## Done — implemented and structurally verified in repository
 
@@ -68,12 +68,15 @@ Updated: 2026-09-06
 - [x] Generated-art camera entrance/drift and character/environment/prop placement fallback rules
 - [x] Semantic asset requirement module: character masters require isolated compositing intent; environments/backgrounds remain opaque scene layers
 - [x] Asset requirement report can be generated deterministically from a manifest and registry
+- [x] Asset registry persists probed alpha metadata (`alpha`)
+- [x] Image inspection updates width/height/alpha metadata after probing
+- [x] Image normalization re-probes and persists alpha metadata after FFmpeg output
+- [x] Semantic asset gate consumes persisted alpha metadata in strict production
 
 ## In progress
 
 - [ ] Runtime verification against the user's actual FLUX/ComfyUI installation
 - [ ] Runtime verification against the user's actual Chatterbox/deep-Hindi voice setup
-- [ ] Enforce semantic asset requirements in the generation/staging gates
 - [ ] Per-segment narration duration/alignment and waveform inspection
 - [ ] Music/SFX adapter
 - [ ] SVG draw-on animation primitives beyond the current procedural fallback
@@ -86,11 +89,11 @@ Updated: 2026-09-06
 
 ## Blockers
 
-No repository-level blocker is preventing further coding. The remaining integration blockers are machine-specific: the exact local FLUX/ComfyUI invocation and Chatterbox/deep-Hindi invocation are not verified in this environment. The adapters deliberately do not invent model-specific commands.
+No repository-level blocker is preventing further coding. The remaining integration blockers are machine-specific: the exact local FLUX/ComfyUI invocation and Chatterbox/deep-Hindi invocation are not verified in this environment. The adapters deliberately do not invent model-specific commands. Runtime verification also requires real generated assets/audio to exercise the semantic and timing gates.
 
 ## Semantic asset contract
 
-`src/pipeline/asset-requirements.ts` classifies every planned asset before generation. Character masters are intended to be isolated compositing assets and therefore require alpha-capable artwork; environments/backgrounds are opaque scene layers; props/overlays are constrained according to their role. The contract is deterministic and reports missing/invalid registry records without mutating them. Enforcement in the generation/staging gates remains the next step.
+`src/pipeline/asset-requirements.ts` classifies every planned asset before generation. Character masters are intended to be isolated compositing assets and therefore require alpha-capable artwork; environments/backgrounds are opaque scene layers; props/overlays are constrained according to their role. Image inspection and normalization now persist the measured `alpha` value in the registry, so strict semantic validation can evaluate the actual probed file rather than an assumed property.
 
 ## Verification boundary
 
@@ -106,6 +109,7 @@ npm run prepare -- examples/karna-short.json
 npm run generate:assets -- examples/karna-short.json
 npm run inspect:assets -- examples/karna-short.json
 npm run normalize:assets -- examples/karna-short.json
+npm run check:asset-requirements -- examples/karna-short.json
 npm run generate:voice -- examples/karna-short.json
 npm run inspect:audio -- examples/karna-short.json
 npm run stage:assets -- examples/karna-short.json
@@ -115,7 +119,7 @@ bash run.sh examples/karna-short.json
 Reference-aware strict run:
 
 ```bash
-REQUIRE_CHARACTER_REFERENCES=1 REQUIRE_GENERATED_ASSETS=1 REQUIRE_TTS=1 NORMALIZE_ASSETS=1 IMAGE_GENERATION_MAX_ATTEMPTS=2 bash run.sh examples/karna-short.json
+REQUIRE_CHARACTER_REFERENCES=1 REQUIRE_GENERATED_ASSETS=1 REQUIRE_ASSET_REQUIREMENTS=1 REQUIRE_TTS=1 NORMALIZE_ASSETS=1 IMAGE_GENERATION_MAX_ATTEMPTS=2 bash run.sh examples/karna-short.json
 ```
 
 ## Release gates
