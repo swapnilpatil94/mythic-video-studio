@@ -19,6 +19,7 @@
     "check:motion": "tsx src/check-motion.ts",
     "generate:captions": "tsx src/generate-captions.ts",
     "check:output": "tsx src/check-output.ts",
+    "generate:visual-qa": "tsx src/generate-visual-qa.ts",
     "dev": "remotion studio src/remotion/index.ts",
     "render:sample": "remotion render src/remotion/index.ts MythicShort renders/karna-short.mp4",
     "produce": "tsx src/produce.ts"
