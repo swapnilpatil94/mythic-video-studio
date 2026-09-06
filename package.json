@@ -7,6 +7,7 @@
     "validate": "tsx src/cli.ts validate",
     "inspect": "tsx src/cli.ts inspect",
     "prepare": "tsx src/pipeline/prepare-project.ts",
+    "preflight": "tsx src/preflight.ts",
     "generate:assets": "tsx src/generate-assets.ts",
     "inspect:assets": "tsx src/inspect-assets.ts",
     "normalize:assets": "tsx src/normalize-assets.ts",
