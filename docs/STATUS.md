@@ -8,7 +8,7 @@ Updated: 2026-09-06
 
 **North star:** one command produces a publishable Hindi mythology video.
 
-**Current engineering focus:** captions and final-output technical QA are now part of the production path. The next focus is real-model runtime verification and visual QA against generated masters.
+**Current engineering focus:** captions, final-output technical QA and automated contact-sheet visual QA are now part of the production path. The next focus is real-model runtime verification and human visual/audible review against generated masters.
 
 ## Done — implemented and structurally verified in repository
 
@@ -95,6 +95,9 @@ Updated: 2026-09-06
 - [x] Output QA report persisted under project logs
 - [x] Strict output QA mode (`REQUIRE_OUTPUT_QA=1`)
 - [x] Caption generation and output QA integrated into one-command production
+- [x] Automated 9-sample contact-sheet generation across rendered duration
+- [x] Visual QA report persisted under project QA artifacts
+- [x] Visual QA artifact integrated into one-command production
 
 ## In progress
 
@@ -104,16 +107,16 @@ Updated: 2026-09-06
 - [ ] Visual review of the new 2.5D camera language on real generated master assets
 - [ ] Expand SVG draw-on beyond the current armor/highlight primitive
 - [ ] Burn-in/visual styling review of generated captions against real footage
-- [ ] Automated visual QA/contact-sheet generation
+- [ ] Human review of automated contact-sheet findings
 - [ ] End-to-end real Karna render on the user's machine
 
 ## Blockers
 
-No repository-level blocker is preventing further coding. Machine-specific blockers remain: the exact local FLUX/ComfyUI invocation and Chatterbox/deep-Hindi invocation are not verified in this environment. Output QA is implemented but cannot pass or fail meaningfully until a real MP4 exists. The black-frame check is intentionally conservative and must be reviewed against real generated footage so legitimate dark mythic frames are not rejected.
+No repository-level blocker is preventing further coding. Machine-specific blockers remain: the exact local FLUX/ComfyUI invocation and Chatterbox/deep-Hindi invocation are not verified in this environment. Output and visual QA are implemented but cannot provide meaningful release evidence until a real MP4 exists. The black-frame check is intentionally conservative and must be reviewed against real generated footage so legitimate dark mythic frames are not rejected.
 
 ## Caption + QA contract
 
-`src/generate-captions.ts` derives deterministic subtitle windows from manifest beat timing and emits SRT/VTT plus a report. `src/check-output.ts` inspects a rendered MP4 with ffprobe/FFmpeg and checks 1080x1920, 30fps, duration tolerance, required audio/video streams, black intervals and audio peak. `REQUIRE_OUTPUT_QA=1` turns output-QA findings into a hard production failure.
+`src/generate-captions.ts` derives deterministic subtitle windows from manifest beat timing and emits SRT/VTT plus a report. `src/generate-visual-qa.ts` samples nine frames across the rendered duration and emits a contact sheet plus report for human review. `src/check-output.ts` inspects a rendered MP4 with ffprobe/FFmpeg and checks 1080x1920, 30fps, duration tolerance, required audio/video streams, black intervals and audio peak. `REQUIRE_OUTPUT_QA=1` turns output-QA findings into a hard production failure.
 
 ## Verification boundary
 
@@ -138,6 +141,7 @@ npm run mix:audio -- examples/karna-short.json
 npm run generate:captions -- examples/karna-short.json
 npm run stage:assets -- examples/karna-short.json
 bash run.sh examples/karna-short.json
+npm run generate:visual-qa -- examples/karna-short.json renders/karna-short.mp4
 npm run check:output -- examples/karna-short.json renders/karna-short.mp4
 ```
 
