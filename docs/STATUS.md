@@ -8,130 +8,70 @@ Updated: 2026-09-06
 
 **North star:** one command produces a publishable Hindi mythology video.
 
-**Current engineering focus:** the production path has local-runtime preflight, a deterministic pipeline-contract audit, and captions that now render from the same beat narration source used to generate SRT/VTT files. The remaining decisive work is still real FLUX/ComfyUI + Chatterbox/deep-Hindi execution and review of the resulting MP4.
+**Current engineering focus:** the production path now has runtime preflight, a deterministic pipeline-contract audit, source-aligned captions, and a post-render release-evidence audit. The remaining decisive work is real FLUX/ComfyUI + Chatterbox/deep-Hindi execution and review of the resulting MP4.
 
-## Done — implemented and structurally verified in repository
+## Latest milestone — release evidence
 
-- [x] GitHub repository created
-- [x] Product vision and architecture documented
-- [x] Short-first and long-form scaling strategy documented
-- [x] Mythology Respect Mode documented
-- [x] High-retention story structure documented
-- [x] Master-asset generation strategy documented
-- [x] Frontier/Work creative artifact workflow documented
-- [x] Goals, quality criteria and sample/reference tracking
-- [x] JSON Short manifest contract and shared production types
-- [x] Strict duration/beat/duplicate-ID validation
-- [x] Manifest-driven Remotion beat timeline
-- [x] 1080x1920 / 30fps Short composition
-- [x] Procedural illustrated fallback renderer
-- [x] Beat-driven camera/animation system
-- [x] Hindi text layer
-- [x] Local production runner skeleton
-- [x] Project path manager
-- [x] Resumable per-project asset registry/cache contract
-- [x] Automatic unique asset-plan derivation from a manifest
-- [x] Project preparation stage
-- [x] Provider-neutral image adapter and command-based local image contract
-- [x] Master-asset prompt planner with sacred-figure guardrails
-- [x] Resumable missing-master-asset generation runner
-- [x] Existing output adoption into the registry
-- [x] Per-job JSON image handoff
-- [x] Optional strict image-generation mode
-- [x] PNG/JPEG probing, dimension validation and PNG alpha detection
-- [x] Optional FFmpeg oversized-image normalization
-- [x] Registry width/height metadata after inspection/normalization
-- [x] Strict image inspection gate before rendering
-- [x] Provider-neutral Hindi TTS job contract
-- [x] Chatterbox-compatible command boundary (`TTS_COMMAND` / `CHATTERBOX_COMMAND`)
-- [x] Beat narration extraction with timing metadata
-- [x] Narration job JSON persisted under project logs
-- [x] Optional reference-voice path passed through the TTS job
-- [x] Resumable narration output check
-- [x] Optional strict TTS gate (`REQUIRE_TTS=1`)
-- [x] WAV duration inspection with `ffprobe`
-- [x] Audio duration report persisted under project logs
-- [x] Strict narration-duration gate before rendering
-- [x] One-command runner executes audio validation in strict mode
-- [x] SHA-256 asset provenance fields in the registry
-- [x] Asset generation attempt counting
-- [x] Asset generation runtime measurement
-- [x] Asset generation last-error persistence
-- [x] Automatic retry loop for missing generated assets
-- [x] Optional local character-reference image resolver
-- [x] Reference-aware character master prompts
-- [x] Strict missing-reference failure mode
-- [x] Reference path persisted in image job JSON and passed through `{reference}` command placeholder
-- [x] Renderer asset staging from validated project assets into `public/generated/<project_id>`
-- [x] Runtime asset-reference map generated before Remotion render
-- [x] Remotion can layer staged master artwork behind/alongside procedural illustration
-- [x] Generated-art camera entrance/drift and character/environment/prop placement fallback rules
-- [x] Semantic asset requirement module
-- [x] Asset requirement report generation
-- [x] Asset registry persists probed alpha metadata (`alpha`)
-- [x] Image inspection/normalization persists measured alpha metadata
-- [x] Semantic asset gate consumes persisted alpha metadata in strict production
-- [x] Per-beat narration alignment analysis using FFmpeg `silencedetect`
-- [x] Per-beat target/speech/silence timing report persisted under project logs
-- [x] Strict narration alignment gate integrated into one-command production
-- [x] Deterministic narration/music/SFX FFmpeg mixer
-- [x] Configurable music and SFX gain controls
-- [x] Beat-start SFX scheduling by manifest timing
-- [x] Final mix WAV normalized to 48 kHz stereo with limiter
-- [x] Strict final-audio-mix gate (`REQUIRE_AUDIO_MIX=1`)
-- [x] Final mix staged into Remotion public audio space
-- [x] Remotion plays staged final mix when present
-- [x] Deterministic camera presets for push/pull/pan/tilt/reveal/reverse/armor crop
-- [x] Deterministic eased camera motion primitive module
-- [x] Depth-weighted 2.5D parallax transform primitive
-- [x] Asset-aware environment/character/prop depth application in Remotion
-- [x] Deterministic SVG draw-reveal progress primitive
-- [x] Armor highlight path draw-on wired to beat animation
-- [x] Motion primitive smoke-check command (`npm run check:motion`)
-- [x] Manifest-driven SRT/VTT caption generation from beat narration/text
-- [x] Caption generation report persisted under project captions
-- [x] Remotion caption text uses the same `narration` source as generated SRT/VTT when available
-- [x] Caption overlay has explicit mobile-safe margins and readable backing treatment
-- [x] Final MP4 technical QA command using ffprobe/FFmpeg
-- [x] Output QA checks resolution, fps, duration, black-frame intervals and audio peak
-- [x] Output QA report persisted under project logs
-- [x] Strict output QA mode (`REQUIRE_OUTPUT_QA=1`)
-- [x] Caption generation and output QA integrated into one-command production
-- [x] Automated 9-sample contact-sheet generation across rendered duration
-- [x] Visual QA report persisted under project QA artifacts
-- [x] Visual QA artifact integrated into one-command production
-- [x] Local production preflight command (`npm run preflight`)
-- [x] Preflight report persisted under project logs
-- [x] Strict production invokes preflight before expensive generation when image/TTS gates are enabled
-- [x] Deterministic pipeline-contract audit (`npm run check:pipeline`)
-- [x] Pipeline audit verifies required stage source files, npm scripts, production-stage wiring and strict-gate wiring
+Implemented and source-verified:
+
+- `src/check-release.ts` verifies the final MP4 and required post-render evidence artifacts in strict mode.
+- The release audit fingerprints the manifest and final MP4 with SHA-256.
+- It records final video/audio stream metadata through `ffprobe`.
+- It verifies the applicable preflight, audio, output-QA, visual-QA and contact-sheet artifacts.
+- It persists `projects/<project_id>/logs/release-evidence-report.json`.
+- `REQUIRE_RELEASE_EVIDENCE=1` is wired into `src/produce.ts` after render and QA.
+- `src/check-pipeline.ts` now verifies the release-audit source, npm script, production wiring and strict gate.
+
+This is an evidence boundary, not an artistic-quality certification. Human mythology-respect, visual, audio and caption review remain required.
+
+## Implemented — structurally verified
+
+- Product vision, architecture, short-first strategy and long-form scaling
+- Mythology Respect Mode and high-retention story structure
+- Master-asset strategy and creative artifact workflow
+- Goals, quality criteria and sample/reference tracking
+- JSON Short manifest contract and strict validation
+- Manifest-driven Remotion 1080x1920 / 30fps composition
+- Procedural fallback renderer and beat-driven camera system
+- Project preparation, resumable asset registry/cache and automatic asset planning
+- Provider-neutral image generation with command-based local adapter
+- Sacred-figure-aware master-asset prompt planner
+- Resumable missing-asset generation, adoption, retries, provenance and runtime tracking
+- Character-reference resolver and strict reference enforcement
+- PNG/JPEG inspection, dimensions, alpha detection and normalization
+- Semantic asset requirements and strict asset gate
+- Provider-neutral Hindi TTS / Chatterbox command boundary
+- Narration job generation, reference voice forwarding and resumable output checks
+- WAV duration inspection and strict narration-duration gate
+- Per-beat narration alignment using FFmpeg `silencedetect`
+- Deterministic narration/music/SFX mixer with limiter and configurable gains
+- Final mix staging and Remotion audio playback
+- Deterministic camera presets, easing, depth-weighted 2.5D parallax and SVG draw-reveal primitive
+- Motion smoke checks
+- Manifest-driven SRT/VTT generation
+- Remotion burned-in captions use the same narration source as SRT/VTT with mobile-safe treatment
+- Final MP4 technical QA with ffprobe/FFmpeg
+- Automated 9-frame contact sheet and visual-QA report
+- Local runtime preflight and persisted preflight report
+- Deterministic pipeline-contract audit
+- Release-evidence audit and strict release gate
 
 ## In progress
 
-- [ ] Runtime verification against the user's actual FLUX/ComfyUI installation
-- [ ] Runtime verification against the user's actual Chatterbox/deep-Hindi voice setup
-- [ ] Validate semantic audio alignment and mix levels against real generated narration
-- [ ] Visual review of the new 2.5D camera language on real generated master assets
-- [ ] Expand SVG draw-on beyond the current armor/highlight primitive
-- [ ] Burn-in/caption styling review against real footage and mobile-safe content
-- [ ] Human review of automated contact-sheet findings
-- [ ] End-to-end real Karna render on the user's machine
+- Runtime verification against the user's actual FLUX/ComfyUI installation
+- Runtime verification against the user's actual Chatterbox/deep-Hindi voice setup
+- Real generated master-asset quality/consistency review
+- Real narration alignment and mix-level review
+- Visual review/tuning of 2.5D camera language
+- Expanded SVG draw-on language
+- Caption wrapping/safe-area review on real footage
+- Human contact-sheet review
+- End-to-end real Karna render
+- Runtime verification of release-evidence report
 
 ## Blockers
 
-No repository-level blocker is preventing further coding. Machine-specific blockers remain: the exact local FLUX/ComfyUI invocation and Chatterbox/deep-Hindi invocation are not available for execution in this environment. The preflight and pipeline-contract audit can identify missing prerequisites and wiring, but neither can validate model quality or a model-specific workflow without execution. Output and visual QA cannot provide release evidence until a real MP4 exists. The black-frame check is intentionally conservative and must be reviewed against real generated footage so legitimate dark mythic frames are not rejected.
-
-## Pipeline contract audit
-
-`src/check-pipeline.ts` checks that the manifest exists, all required pipeline source entrypoints exist, expected npm scripts are exposed, all production stages are referenced by `src/produce.ts`, and all strict release gates are wired. It prints a JSON report and exits non-zero on a contract mismatch. This is a structural guard only; it does not execute FLUX, TTS, or Remotion.
-
-## Runtime preflight contract
-
-`src/preflight.ts` checks the manifest, Node, FFmpeg, FFprobe, npx, configured image-generator executable, TTS executable, and the required character-reference directory when strict references are enabled. It persists `projects/<project_id>/logs/preflight-report.json`. A failed required check exits non-zero. `src/produce.ts` invokes this gate before generation whenever `REQUIRE_GENERATED_ASSETS=1` or `REQUIRE_TTS=1` is enabled.
-
-## Caption contract
-
-`src/generate-captions.ts` remains the authoritative file-output path for SRT/VTT. The Remotion compositor now consumes `beat.narration` when available, falling back to `beat.text`, so the burned-in caption source and external subtitle source are aligned to the same manifest field. The overlay uses explicit 70px side margins, a 150px bottom baseline and a readable backing panel. This does not yet prove caption readability on a real rendered MP4; that remains a runtime visual-review gate.
+No repository-level blocker prevents further coding. The decisive blocker is machine-specific execution: the exact local FLUX/ComfyUI invocation and Chatterbox/deep-Hindi invocation are not executable from this environment. Structural audits can verify wiring and evidence contracts, but cannot prove model output quality. Output/visual/release evidence becomes meaningful only after a real MP4 exists. The black-frame QA threshold is intentionally conservative and must be reviewed against legitimate dark mythic footage.
 
 ## Exact reproducible commands
 
@@ -141,59 +81,53 @@ npm run check:pipeline -- examples/karna-short.json
 npm run preflight -- examples/karna-short.json
 npm run validate -- examples/karna-short.json
 npm run check:motion
-npm run inspect -- examples/karna-short.json
-npm run prepare -- examples/karna-short.json
-npm run generate:assets -- examples/karna-short.json
-npm run inspect:assets -- examples/karna-short.json
-npm run normalize:assets -- examples/karna-short.json
-npm run check:asset-requirements -- examples/karna-short.json
-npm run generate:voice -- examples/karna-short.json
-npm run inspect:audio -- examples/karna-short.json
-npm run align:audio -- examples/karna-short.json
-npm run mix:audio -- examples/karna-short.json
-npm run generate:captions -- examples/karna-short.json
-npm run stage:assets -- examples/karna-short.json
-bash run.sh examples/karna-short.json
-npm run generate:visual-qa -- examples/karna-short.json renders/karna-short.mp4
-npm run check:output -- examples/karna-short.json renders/karna-short.mp4
+npm run check:release -- examples/karna-short.json renders/karna-short.mp4
 ```
 
-Strict first real-model run:
+Full strict first real-model run:
 
 ```bash
-REQUIRE_CHARACTER_REFERENCES=1 REQUIRE_GENERATED_ASSETS=1 REQUIRE_ASSET_REQUIREMENTS=1 REQUIRE_TTS=1 REQUIRE_TTS_ALIGNMENT=1 REQUIRE_AUDIO_MIX=1 REQUIRE_OUTPUT_QA=1 NORMALIZE_ASSETS=1 IMAGE_GENERATION_MAX_ATTEMPTS=2 bash run.sh examples/karna-short.json
+REQUIRE_CHARACTER_REFERENCES=1 REQUIRE_GENERATED_ASSETS=1 REQUIRE_ASSET_REQUIREMENTS=1 REQUIRE_TTS=1 REQUIRE_TTS_ALIGNMENT=1 REQUIRE_AUDIO_MIX=1 REQUIRE_OUTPUT_QA=1 REQUIRE_RELEASE_EVIDENCE=1 NORMALIZE_ASSETS=1 IMAGE_GENERATION_MAX_ATTEMPTS=2 bash run.sh examples/karna-short.json
 ```
 
-Audio input layout for the optional mix stage:
+Manual post-render sequence if needed:
 
-```text
-projects/karna-kavacha-demo/audio/
-  narration.wav
-  music.wav              # optional; manifest audio.music_path points here
-  sfx/
-    B01.wav              # optional
-    B02.wav              # optional
-    ...
+```bash
+npm run generate:visual-qa -- examples/karna-short.json renders/karna-short.mp4
+npm run check:output -- examples/karna-short.json renders/karna-short.mp4
+npm run check:release -- examples/karna-short.json renders/karna-short.mp4
 ```
+
+## Verification policy
+
+A completed checkbox means the repository implementation exists and has been structurally reviewed. It does not mean local models executed successfully. M1 remains open until a real MP4 is rendered and passes technical, visual, audio, caption and mythology-respect review.
+
+For the first real run record: machine/model, runtime, generated asset count, retries/failures, reference usage, motion/crop notes, visual notes, audio notes, caption notes, QA reports and output/release hashes.
 
 ## Release gates
 
-### Gate M1 — first real Short
+### M1 — first real Short
 
-Final MP4 from one manifest using local FLUX/TTS/audio adapters, with technical and visual QA passed.
+Final MP4 from one manifest using local FLUX/TTS/audio adapters, with technical and visual QA passed and release evidence captured.
 
-### Gate M2 — repeatability
+### M2 — repeatability
 
 Three different Shorts through the same pipeline without renderer code changes.
 
-### Gate M3 — daily production
+### M3 — daily production
 
 Queue of three Shorts/day with caching, resumability and failure recovery.
 
-### Gate M4 — long-form
+### M4 — long-form
 
 8–12 minute episodes using the same visual engine and larger manifests.
 
-### Gate M5 — season automation
+### M5 — season automation
 
 Source/season bible, episode manifests and recoverable batch queue.
+
+## Product goal
+
+**AI creates the artwork. Code creates the movie.**
+
+The final system must support 60–90s Hindi mythology Shorts, reusable master assets, reference-guided consistency, dignified/source-aware mythology treatment, fast controlled motion, deep Hindi narration, sound design/music, captions, technical/visual quality gates, one-command local production, three-Short daily batching, 8–12 minute long-form episodes and later serialized season automation.
