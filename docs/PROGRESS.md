@@ -17,6 +17,9 @@
 - [x] Added `kinetic_keywords` to the manifest contract for stronger future word-triggered effects.
 - [x] Extended pipeline audit and one-command production to run narration pacing and timing preparation.
 - [x] Added TypeScript checking for `.ts` and `.tsx` sources and a CI workflow that runs typecheck plus structural gates.
+- [x] Fixed shared project-path typing for persisted logs and corrected the local-runtime discovery filesystem API usage.
+- [x] Fixed strict `REQUIRE_OUTPUT_QA` contract wiring in `src/produce.ts`.
+- [x] CI run #13 completed successfully: TypeScript typecheck, manifest validation, motion checks, visual-beat checks and pipeline contract audit all passed.
 
 ### Evidence from the latest uploaded render
 
@@ -24,7 +27,7 @@ The latest uploaded Karna MP4 was technically inspected in this environment: 108
 
 ### Verification boundary
 
-The new code is committed in GitHub and the repository contract now includes the new stages. A real local Remotion render using the user's actual FLUX/ComfyUI or Draw Things assets, Chatterbox voice and Whisper setup is still required before claiming M1 visual/audio completion.
+The repository implementation now passes the automated structural/typecheck CI gate. A real local Remotion render using the user's actual FLUX/ComfyUI or Draw Things assets, Chatterbox voice and Whisper setup is still required before claiming M1 visual/audio completion.
 
 ## Previous milestone — Visual beat engine / cinematic ink compositor
 
