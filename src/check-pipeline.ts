@@ -14,6 +14,8 @@ const requiredFiles = [
   'src/generate-captions.ts', 'src/stage-assets.ts', 'src/generate-visual-qa.ts', 'src/check-output.ts',
   'src/check-motion.ts', 'src/check-visual-beats.ts', 'src/remotion/index.ts',
   'src/remotion/visual-beats.tsx', 'src/remotion/MythicShort.tsx', 'src/remotion/runtime-timing.ts',
+  'studio/server.mjs', 'studio/index.html', 'prompts/story-package.md', 'schemas/story-package.schema.json',
+  'schemas/production-manifest.schema.json',
 ];
 
 checks.push({name: 'manifest', ok: existsSync(manifestPath), detail: manifestPath});
@@ -23,7 +25,7 @@ const requiredScripts = [
   'validate', 'inspect', 'prepare', 'preflight', 'check:pipeline', 'check:release', 'generate:assets',
   'inspect:assets', 'normalize:assets', 'check:asset-requirements', 'stage:assets', 'generate:voice',
   'tune:narration', 'inspect:audio', 'align:audio', 'prepare:timing', 'mix:audio', 'check:motion',
-  'check:visual-beats', 'generate:captions', 'check:output', 'generate:visual-qa', 'typecheck', 'produce',
+  'check:visual-beats', 'generate:captions', 'check:output', 'generate:visual-qa', 'typecheck', 'produce', 'studio',
 ];
 for (const script of requiredScripts) {
   const command = packageJson.scripts?.[script];
