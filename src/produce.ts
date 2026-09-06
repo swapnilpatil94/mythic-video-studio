@@ -20,6 +20,7 @@ await run('npx', ['tsx', 'src/discover-local.ts', input]);
 if (strictRuntime) await run('npx', ['tsx', 'src/preflight.ts', input]);
 
 await run('npx', ['tsx', 'src/check-pipeline.ts', input]);
+await run('npx', ['tsx', 'src/check-visual-beats.ts', input]);
 await run('npx', ['tsx', 'src/cli.ts', 'validate', input]);
 await run('npx', ['tsx', 'src/pipeline/prepare-project.ts', input]);
 await run('npx', ['tsx', 'src/generate-assets.ts', input]);
