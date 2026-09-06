@@ -8,7 +8,7 @@ Updated: 2026-09-06
 
 **North star:** one command produces a publishable Hindi mythology video.
 
-**Current engineering focus:** per-segment narration timing/alignment is now implemented as a deterministic analysis stage. The next focus is music/SFX and final audio mixing.
+**Current engineering focus:** deterministic final audio mixing is now implemented as a provider-neutral FFmpeg stage. The next focus is reusable cinematic animation primitives and true layered 2.5D motion.
 
 ## Done — implemented and structurally verified in repository
 
@@ -74,14 +74,19 @@ Updated: 2026-09-06
 - [x] Per-beat narration alignment analysis using FFmpeg `silencedetect`
 - [x] Per-beat target/speech/silence timing report persisted under project logs
 - [x] Strict narration alignment gate integrated into one-command production
+- [x] Deterministic narration/music/SFX FFmpeg mixer
+- [x] Configurable music and SFX gain controls
+- [x] Beat-start SFX scheduling by manifest timing
+- [x] Final mix WAV normalized to 48 kHz stereo with limiter
+- [x] Strict final-audio-mix gate (`REQUIRE_AUDIO_MIX=1`)
+- [x] Final mix staged into Remotion public audio space
+- [x] Remotion plays staged final mix when present
 
 ## In progress
 
 - [ ] Runtime verification against the user's actual FLUX/ComfyUI installation
 - [ ] Runtime verification against the user's actual Chatterbox/deep-Hindi voice setup
-- [ ] Validate semantic audio alignment against real generated narration
-- [ ] Music/SFX adapter
-- [ ] Deterministic final audio mix
+- [ ] Validate semantic audio alignment and mix levels against real generated narration
 - [ ] SVG draw-on animation primitives beyond the current procedural fallback
 - [ ] True layered 2.5D camera/parallax system
 - [ ] Generated-art visual QA and character consistency review
@@ -91,15 +96,15 @@ Updated: 2026-09-06
 
 ## Blockers
 
-No repository-level blocker is preventing further coding. Machine-specific blockers remain: the exact local FLUX/ComfyUI invocation and Chatterbox/deep-Hindi invocation are not verified in this environment. The new audio alignment stage also requires a real narration WAV to validate the detected silence/speech regions against human-perceived beat timing.
+No repository-level blocker is preventing further coding. Machine-specific blockers remain: the exact local FLUX/ComfyUI invocation and Chatterbox/deep-Hindi invocation are not verified in this environment. The audio mixer also needs a real narration/music/SFX set to validate perceived loudness, ducking, and artistic balance; the current mix is deterministic but not claimed as mastered for release.
 
-## Audio alignment contract
+## Audio mix contract
 
-`src/align-audio.ts` probes the narration WAV, detects silence regions with FFmpeg, maps detected speech time into each manifest beat window, and writes `projects/<project_id>/logs/audio-alignment-report.json`. It intentionally reports timing evidence rather than pretending to know word-level alignment. Strict mode is enabled with `REQUIRE_TTS_ALIGNMENT=1`; the whole-track duration tolerance remains independently enforced by `inspect-audio.ts`.
+`src/mix-audio.ts` accepts the manifest narration path, optional music path, and optional per-beat SFX files under the configured SFX directory. Music is looped and attenuated, SFX are delayed to each beat start and attenuated, and all active tracks are mixed to a 48 kHz stereo WAV with a final limiter. The result is `projects/<project_id>/audio/final-mix.wav`. Strict mode is enabled with `REQUIRE_AUDIO_MIX=1`.
 
 ## Verification boundary
 
-Repository implementation is not the same as runtime verification. M1 cannot be marked complete until local dependencies/models are actually executed, real artwork/audio are generated, and a final MP4 is rendered and visually/audibly reviewed on the target machine.
+Repository implementation is not the same as runtime verification. M1 cannot be marked complete until local dependencies/models are actually executed, real artwork/audio are generated, the final mix is listened to, and a final MP4 is rendered and visually/audibly reviewed on the target machine.
 
 ## Exact reproducible commands
 
@@ -115,14 +120,27 @@ npm run check:asset-requirements -- examples/karna-short.json
 npm run generate:voice -- examples/karna-short.json
 npm run inspect:audio -- examples/karna-short.json
 npm run align:audio -- examples/karna-short.json
+npm run mix:audio -- examples/karna-short.json
 npm run stage:assets -- examples/karna-short.json
 bash run.sh examples/karna-short.json
 ```
 
-Reference-aware strict run:
+Strict first real-model run:
 
 ```bash
-REQUIRE_CHARACTER_REFERENCES=1 REQUIRE_GENERATED_ASSETS=1 REQUIRE_ASSET_REQUIREMENTS=1 REQUIRE_TTS=1 REQUIRE_TTS_ALIGNMENT=1 NORMALIZE_ASSETS=1 IMAGE_GENERATION_MAX_ATTEMPTS=2 bash run.sh examples/karna-short.json
+REQUIRE_CHARACTER_REFERENCES=1 REQUIRE_GENERATED_ASSETS=1 REQUIRE_ASSET_REQUIREMENTS=1 REQUIRE_TTS=1 REQUIRE_TTS_ALIGNMENT=1 REQUIRE_AUDIO_MIX=1 NORMALIZE_ASSETS=1 IMAGE_GENERATION_MAX_ATTEMPTS=2 bash run.sh examples/karna-short.json
+```
+
+Audio input layout for the optional mix stage:
+
+```text
+projects/karna-kavacha-demo/audio/
+  narration.wav
+  music.wav              # optional; manifest audio.music_path points here
+  sfx/
+    B01.wav              # optional
+    B02.wav              # optional
+    ...
 ```
 
 ## Release gates
