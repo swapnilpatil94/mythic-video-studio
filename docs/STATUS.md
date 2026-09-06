@@ -26,7 +26,7 @@ Implemented in GitHub:
 - Added TypeScript checking for both `.ts` and `.tsx` sources and a GitHub Actions structural/typecheck workflow.
 - Extended `check-pipeline.ts` so the pacing/timing stages, strict output-QA gate and `typecheck` are part of the repository contract audit.
 - Fixed shared project-path typing for persisted logs and corrected the local-runtime discovery filesystem API usage.
-- CI run #13 completed successfully on 2026-09-06: TypeScript typecheck, manifest validation, motion checks, visual-beat checks and the pipeline contract audit all passed. citeturn142file0turn141file0
+- CI run #13 completed successfully on 2026-09-06: TypeScript typecheck, manifest validation, motion checks, visual-beat checks and the pipeline contract audit all passed.
 
 This is a **source implementation milestone**, not an M1 release claim. The uploaded 2026-09-06 Karna render was technically inspected outside the repo: it is 1080×1920, 30fps and about 81.05s, with several detected internal silences including pauses above 1.5s. That confirms the pacing problem is real. It does not prove the new code has been rendered on the user's Mac.
 
