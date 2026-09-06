@@ -1,34 +1,34 @@
 # Progress
 
-## 2026-09-06 — Generated-art compositing
+## 2026-09-06 — Semantic asset requirements
 
 ### Completed this iteration
 
-- [x] Added `src/stage-assets.ts` to bridge validated project assets into Remotion's public asset space.
-- [x] Added `npm run stage:assets`.
-- [x] Staging is limited to registry assets marked `ready` and whose files exist.
-- [x] Deterministic runtime asset URLs are written to `src/remotion/runtime-assets.ts`.
-- [x] Added generated-art layers to `src/remotion/MythicShort.tsx`.
-- [x] Environment/background-like references can fill the frame with restrained opacity and camera drift.
-- [x] Character/master references can enter as foreground layers with simple lateral motion.
-- [x] Supporting prop/other references can appear as a secondary layer.
-- [x] Existing procedural illustration remains as a fallback when a beat has no staged generated art.
-- [x] Updated `src/produce.ts` so staging happens after image/audio gates and before Remotion rendering.
-- [x] Added `npm run stage:assets` to the package scripts.
-- [x] Updated `docs/STATUS.md` with the compositing contract, verification boundary and commands.
+- [x] Added `src/pipeline/asset-requirements.ts` with deterministic requirements by asset kind.
+- [x] Character masters are classified as `isolated-transparent` and require alpha-capable artwork.
+- [x] Environment/background assets are classified as `opaque-full-frame`.
+- [x] Overlay assets are classified as `transparent-overlay`.
+- [x] Supporting props default to `opaque-supporting` until segmentation is explicitly requested.
+- [x] Added minimum/maximum dimension requirements per asset class.
+- [x] Added `src/check-asset-requirements.ts` to generate a non-mutating requirement report.
+- [x] Added `npm run check:asset-requirements`.
+- [x] Strict production can now fail on semantic requirement errors with `REQUIRE_ASSET_REQUIREMENTS=1`.
+- [x] Updated `src/produce.ts` to run the semantic gate before narration/rendering when strict mode is enabled.
+- [x] Updated `package.json` with the new check command.
+- [x] Updated `docs/STATUS.md` to track the semantic contract and its verification boundary.
 
 ### Verification boundary
 
-The repository wiring was written and re-read through GitHub after each sequential update. This is **structural verification only**. The actual Remotion render with a real FLUX-generated character/environment asset has not been executed in the target Mac environment here, so visual placement, transparency behavior, crop quality and performance are not claimed as verified.
+The new TypeScript files and package integration were committed and re-read through GitHub. This is **structural verification only**. No claim is made that an actual FLUX-generated transparent character master passes the alpha requirement until a real generated asset is inspected on the target machine.
 
 ## Current milestone: M1 — First real Short
 
 ### Immediate next engineering sequence
 
-1. Add semantic asset requirements (isolated/transparent character versus opaque environment) and make staging honor those requirements.
+1. Make semantic requirements enforceable after image inspection/normalization, including persisted `alpha` metadata in the registry.
 2. Add per-segment narration timing/alignment and waveform inspection.
 3. Add music/SFX adapter and final audio mix.
-4. Expand the compositor into reusable layered crops, pans, zooms and SVG draw-on transitions.
+4. Expand compositor into reusable layered crops, pans, zooms and SVG draw-on transitions.
 5. Add true 2.5D/parallax and deterministic depth rules.
 6. Add automated captions and technical/visual QA report.
 7. Verify FLUX/ComfyUI and Chatterbox/deep-Hindi against the user's actual local installations.
@@ -43,6 +43,7 @@ npm run prepare -- examples/karna-short.json
 npm run generate:assets -- examples/karna-short.json
 npm run inspect:assets -- examples/karna-short.json
 npm run normalize:assets -- examples/karna-short.json
+npm run check:asset-requirements -- examples/karna-short.json
 npm run generate:voice -- examples/karna-short.json
 npm run inspect:audio -- examples/karna-short.json
 npm run stage:assets -- examples/karna-short.json
@@ -52,7 +53,7 @@ bash run.sh examples/karna-short.json
 Strict first real-model run:
 
 ```bash
-REQUIRE_CHARACTER_REFERENCES=1 REQUIRE_GENERATED_ASSETS=1 REQUIRE_TTS=1 NORMALIZE_ASSETS=1 IMAGE_GENERATION_MAX_ATTEMPTS=2 bash run.sh examples/karna-short.json
+REQUIRE_CHARACTER_REFERENCES=1 REQUIRE_GENERATED_ASSETS=1 REQUIRE_ASSET_REQUIREMENTS=1 REQUIRE_TTS=1 NORMALIZE_ASSETS=1 IMAGE_GENERATION_MAX_ATTEMPTS=2 bash run.sh examples/karna-short.json
 ```
 
 ## Verification policy
