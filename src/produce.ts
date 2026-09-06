@@ -28,10 +28,12 @@ await run('npx', ['tsx', 'src/normalize-assets.ts', input]);
 if (process.env.REQUIRE_GENERATED_ASSETS === '1') await run('npx', ['tsx', 'src/inspect-assets.ts', input]);
 if (process.env.REQUIRE_ASSET_REQUIREMENTS === '1') await run('npx', ['tsx', 'src/check-asset-requirements.ts', input]);
 await run('npx', ['tsx', 'src/generate-voice.ts', input]);
+await run('npx', ['tsx', 'src/tune-narration.ts', input]);
 if (process.env.REQUIRE_TTS === '1') {
   await run('npx', ['tsx', 'src/inspect-audio.ts', input]);
   if (process.env.REQUIRE_TTS_ALIGNMENT === '1') await run('npx', ['tsx', 'src/align-audio.ts', input]);
 }
+await run('npx', ['tsx', 'src/prepare-timing.ts', input]);
 if (process.env.REQUIRE_AUDIO_MIX === '1') await run('npx', ['tsx', 'src/mix-audio.ts', input]);
 await run('npx', ['tsx', 'src/generate-captions.ts', input]);
 await run('npx', ['tsx', 'src/stage-assets.ts', input]);
