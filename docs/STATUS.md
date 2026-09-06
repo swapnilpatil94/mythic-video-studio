@@ -8,7 +8,7 @@ Updated: 2026-09-06
 
 **North star:** one command produces a publishable Hindi mythology video.
 
-**Current engineering focus:** generated master-art compositing inside Remotion, after validated assets are staged into the renderer's public asset space.
+**Current engineering focus:** semantic asset contracts and animation-ready compositing. The pipeline must distinguish isolated transparent characters from opaque environments before real FLUX output is trusted by the renderer.
 
 ## Done — implemented and structurally verified in repository
 
@@ -66,12 +66,14 @@ Updated: 2026-09-06
 - [x] Runtime asset-reference map generated before Remotion render
 - [x] Remotion can layer staged master artwork behind/alongside procedural illustration
 - [x] Generated-art camera entrance/drift and character/environment/prop placement fallback rules
+- [x] Semantic asset requirement module: character masters require isolated compositing intent; environments/backgrounds remain opaque scene layers
+- [x] Asset requirement report can be generated deterministically from a manifest and registry
 
 ## In progress
 
 - [ ] Runtime verification against the user's actual FLUX/ComfyUI installation
 - [ ] Runtime verification against the user's actual Chatterbox/deep-Hindi voice setup
-- [ ] Semantic asset requirements beyond character references (transparent/isolated character vs opaque environment)
+- [ ] Enforce semantic asset requirements in the generation/staging gates
 - [ ] Per-segment narration duration/alignment and waveform inspection
 - [ ] Music/SFX adapter
 - [ ] SVG draw-on animation primitives beyond the current procedural fallback
@@ -86,69 +88,9 @@ Updated: 2026-09-06
 
 No repository-level blocker is preventing further coding. The remaining integration blockers are machine-specific: the exact local FLUX/ComfyUI invocation and Chatterbox/deep-Hindi invocation are not verified in this environment. The adapters deliberately do not invent model-specific commands.
 
-## Generated-art compositing contract
+## Semantic asset contract
 
-`src/stage-assets.ts` copies registry assets with `status=ready` into `public/generated/<project_id>/` and writes `src/remotion/runtime-assets.ts`. The Remotion compositor resolves beat `asset_refs` through that map. Environment/background-like refs are treated as full-frame layers; character/master refs are placed as isolated foreground layers; other refs receive a restrained supporting layer. When no generated asset is available, the existing procedural illustration remains visible instead of producing a blank frame.
-
-This stage is implemented but has **not** been runtime-verified with real FLUX-generated artwork. The compositor's placement rules are intentionally conservative until actual sample assets reveal the model's framing, transparency and subject scale.
-
-## Asset provenance contract
-
-Every successful generated/adopted asset can carry a SHA-256 digest, generation timestamp, total generation runtime, cumulative attempt count and last error. Missing/failed jobs remain resumable. Existing ready files without a digest are hashed when encountered, without regenerating them.
-
-Useful variable:
-
-```bash
-IMAGE_GENERATION_MAX_ATTEMPTS=2
-```
-
-## Audio inspection contract
-
-`src/inspect-audio.ts` probes the configured narration WAV using `ffprobe`, records duration/target/delta/tolerance in `projects/<project_id>/logs/audio-report.json`, and fails strict production when the total narration differs from the manifest target by more than `AUDIO_DURATION_TOLERANCE_SECONDS` (default `0.35`).
-
-Useful variables:
-
-```bash
-FFPROBE_COMMAND=ffprobe
-AUDIO_DURATION_TOLERANCE_SECONDS=0.35
-REQUIRE_TTS=1
-```
-
-This is a total-duration gate only; beat-level waveform alignment is still pending.
-
-## Current image contract
-
-Supported inspection inputs are PNG and JPEG. Default validation requires dimensions of at least 256px and no dimension above 4096px. `NORMALIZE_ASSETS=1` enables FFmpeg conversion of oversized assets to deterministic PNG outputs, targeting 2048px maximum dimension by default.
-
-Useful environment variables:
-
-```bash
-MAX_ASSET_DIMENSION=4096
-NORMALIZED_ASSET_DIMENSION=2048
-NORMALIZE_ASSETS=1
-FFMPEG_COMMAND=ffmpeg
-```
-
-## Image adapter contract
-
-Set `FLUX_COMMAND` (or `IMAGE_GENERATOR_COMMAND`) to an executable that receives one JSON job as its final argument. The job contains `project_id`, `asset_id`, `kind`, `role`, `prompt`, `output_path`, `reference_path`, and `reference_required`. Optional `FLUX_ARGS` / `IMAGE_GENERATOR_ARGS` may contain `{job}`, `{output}`, and `{reference}` placeholders. The command must create the requested output file; otherwise the job is retried and eventually marked failed.
-
-For unattended strict generation:
-
-```bash
-REQUIRE_GENERATED_ASSETS=1
-IMAGE_GENERATION_MAX_ATTEMPTS=2
-```
-
-## Pending user inputs — only when adapter wiring begins
-
-1. FLUX model location or local API/ComfyUI endpoint/command.
-2. Chatterbox installation/command or local API endpoint.
-3. Deep Hindi voice-clone model location/invocation method.
-4. Optional local music/SFX model if available.
-5. Approved visual samples/references when available.
-
-Do not commit credentials, tokens, private keys, or model weights.
+`src/pipeline/asset-requirements.ts` classifies every planned asset before generation. Character masters are intended to be isolated compositing assets and therefore require alpha-capable artwork; environments/backgrounds are opaque scene layers; props/overlays are constrained according to their role. The contract is deterministic and reports missing/invalid registry records without mutating them. Enforcement in the generation/staging gates remains the next step.
 
 ## Verification boundary
 
