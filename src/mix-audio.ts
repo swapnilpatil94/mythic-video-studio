@@ -39,9 +39,9 @@ const run = (args: string[]) => new Promise<{code: number; stderr: string}>((res
 });
 
 const inputs: string[] = [narration];
-const labels = ['[0:a]'];
-const filters: string[] = ['[0:a]aresample=48000,normvol=0.95[narr]'];
+const filters: string[] = ['[0:a]aresample=48000,volume=0.95[narr]'];
 let nextInput = 1;
+let musicAvailable = false;
 
 if (music) {
   if (!existsSync(music)) {
@@ -49,13 +49,13 @@ if (music) {
   } else {
     inputs.push(music);
     filters.push(`[${nextInput}:a]aresample=48000,volume=${musicVolume.toFixed(3)},aloop=loop=-1:size=2e+09[music]`);
-    labels.push('[music]');
+    musicAvailable = true;
     nextInput += 1;
   }
 }
 
 let cursor = 0;
-const sfxInputs: string[] = [];
+const sfxLabels: string[] = [];
 for (const beat of manifest.beats) {
   const candidates = [
     join(sfxDir, `${beat.beat_id}.wav`),
@@ -66,24 +66,22 @@ for (const beat of manifest.beats) {
   if (path) {
     const inputIndex = nextInput++;
     inputs.push(path);
-    const label = `sfx${sfxInputs.length}`;
+    const label = `sfx${sfxLabels.length}`;
     const delayMs = Math.max(0, Math.round(cursor * 1000));
     filters.push(`[${inputIndex}:a]aresample=48000,volume=${sfxVolume.toFixed(3)},adelay=${delayMs}:all=1[${label}]`);
-    labels.push(`[${label}]`);
-    sfxInputs.push(label);
+    sfxLabels.push(label);
   }
   cursor += beat.duration_seconds;
 }
 
-const mixInputs = ['[narr]', ...labels.filter((label) => label !== '[0:a]' && label !== '[music]' && !label.startsWith('[sfx'))];
-const explicitLabels = ['[narr]'];
-if (music && labels.includes('[music]')) explicitLabels.push('[music]');
-for (const label of sfxInputs) explicitLabels.push(`[${label}]`);
+const mixLabels = ['[narr]'];
+if (musicAvailable) mixLabels.push('[music]');
+for (const label of sfxLabels) mixLabels.push(`[${label}]`);
 
-if (explicitLabels.length === 1) {
+if (mixLabels.length === 1) {
   filters.push('[narr]alimiter=limit=0.95:level=disabled[final]');
 } else {
-  filters.push(`${explicitLabels.join('')}amix=inputs=${explicitLabels.length}:duration=first:dropout_transition=0,alimiter=limit=0.95:level=disabled[final]`);
+  filters.push(`${mixLabels.join('')}amix=inputs=${mixLabels.length}:duration=first:dropout_transition=0,alimiter=limit=0.95:level=disabled[final]`);
 }
 
 const args = ['-y'];
@@ -97,6 +95,6 @@ if (result.code !== 0 || !existsSync(output)) {
 }
 
 console.log(`[audio-mix] narration=${narration}`);
-console.log(`[audio-mix] music=${music && existsSync(music) ? music : 'none'}`);
-console.log(`[audio-mix] sfx=${sfxInputs.length}`);
+console.log(`[audio-mix] music=${musicAvailable ? music : 'none'}`);
+console.log(`[audio-mix] sfx=${sfxLabels.length}`);
 console.log(`[audio-mix] output=${output}`);
