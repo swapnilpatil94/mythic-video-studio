@@ -1,5 +1,6 @@
 import React, {useMemo} from 'react';
-import {AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig} from 'remotion';
+import {AbsoluteFill, Img, interpolate, staticFile, useCurrentFrame, useVideoConfig} from 'remotion';
+import {runtimeAssets} from './runtime-assets';
 
 const INK = '#171510';
 const CREAM = '#F4E8CF';
@@ -70,6 +71,23 @@ function Visitor({progress}: {progress: number}) {
 
 const labelForRole = (role: string) => role.replaceAll('_', ' ').toUpperCase();
 
+function GeneratedArtwork({beat, progress}: {beat: Beat; progress: number}) {
+  const refs = beat.asset_refs.filter((ref) => runtimeAssets[ref]);
+  if (refs.length === 0) return null;
+  const environment = refs.find((ref) => /environment|background|battlefield|location/i.test(ref));
+  const characters = refs.filter((ref) => /character|\.master/i.test(ref) || ref.includes('karna') || ref.includes('indra'));
+  const other = refs.filter((ref) => ref !== environment && !characters.includes(ref));
+  const entrance = interpolate(progress, [0, 0.25, 1], [0, 1, 1]);
+  const drift = beat.camera?.includes('push') ? interpolate(progress, [0, 1], [1.08, 1]) : interpolate(progress, [0, 1], [1.02, 1.04]);
+  return <div style={{position: 'absolute', inset: 0, opacity: entrance, pointerEvents: 'none'}}>
+    {environment ? <Img src={staticFile(runtimeAssets[environment])} style={{position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', transform: `scale(${drift})`, transformOrigin: '50% 50%', opacity: 0.88}}/> : null}
+    {characters.slice(0, 2).map((ref, index) => (
+      <Img key={ref} src={staticFile(runtimeAssets[ref])} style={{position: 'absolute', left: index === 0 ? '2%' : '48%', bottom: '5%', width: index === 0 ? '56%' : '50%', height: '78%', objectFit: 'contain', objectPosition: 'center bottom', transform: `translateX(${interpolate(progress, [0, 1], [index === 0 ? -35 : 35, 0])}px) scale(${1 + index * 0.02})`, opacity: 0.96}}/>
+    ))}
+    {other.slice(0, 1).map((ref) => <Img key={ref} src={staticFile(runtimeAssets[ref])} style={{position: 'absolute', left: '20%', top: '18%', width: '60%', height: '55%', objectFit: 'contain', opacity: 0.9}}/>)}
+  </div>;
+}
+
 export const MythicShort: React.FC<{manifest: Manifest}> = ({manifest}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
@@ -93,9 +111,10 @@ export const MythicShort: React.FC<{manifest: Manifest}> = ({manifest}) => {
   const isThreat = beat.visual_role === 'threat' || beat.visual_role === 'stakes';
 
   return <AbsoluteFill style={{backgroundColor: CREAM, fontFamily: 'Noto Sans Devanagari, Noto Sans, sans-serif', color: INK}}>
+    <GeneratedArtwork beat={beat} progress={local}/>
     <AbsoluteFill style={{transform: `scale(${camera})`, transformOrigin: '50% 50%'}}>
       <svg width="100%" height="100%" viewBox="0 0 1080 1920">
-        <rect width="1080" height="1920" fill={CREAM}/>
+        <rect width="1080" height="1920" fill={CREAM} opacity={runtimeAssets[beat.asset_refs[0]] ? 0.18 : 1}/>
         <path d="M70 90 Q540 40 1010 90 M70 1830 Q540 1880 1010 1830" fill="none" stroke={INK} strokeWidth="4" opacity="0.25"/>
         <SketchSun opacity={beat.visual_role === 'hook' || isArmor ? 1 : 0.25}/>
         <KarnaFigure progress={isVisitor ? 1 : draw}/>
@@ -110,7 +129,7 @@ export const MythicShort: React.FC<{manifest: Manifest}> = ({manifest}) => {
       <div style={{fontSize: 22, letterSpacing: 2, opacity: 0.55}}>SOURCE • STORY • REVEAL</div>
     </div>
 
-    <div style={{position: 'absolute', left: 70, right: 70, bottom: 120, opacity: titleOpacity}}>
+    <div style={{position: 'absolute', left: 70, right: 70, bottom: 120, opacity: titleOpacity, textShadow: '0 2px 12px rgba(244,232,207,0.9)'}}>
       <div style={{fontSize: 60, lineHeight: 1.1, fontWeight: 800, maxWidth: 900}}>{beat.text}</div>
       <div style={{marginTop: 24, fontSize: 24, letterSpacing: 4, color: RED}}>{beat.label}</div>
     </div>
