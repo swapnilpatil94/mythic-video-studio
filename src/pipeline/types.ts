@@ -9,6 +9,7 @@ export type AssetRecord = {
   status: 'missing' | 'ready' | 'failed';
   width?: number;
   height?: number;
+  alpha?: boolean;
   sha256?: string;
   generated_at?: string;
   generation_runtime_ms?: number;
