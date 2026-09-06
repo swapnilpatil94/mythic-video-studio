@@ -1,0 +1,19 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "title":"Kathaaya Story Package",
+  "type":"object",
+  "additionalProperties":false,
+  "required":["project","story","script","characters","environments","props","visual_manifest","audio","metadata","sources"],
+  "properties":{
+    "project":{"type":"object","required":["project_name","project_id","format","language","target_duration"],"properties":{"project_name":{"type":"string"},"project_id":{"type":"string","pattern":"^[a-z0-9]+(?:-[a-z0-9]+)*$"},"format":{"enum":["short","longform"]},"language":{"type":"string"},"target_duration":{"type":"number","exclusiveMinimum":0}},"additionalProperties":true},
+    "story":{"type":"object"},
+    "script":{"type":"object"},
+    "characters":{"type":"array"},
+    "environments":{"type":"array"},
+    "props":{"type":"array"},
+    "visual_manifest":{"type":"object"},
+    "audio":{"type":"object"},
+    "metadata":{"type":"object"},
+    "sources":{"type":"array"}
+  }
+}
