@@ -1,25 +1,33 @@
 # Progress
 
-## 2026-09-06 — Semantic asset alpha persistence and enforcement
+## 2026-09-06 — Per-beat narration alignment and silence analysis
 
 ### Completed this iteration
 
-- [x] Added optional `alpha` metadata to `AssetRecord`.
-- [x] Updated `inspect-assets.ts` to persist measured PNG/JPEG alpha capability into the project registry.
-- [x] Updated `normalize-assets.ts` to re-probe normalized output and persist its actual alpha capability.
-- [x] Semantic asset requirements now evaluate the persisted probe result instead of relying on an unpopulated field.
-- [x] Strict production already invokes `check:asset-requirements` after image inspection/normalization when `REQUIRE_ASSET_REQUIREMENTS=1`, so the semantic gate now has the metadata it needs to reject non-transparent character/overlay masters.
-- [x] Updated `docs/STATUS.md` with the implementation boundary and exact strict command.
+- [x] Added `src/align-audio.ts` as a provider-neutral narration timing analysis stage.
+- [x] Added `npm run align:audio -- examples/karna-short.json`.
+- [x] Probes the real narration WAV duration with `ffprobe`.
+- [x] Detects silence intervals using FFmpeg `silencedetect` with configurable noise floor and minimum silence duration.
+- [x] Maps detected speech regions into each manifest beat's start/end window.
+- [x] Persists per-beat target duration, detected speech duration, silence duration and narration text to `projects/<project_id>/logs/audio-alignment-report.json`.
+- [x] Added `REQUIRE_TTS_ALIGNMENT=1` strict mode.
+- [x] Integrated alignment into `src/produce.ts` after whole-track audio inspection and before asset staging/rendering when strict TTS mode is enabled.
+- [x] Added `AUDIO_SILENCE_NOISE_DB`, `AUDIO_MIN_SILENCE_SECONDS`, and `AUDIO_ALIGNMENT_TOLERANCE_SECONDS` configuration boundaries.
+- [x] Updated `docs/STATUS.md` with the new gate, commands, blockers and next milestone.
+
+### Why this is intentionally not word-level alignment
+
+The current manifest provides beat-level narration text but no word timestamps. This stage therefore measures actual speech/silence occupancy inside deterministic beat windows rather than fabricating word timings. Word-level alignment can be added later through a local forced-alignment provider if the real narration workflow needs it.
 
 ### Verification boundary
 
-The changed repository files were written through GitHub and the resulting commits were accepted. This is repository-level structural verification only. No claim is made that a real FLUX-generated character master has passed the gate until an actual image is generated and inspected on the target machine.
+The implementation is repository-verified by accepted GitHub commits and source review. It is **not runtime-verified against a real generated Chatterbox WAV** in this environment. The silence detector, thresholds and per-beat results must be validated with actual deep-Hindi narration before treating the audio alignment gate as production-proven.
 
 ## Current milestone: M1 — First real Short
 
 ### Immediate next engineering sequence
 
-1. Add per-segment narration timing/alignment and waveform inspection, including measured duration for each beat's narration rather than only whole-track duration.
+1. Validate alignment against the first real Chatterbox/deep-Hindi WAV and tune silence thresholds from evidence.
 2. Add music/SFX adapter and deterministic final audio mix.
 3. Expand compositor into reusable layered crops, pans, zooms and SVG draw-on transitions.
 4. Add true 2.5D/parallax and deterministic depth rules.
@@ -39,6 +47,7 @@ npm run normalize:assets -- examples/karna-short.json
 npm run check:asset-requirements -- examples/karna-short.json
 npm run generate:voice -- examples/karna-short.json
 npm run inspect:audio -- examples/karna-short.json
+npm run align:audio -- examples/karna-short.json
 npm run stage:assets -- examples/karna-short.json
 bash run.sh examples/karna-short.json
 ```
@@ -46,7 +55,7 @@ bash run.sh examples/karna-short.json
 Strict first real-model run:
 
 ```bash
-REQUIRE_CHARACTER_REFERENCES=1 REQUIRE_GENERATED_ASSETS=1 REQUIRE_ASSET_REQUIREMENTS=1 REQUIRE_TTS=1 NORMALIZE_ASSETS=1 IMAGE_GENERATION_MAX_ATTEMPTS=2 bash run.sh examples/karna-short.json
+REQUIRE_CHARACTER_REFERENCES=1 REQUIRE_GENERATED_ASSETS=1 REQUIRE_ASSET_REQUIREMENTS=1 REQUIRE_TTS=1 REQUIRE_TTS_ALIGNMENT=1 NORMALIZE_ASSETS=1 IMAGE_GENERATION_MAX_ATTEMPTS=2 bash run.sh examples/karna-short.json
 ```
 
 ## Verification policy
