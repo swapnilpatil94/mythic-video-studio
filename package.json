@@ -9,6 +9,7 @@
     "prepare": "tsx src/pipeline/prepare-project.ts",
     "preflight": "tsx src/preflight.ts",
     "check:pipeline": "tsx src/check-pipeline.ts",
+    "check:release": "tsx src/check-release.ts",
     "generate:assets": "tsx src/generate-assets.ts",
     "inspect:assets": "tsx src/inspect-assets.ts",
     "normalize:assets": "tsx src/normalize-assets.ts",
@@ -32,6 +33,7 @@
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "remotion": "^4.0.520",
+    "zod": "^4.0.520",
     "zod": "^4.0.0"
   },
   "devDependencies": {
