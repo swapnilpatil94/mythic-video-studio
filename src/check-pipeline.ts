@@ -10,7 +10,7 @@ const requiredFiles = [
   'src/cli.ts', 'src/produce.ts', 'src/preflight.ts', 'src/check-release.ts',
   'src/generate-assets.ts', 'src/inspect-assets.ts', 'src/normalize-assets.ts',
   'src/check-asset-requirements.ts', 'src/generate-voice.ts', 'src/inspect-audio.ts',
-  'src/align-audio.ts', 'src/mix-audio.ts', 'src/generate-captions.ts', 'src/stage-assets.ts',
+  'src/align-audio.ts', 'src/align-whisper.ts', 'src/mix-audio.ts', 'src/generate-captions.ts', 'src/stage-assets.ts',
   'src/generate-visual-qa.ts', 'src/check-output.ts', 'src/check-motion.ts', 'src/remotion/index.ts',
 ];
 
@@ -20,7 +20,7 @@ for (const file of requiredFiles) checks.push({name: `file:${file}`, ok: existsS
 const requiredScripts = [
   'validate', 'inspect', 'prepare', 'preflight', 'check:pipeline', 'check:release', 'generate:assets',
   'inspect:assets', 'normalize:assets', 'check:asset-requirements', 'stage:assets', 'generate:voice',
-  'inspect:audio', 'align:audio', 'mix:audio', 'check:motion', 'generate:captions', 'check:output',
+  'inspect:audio', 'align:audio', 'align:whisper', 'mix:audio', 'check:motion', 'generate:captions', 'check:output',
   'generate:visual-qa', 'produce',
 ];
 for (const script of requiredScripts) {
@@ -31,7 +31,7 @@ for (const script of requiredScripts) {
 const requiredProduceStages = [
   'src/preflight.ts', 'src/check-pipeline.ts', 'src/cli.ts', 'src/pipeline/prepare-project.ts',
   'src/generate-assets.ts', 'src/normalize-assets.ts', 'src/inspect-assets.ts', 'src/check-asset-requirements.ts',
-  'src/generate-voice.ts', 'src/inspect-audio.ts', 'src/align-audio.ts', 'src/mix-audio.ts',
+  'src/generate-voice.ts', 'src/inspect-audio.ts', 'src/align-audio.ts', 'src/align-whisper.ts', 'src/mix-audio.ts',
   'src/generate-captions.ts', 'src/stage-assets.ts', 'remotion', 'src/generate-visual-qa.ts',
   'src/check-output.ts', 'src/check-release.ts',
 ];

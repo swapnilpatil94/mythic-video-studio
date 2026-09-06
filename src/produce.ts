@@ -30,6 +30,10 @@ if (process.env.REQUIRE_TTS === '1') {
   await run('npx', ['tsx', 'src/inspect-audio.ts', input]);
   if (process.env.REQUIRE_TTS_ALIGNMENT === '1') await run('npx', ['tsx', 'src/align-audio.ts', input]);
 }
+// Word-level Whisper forced alignment drives kinetic captions in the Remotion compositor; it
+// runs whenever narration exists (not just under REQUIRE_TTS) so the runtime-captions.ts it
+// writes is fresh for the render below, but only fails the build under REQUIRE_WHISPER_ALIGNMENT.
+await run('npx', ['tsx', 'src/align-whisper.ts', input]);
 if (process.env.REQUIRE_AUDIO_MIX === '1') await run('npx', ['tsx', 'src/mix-audio.ts', input]);
 await run('npx', ['tsx', 'src/generate-captions.ts', input]);
 await run('npx', ['tsx', 'src/stage-assets.ts', input]);
@@ -40,6 +44,7 @@ await writeFile('src/remotion/runtime-manifest.ts', runtimeSource, 'utf8');
 
 await run('npx', ['remotion', 'render', 'src/remotion/index.ts', 'MythicShort', output]);
 await run('npx', ['tsx', 'src/generate-visual-qa.ts', input, output]);
+// REQUIRE_OUTPUT_QA is enforced inside src/check-output.ts (exits non-zero on failure when strict).
 await run('npx', ['tsx', 'src/check-output.ts', input, output]);
 if (process.env.REQUIRE_RELEASE_EVIDENCE === '1') await run('npx', ['tsx', 'src/check-release.ts', input, output]);
 console.log(`DONE: ${output}`);
