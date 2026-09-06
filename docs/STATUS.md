@@ -8,21 +8,25 @@ Updated: 2026-09-06
 
 **North star:** one command produces a publishable Hindi mythology video.
 
-**Current engineering focus:** turn the Remotion compositor from a motion-comic/slideshow treatment into a reusable **Cinematic Indian Ink Whiteboard** visual-beat engine while preserving the master-asset strategy and provider-neutral local model boundary.
+**Current engineering focus:** turn the Remotion compositor into a reusable **Cinematic Indian Ink Whiteboard** engine with audio-led pacing, hand-draw → ink → wash treatment, kinetic Hindi typography and master-asset reuse.
 
-## Latest milestone — reusable visual beat engine
+## Latest milestone — pacing + kinetic timing contract
 
 Implemented in GitHub:
 
-- Added `src/remotion/visual-beats.tsx` with reusable `InkReveal`, `WashReveal`, and `InkTransition` primitives.
-- Added animation-to-visual profiles for `draw_reveal`, `gold_highlight`, `sun_pulse`, `hand_reveal`, `ink_motion`, `subtle_parallax`, `gold_fade`, `light_reveal` and `ink_settle`.
-- Updated `src/remotion/MythicShort.tsx` to use beat profiles rather than treating every beat as the same caption + camera treatment.
-- Added beat-specific framing for hook, armor, stakes, threat, visitor, request, decision, sacrifice, reveal and payoff roles so the same master character asset can produce materially different crops/compositions.
-- Added progressive asset reveals, ink-stroke overlays, restrained wash pulses, transition wipes and smaller caption modes (caption/keyword/reveal).
-- Added `src/check-visual-beats.ts` and `npm run check:visual-beats` as a deterministic manifest-to-compositor contract check.
-- Kept FLUX/master assets, Chatterbox/TTS, audio, captions, QA, mythology-respect behavior and one-command orchestration unchanged.
+- Added manifest-level `tempo_profile` (`short | medium | longform`).
+- Added `narration_profile` with target WPM, maximum pause guidance and optional speed factor.
+- Tuned the Karna Short manifest to `short`, target 155 WPM, 0.45s preferred max pause and 1.08 default pacing factor.
+- Added `src/tune-narration.ts`: if generated narration exceeds the manifest duration beyond tolerance, it applies bounded FFmpeg `atempo` pacing and records `narration-pacing-report.json`.
+- Added pacing instructions to the Chatterbox/TTS job so the provider receives conversational, low-dead-air narration guidance.
+- Added `src/prepare-timing.ts`: creates deterministic word-level fallback timings from beat windows and audio-alignment data, persisted as `projects/<project_id>/timing/word-timing.json` and `src/remotion/runtime-timing.ts`.
+- Updated `MythicShort.tsx` to use progressive grayscale/ink treatment followed by color/wash reveal and kinetic word-by-word Hindi captions instead of a single static caption block.
+- Added independent character entrance/bob motion while preserving master-asset reuse.
+- Added `kinetic_keywords` to the beat contract for future stronger keyword-specific motion.
+- Added TypeScript checking for both `.ts` and `.tsx` sources and a GitHub Actions structural/typecheck workflow.
+- Extended `check-pipeline.ts` so the pacing/timing stages and `typecheck` are part of the repository contract audit.
 
-This is a **compositor implementation milestone**, not an M1 release claim. The new engine is source-implemented in GitHub, but a real Remotion render against the user's local assets/model outputs has not been executed from this environment.
+This is a **source implementation milestone**, not an M1 release claim. The uploaded 2026-09-06 Karna render was technically inspected outside the repo: it is 1080×1920, 30fps and about 81.05s, with several detected internal silences including pauses above 1.5s. That confirms the pacing problem is real. It does not prove the new code has been rendered on the user's Mac.
 
 ## Implemented — structurally verified
 
@@ -41,13 +45,16 @@ This is a **compositor implementation milestone**, not an M1 release claim. The 
 - PNG/JPEG inspection, dimensions, alpha detection and normalization
 - Semantic asset requirements and strict asset gate
 - Provider-neutral Hindi TTS / Chatterbox command boundary
-- Narration job generation, reference voice forwarding and resumable output checks
+- Narration job generation, reference voice forwarding and pacing profile
+- Bounded narration pacing stage
 - WAV duration inspection and strict narration-duration gate
 - Per-beat narration alignment using FFmpeg `silencedetect`
+- Deterministic fallback word timing for kinetic typography
 - Deterministic narration/music/SFX mixer with limiter and configurable gains
 - Final mix staging and Remotion audio playback
 - Deterministic camera presets, easing, depth-weighted 2.5D parallax and SVG draw-reveal primitive
 - Reusable visual beat reveal/wash/transition primitives and beat-profile contract check
+- Ink-to-color reveal treatment and kinetic caption compositor path
 - Motion smoke checks
 - Manifest-driven SRT/VTT generation
 - Remotion burned-in captions use the same narration source as SRT/VTT with mobile-safe treatment
@@ -57,24 +64,25 @@ This is a **compositor implementation milestone**, not an M1 release claim. The 
 - Deterministic pipeline-contract audit
 - Release-evidence audit and strict release gate
 - Local runtime discovery report and production integration
+- TypeScript verification configuration and CI workflow
 
 ## In progress
 
 - Runtime verification against the user's actual FLUX/ComfyUI or Draw Things installation
 - Runtime verification against the user's actual Chatterbox/deep-Hindi voice setup
-- Runtime verification against Whisper, if used for word/segment timing
+- Runtime verification against Whisper; current word timing is explicitly a deterministic fallback, not Whisper output
 - Real generated master-asset quality/consistency review
 - Real narration alignment and mix-level review
-- Visual review/tuning of the new visual-beat engine on actual generated assets
+- Visual review/tuning of the new ink-to-color and kinetic caption engine on actual generated assets
 - Expanded layer/mask extraction for richer master-art animation where source assets support it
 - Caption wrapping/safe-area review on real footage
 - Human contact-sheet review
-- End-to-end real Karna render
+- End-to-end real Karna render using the updated code
 - Runtime verification of release-evidence report
 
 ## Blockers
 
-No repository-level blocker prevents further coding. The decisive M1 blocker remains machine-specific execution: GitHub cannot inspect the user's Mac filesystem or prove that a particular ComfyUI/Draw Things/FLUX or Chatterbox/Whisper workflow works. Structural audits can verify wiring; only a real local run can prove model output and final visual/audio quality.
+No repository-level blocker prevents further coding. The decisive M1 blocker remains machine-specific execution: GitHub cannot inspect the user's Mac filesystem or prove that a particular ComfyUI/Draw Things/FLUX, Chatterbox or Whisper workflow works. Structural audits and CI can prove code contracts; only a real local run can prove model output and final visual/audio quality.
 
 ## Exact reproducible commands
 
@@ -82,12 +90,23 @@ Structural checks:
 
 ```bash
 npm install
+npm run typecheck
 npm run discover:local -- examples/karna-short.json
 npm run check:pipeline -- examples/karna-short.json
 npm run validate -- examples/karna-short.json
 npm run check:motion
 npm run check:visual-beats -- examples/karna-short.json
 npm run preflight -- examples/karna-short.json
+```
+
+Targeted pacing/timing checks after a narration exists:
+
+```bash
+npm run generate:voice -- examples/karna-short.json
+npm run tune:narration -- examples/karna-short.json
+npm run inspect:audio -- examples/karna-short.json
+npm run align:audio -- examples/karna-short.json
+npm run prepare:timing -- examples/karna-short.json
 ```
 
 Full strict first real-model run:
@@ -106,7 +125,7 @@ npm run check:release -- examples/karna-short.json renders/karna-short.mp4
 
 ## Verification policy
 
-A completed checkbox means the repository implementation exists and has been structurally reviewed. It does not mean local models executed successfully. M1 remains open until a real MP4 is rendered and passes technical, visual, audio, caption and mythology-respect review.
+A completed checkbox means the repository implementation exists and has been structurally reviewed. It does not mean local models executed successfully. M1 remains open until a real MP4 is rendered and reviewed with the updated code.
 
 For the first real run record: machine/model, runtime, generated asset count, retries/failures, reference usage, motion/crop notes, visual notes, audio notes, caption notes, QA reports and output/release hashes.
 
@@ -136,4 +155,4 @@ Source/season bible, episode manifests and recoverable batch queue.
 
 **AI creates the artwork. Code creates the movie.**
 
-The final system must support 60–90s Hindi mythology Shorts, reusable master assets, reference-guided consistency, dignified/source-aware mythology treatment, fast controlled motion, deep Hindi narration, sound design/music, captions, technical/visual quality gates, one-command local production, three-Short daily batching, 8–12 minute long-form episodes and later serialized season automation.
+The final system must support 60–90s Hindi mythology Shorts, reusable master assets, reference-guided consistency, dignified/source-aware mythology treatment, fast controlled motion, deep Hindi narration, sound design/music, kinetic captions, technical/visual quality gates, one-command local production, three-Short daily batching, 8–12 minute long-form episodes and later serialized season automation.
