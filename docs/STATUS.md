@@ -4,48 +4,51 @@ Updated: 2026-09-06
 
 ## Overall
 
-**Phase:** M1 — production pipeline implementation
+**Phase:** M1 — production pipeline implementation; Studio UI foundation added.
 
 **North star:** one command produces a publishable Hindi mythology video.
 
-**Current engineering focus:** turn the Remotion compositor into a reusable **Cinematic Indian Ink Whiteboard** engine with audio-led pacing, hand-draw → ink → wash treatment, kinetic Hindi typography and master-asset reuse.
+**Brand:** **KATHAAYA — Ancient Stories. Reimagined Through Ink.**
 
-## Latest milestone — research-informed whiteboard draw primitive
+**Current engineering focus:** reusable Cinematic Indian Ink Whiteboard production plus a minimal local project UI and a universal Short/Long-form manifest contract.
 
-Implemented in GitHub:
-
-- Reviewed current open-source whiteboard approaches before changing the compositor: HandDraw-Skill's explicit path-oriented draw timelines, SVG stroke-dash progression, and hand-drawn procedural approaches such as Rough.js-style path treatment. The research confirms that convincing whiteboard drawing depends on path-oriented progressive construction and explicit animation timing, not merely revealing a finished raster with a camera move.
-- Reworked `src/remotion/visual-beats.tsx` so `InkReveal` now uses a reusable staged `DrawSweep` primitive with multiple independently timed SVG strokes, deterministic stroke-dash progression, a moving artist-hand cue and a leading draw cursor.
-- Preserved the existing raster FLUX master-asset strategy: the new primitive is an overlay/reveal language inside Remotion rather than a second renderer or a one-image-per-shot system.
-- Kept Short and Long-form format support unchanged.
-
-This is a **source implementation milestone**, not an M1 visual-release claim. The new draw primitive has been committed, but a real local Karna render using the updated commit has not yet been verified in this environment.
-
-## Previous milestone — pacing + kinetic timing contract
+## Latest milestone — Kathaaya Studio UI + format-aware manifest foundation
 
 Implemented in GitHub:
 
-- Added manifest-level `tempo_profile` (`short | medium | longform`).
-- Added `narration_profile` with target WPM, maximum pause guidance and optional speed factor.
-- Tuned the Karna Short manifest to `short`, target 155 WPM, 0.45s preferred max pause and 1.08 default pacing factor.
-- Added `src/tune-narration.ts`: if generated narration exceeds the manifest duration beyond tolerance, it applies bounded FFmpeg `atempo` pacing and records `narration-pacing-report.json`.
-- Added pacing instructions to the Chatterbox/TTS job so the provider receives conversational, low-dead-air narration guidance.
-- Added `src/prepare-timing.ts`: creates deterministic word-level fallback timings from beat windows and audio-alignment data.
-- Updated `MythicShort.tsx` to use progressive grayscale/ink treatment followed by color/wash reveal and kinetic word-by-word Hindi captions.
-- Added independent character entrance/bob motion while preserving master-asset reuse.
-- Added `kinetic_keywords` to the beat contract.
-- Added TypeScript checking and CI structural/typecheck workflow.
-- Extended pipeline audit so pacing/timing, strict output-QA and typecheck are contract-checked.
-- Fixed shared project-path typing, local-runtime discovery and strict output-QA wiring.
-- CI run #13 passed typecheck, manifest validation, motion checks, visual-beat checks and pipeline audit.
+- Added `studio/server.mjs`: dependency-light local HTTP API for project listing, creation, deletion, Story Package import and canonical JSON editing.
+- Added `studio/index.html`: local dashboard with project management, Short/Long-form selection, Story Package paste/import, JSON tabs, validation/format/copy controls and reproducible production-command display.
+- Added `prompts/story-package.md`: canonical one-paste ChatGPT/Claude prompt covering story, script, characters, environments, props, visual events, audio and publishing metadata.
+- Added `schemas/story-package.schema.json` for the import package contract.
+- Added `schemas/production-manifest.schema.json` for the universal production manifest contract.
+- Added `examples/karna-longform-test.json` as a 180-second format/validation smoke fixture.
+- Made `src/pipeline/validate-manifest.ts` format-aware: Short remains 45–120s; Long-form accepts 120–1800s and requires at least 10 beats.
+- Extended the pipeline contract audit to require the Studio UI, Story Package prompt/schema and universal manifest schema.
+- Added `npm run studio` to launch the local UI.
+- Kept the existing FLUX, Chatterbox, Whisper and Remotion pipeline unchanged; the UI is a control/data layer, not a second renderer.
+
+## Verification boundary
+
+The new UI/API source is committed and repository structure is inspectable, but this automation environment cannot install dependencies or execute the user's Mac-local runtime. A direct local verification attempt was blocked because this environment has no outbound DNS/network access to clone the GitHub repository. Therefore **the UI is implemented but not locally runtime-verified here**.
+
+The long-form validator logic is implemented and a 180-second fixture exists, but a real long-form MP4 has **not** been verified. Full long-form production remains open.
+
+## Previous milestone — research-informed whiteboard draw primitive
+
+- Added reusable staged `DrawSweep` in `src/remotion/visual-beats.tsx` with independently timed SVG strokes, deterministic dash progression, artist-hand cue and leading cursor.
+- Preserved raster FLUX master assets and Remotion; no second renderer or one-image-per-shot architecture.
+- Kept Short and Long-form format support conceptually within one engine.
+- This remains a source implementation milestone until a real local render with the latest commit is inspected.
 
 ## Implemented — structurally verified
 
 - Product vision, architecture, short-first strategy and long-form scaling
-- Mythology Respect Mode and high-retention story structure
+- Kathaaya brand layer and mythology-respect/source-aware direction
 - Master-asset strategy and creative artifact workflow
 - Goals, quality criteria and sample/reference tracking
 - JSON Short manifest contract and strict validation
+- Universal production-manifest schema and format-aware duration validation
+- Story Package prompt/schema and local project importer
 - Manifest-driven Remotion 1080x1920 / 30fps composition
 - Procedural fallback renderer and beat-driven camera system
 - Project preparation, resumable asset registry/cache and automatic asset planning
@@ -64,45 +67,51 @@ Implemented in GitHub:
 - Deterministic narration/music/SFX mixer with limiter and configurable gains
 - Final mix staging and Remotion audio playback
 - Deterministic camera presets, easing, depth-weighted 2.5D parallax and SVG draw-reveal primitives
-- Reusable visual beat reveal/wash/transition primitives and beat-profile contract check
-- Research-informed staged whiteboard draw sweep with SVG stroke progression and artist-hand cue
+- Research-informed staged whiteboard draw sweep
 - Ink-to-color reveal treatment and kinetic caption compositor path
 - Motion smoke checks
 - Manifest-driven SRT/VTT generation
-- Remotion burned-in captions use the same narration source as SRT/VTT with mobile-safe treatment
 - Final MP4 technical QA with ffprobe/FFmpeg
-- Automated 9-frame contact sheet and visual-QA report
+- Automated contact sheet and visual-QA report
 - Local runtime preflight and persisted preflight report
-- Deterministic pipeline-contract audit
-- Release-evidence audit and strict release gate
+- Deterministic pipeline-contract audit and release-evidence audit
 - Local runtime discovery report and production integration
 - TypeScript verification configuration and CI workflow
 
 ## In progress
 
-- Real local render verification of the new whiteboard draw primitive
-- Runtime verification against the user's actual FLUX/ComfyUI or Draw Things installation
-- Runtime verification against the user's actual Chatterbox/deep-Hindi voice setup
-- Runtime verification against Whisper; current word timing remains a deterministic fallback unless the local adapter supplies word timestamps
+- Local runtime verification of the new Studio UI
+- Story Package import against a real local install
+- Real local FLUX/ComfyUI or Draw Things verification
+- Real Chatterbox/deep-Hindi voice verification
+- Real Whisper word-timestamp verification
 - Real generated master-asset quality/consistency review
-- Real narration alignment and mix-level review
-- Visual review/tuning of the new draw sweep, ink-to-color and kinetic caption engine on actual generated assets
-- Expanded layer/mask extraction for richer master-art animation where source assets support it
-- Caption wrapping/safe-area review on real footage
-- Human contact-sheet review
+- Real narration alignment and final-mix review
+- Visual review/tuning of draw sweep, ink-to-color, action and kinetic captions on current generated assets
+- Expanded layer/mask extraction for richer master-art animation
+- Caption safe-area/collision review on actual footage
 - End-to-end real Karna render using the latest GitHub commit
-- Runtime verification of release-evidence report
+- Long-form 3–4 minute end-to-end render and visual/audio review
+- Long-form-specific beat-density and chapter-level quality gates
 
-## Blockers
+## Known blocker / limitation
 
-No repository-level blocker prevents further coding. The decisive M1 blocker remains machine-specific execution: GitHub cannot inspect the user's Mac filesystem or prove that a particular ComfyUI/Draw Things/FLUX, Chatterbox or Whisper workflow works. Structural audits and CI can prove code contracts; only a real local run can prove model output and final visual/audio quality.
+No repository-level blocker prevents further coding. The decisive verification blocker is machine-specific execution: GitHub cannot inspect the user's Mac filesystem or prove that the local ComfyUI/Draw Things/FLUX, Chatterbox or Whisper integrations work. The Studio UI also intentionally exposes the exact `run.sh` command rather than executing arbitrary shell commands from a browser page; this preserves the one-command local workflow without adding a second execution service. Local verification on the target Mac is required before calling the UI or a real long-form render complete.
 
 ## Exact reproducible commands
+
+Studio UI:
+
+```bash
+npm install
+npm run typecheck
+npm run studio
+# open http://127.0.0.1:4317
+```
 
 Structural checks:
 
 ```bash
-npm install
 npm run typecheck
 npm run discover:local -- examples/karna-short.json
 npm run check:pipeline -- examples/karna-short.json
@@ -112,50 +121,52 @@ npm run check:visual-beats -- examples/karna-short.json
 npm run preflight -- examples/karna-short.json
 ```
 
-Full strict real-model run:
+Long-form manifest smoke check:
+
+```bash
+npm run validate -- examples/karna-longform-test.json
+npm run check:pipeline -- examples/karna-longform-test.json
+```
+
+Full strict real-model Short run:
 
 ```bash
 REQUIRE_CHARACTER_REFERENCES=1 REQUIRE_GENERATED_ASSETS=1 REQUIRE_ASSET_REQUIREMENTS=1 REQUIRE_TTS=1 REQUIRE_TTS_ALIGNMENT=1 REQUIRE_AUDIO_MIX=1 REQUIRE_OUTPUT_QA=1 REQUIRE_RELEASE_EVIDENCE=1 NORMALIZE_ASSETS=1 IMAGE_GENERATION_MAX_ATTEMPTS=2 bash run.sh examples/karna-short.json
 ```
 
-Post-render evidence checks:
+Long-form target test after local runtime is confirmed:
 
 ```bash
-npm run generate:visual-qa -- examples/karna-short.json renders/karna-short.mp4
-npm run check:output -- examples/karna-short.json renders/karna-short.mp4
-npm run check:release -- examples/karna-short.json renders/karna-short.mp4
+REQUIRE_CHARACTER_REFERENCES=1 REQUIRE_GENERATED_ASSETS=1 REQUIRE_ASSET_REQUIREMENTS=1 REQUIRE_TTS=1 REQUIRE_TTS_ALIGNMENT=1 REQUIRE_AUDIO_MIX=1 REQUIRE_OUTPUT_QA=1 REQUIRE_RELEASE_EVIDENCE=1 NORMALIZE_ASSETS=1 IMAGE_GENERATION_MAX_ATTEMPTS=2 bash run.sh examples/karna-longform-test.json
 ```
 
-## Verification policy
+Post-render evidence:
 
-A completed checkbox means the repository implementation exists and has been structurally reviewed. It does not mean local models executed successfully. M1 remains open until a real MP4 is rendered and reviewed with the latest code.
-
-For the next real run record: commit, machine/model, runtime, generated asset count, retries/failures, reference usage, draw/reveal notes, motion/crop notes, visual notes, audio notes, caption notes, QA reports and output/release hashes.
+```bash
+npm run generate:visual-qa -- <manifest> <render.mp4>
+npm run check:output -- <manifest> <render.mp4>
+npm run check:release -- <manifest> <render.mp4>
+```
 
 ## Release gates
 
 ### M1 — first real Short
-
-Final MP4 from one manifest using local FLUX/TTS/audio adapters, with technical and visual QA passed and release evidence captured.
+Real local FLUX/TTS/audio MP4, technical + visual + audio + caption + mythology-respect QA and release evidence.
 
 ### M2 — repeatability
-
-Three different Shorts through the same pipeline without renderer code changes.
+Three different mythology Shorts through the same pipeline without renderer code changes.
 
 ### M3 — daily production
-
 Queue of three Shorts/day with caching, resumability and failure recovery.
 
 ### M4 — long-form
-
-8–12 minute episodes using the same visual engine and larger manifests.
+Real 3–4 minute architecture test, then 8–12 minute episodes using the same engine and larger manifests.
 
 ### M5 — season automation
-
 Source/season bible, episode manifests and recoverable batch queue.
 
 ## Product goal
 
 **AI creates the artwork. Code creates the movie.**
 
-The final system must support 60–90s Hindi mythology Shorts, reusable master assets, reference-guided consistency, dignified/source-aware mythology treatment, fast controlled motion, deep Hindi narration, sound design/music, kinetic captions, technical/visual quality gates, one-command local production, three-Short daily batching, 8–12 minute long-form episodes and later serialized season automation.
+The final system must support Kathaaya 60–90s Hindi mythology Shorts, reusable master assets, reference-guided consistency, dignified/source-aware mythology treatment, controlled cinematic motion, deep Hindi narration, sound design/music, kinetic captions, technical/visual quality gates, one-command local production, three-Short daily batching, 8–15+ minute long-form episodes and later serialized season automation.
