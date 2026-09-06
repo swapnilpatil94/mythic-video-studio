@@ -8,21 +8,21 @@ Updated: 2026-09-06
 
 **North star:** one command produces a publishable Hindi mythology video.
 
-**Current engineering focus:** bridge the repository to the user's real local model stack without guessing providers. The pipeline now records a local-runtime discovery report before production, while keeping provider selection explicit and mythology-respect/master-asset architecture unchanged.
+**Current engineering focus:** turn the Remotion compositor from a motion-comic/slideshow treatment into a reusable **Cinematic Indian Ink Whiteboard** visual-beat engine while preserving the master-asset strategy and provider-neutral local model boundary.
 
-## Latest milestone — local runtime discovery
+## Latest milestone — reusable visual beat engine
 
-Implemented and source-verified:
+Implemented in GitHub:
 
-- `src/discover-local.ts` inspects PATH commands and common local project directories.
-- It records configured image/TTS/Whisper environment variables without silently selecting a provider.
-- It discovers `ffmpeg`, `ffprobe`, Python, and possible ComfyUI/Draw Things/Whisper CLI candidates when present on PATH.
-- It checks common directories such as `~/ComfyUI`, `~/Draw Things`, `~/Projects`, `~/Developer` and records them only as candidates, never as proof of a working provider.
-- It persists `projects/<project_id>/logs/local-runtime-discovery.json`.
-- `npm run discover:local -- <manifest>` exposes the report directly.
-- `src/produce.ts` now runs discovery before strict preflight, so the one-command path captures machine evidence before model execution.
+- Added `src/remotion/visual-beats.tsx` with reusable `InkReveal`, `WashReveal`, and `InkTransition` primitives.
+- Added animation-to-visual profiles for `draw_reveal`, `gold_highlight`, `sun_pulse`, `hand_reveal`, `ink_motion`, `subtle_parallax`, `gold_fade`, `light_reveal` and `ink_settle`.
+- Updated `src/remotion/MythicShort.tsx` to use beat profiles rather than treating every beat as the same caption + camera treatment.
+- Added beat-specific framing for hook, armor, stakes, threat, visitor, request, decision, sacrifice, reveal and payoff roles so the same master character asset can produce materially different crops/compositions.
+- Added progressive asset reveals, ink-stroke overlays, restrained wash pulses, transition wipes and smaller caption modes (caption/keyword/reveal).
+- Added `src/check-visual-beats.ts` and `npm run check:visual-beats` as a deterministic manifest-to-compositor contract check.
+- Kept FLUX/master assets, Chatterbox/TTS, audio, captions, QA, mythology-respect behavior and one-command orchestration unchanged.
 
-This is a discovery/evidence boundary, not an automatic model/workflow selector. A real ComfyUI workflow, Draw Things invocation, Whisper model, or Chatterbox setup is not claimed to work until actually executed.
+This is a **compositor implementation milestone**, not an M1 release claim. The new engine is source-implemented in GitHub, but a real Remotion render against the user's local assets/model outputs has not been executed from this environment.
 
 ## Implemented — structurally verified
 
@@ -47,6 +47,7 @@ This is a discovery/evidence boundary, not an automatic model/workflow selector.
 - Deterministic narration/music/SFX mixer with limiter and configurable gains
 - Final mix staging and Remotion audio playback
 - Deterministic camera presets, easing, depth-weighted 2.5D parallax and SVG draw-reveal primitive
+- Reusable visual beat reveal/wash/transition primitives and beat-profile contract check
 - Motion smoke checks
 - Manifest-driven SRT/VTT generation
 - Remotion burned-in captions use the same narration source as SRT/VTT with mobile-safe treatment
@@ -64,8 +65,8 @@ This is a discovery/evidence boundary, not an automatic model/workflow selector.
 - Runtime verification against Whisper, if used for word/segment timing
 - Real generated master-asset quality/consistency review
 - Real narration alignment and mix-level review
-- Visual review/tuning of 2.5D camera language
-- Expanded SVG draw-on language
+- Visual review/tuning of the new visual-beat engine on actual generated assets
+- Expanded layer/mask extraction for richer master-art animation where source assets support it
 - Caption wrapping/safe-area review on real footage
 - Human contact-sheet review
 - End-to-end real Karna render
@@ -73,17 +74,20 @@ This is a discovery/evidence boundary, not an automatic model/workflow selector.
 
 ## Blockers
 
-No repository-level blocker prevents further coding. The decisive blocker is machine-specific execution: GitHub cannot inspect the user's Mac filesystem. The new discovery stage will collect that evidence when run locally, but it intentionally does not guess which ComfyUI/Draw Things workflow or Chatterbox/Whisper invocation is correct. Structural audits can verify wiring; only a real local run can prove model output and quality.
+No repository-level blocker prevents further coding. The decisive M1 blocker remains machine-specific execution: GitHub cannot inspect the user's Mac filesystem or prove that a particular ComfyUI/Draw Things/FLUX or Chatterbox/Whisper workflow works. Structural audits can verify wiring; only a real local run can prove model output and final visual/audio quality.
 
 ## Exact reproducible commands
+
+Structural checks:
 
 ```bash
 npm install
 npm run discover:local -- examples/karna-short.json
 npm run check:pipeline -- examples/karna-short.json
-npm run preflight -- examples/karna-short.json
 npm run validate -- examples/karna-short.json
 npm run check:motion
+npm run check:visual-beats -- examples/karna-short.json
+npm run preflight -- examples/karna-short.json
 ```
 
 Full strict first real-model run:
@@ -92,7 +96,7 @@ Full strict first real-model run:
 REQUIRE_CHARACTER_REFERENCES=1 REQUIRE_GENERATED_ASSETS=1 REQUIRE_ASSET_REQUIREMENTS=1 REQUIRE_TTS=1 REQUIRE_TTS_ALIGNMENT=1 REQUIRE_AUDIO_MIX=1 REQUIRE_OUTPUT_QA=1 REQUIRE_RELEASE_EVIDENCE=1 NORMALIZE_ASSETS=1 IMAGE_GENERATION_MAX_ATTEMPTS=2 bash run.sh examples/karna-short.json
 ```
 
-Post-render evidence check:
+Post-render evidence checks:
 
 ```bash
 npm run generate:visual-qa -- examples/karna-short.json renders/karna-short.mp4
