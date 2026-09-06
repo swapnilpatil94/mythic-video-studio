@@ -5,8 +5,12 @@ export function validateProductionManifest(m: ProductionManifest): string[] {
   if (!m.project_id?.trim()) errors.push('project_id is required');
   if (!m.title?.trim()) errors.push('title is required');
   if (m.language !== 'hi-IN') errors.push('language must be hi-IN');
-  if (!Number.isFinite(m.duration_seconds) || m.duration_seconds < 45 || m.duration_seconds > 120) {
-    errors.push('Short duration must be 45–120 seconds');
+  // 45-120s covers a Short; above 120s is treated as long-form (see src/remotion/format.ts's
+  // `profileFor`, which already branches purely on this same duration_seconds field — no separate
+  // "format" field on the manifest itself). 1200s (20min) is a generous outer bound matching the
+  // product goal's "8-12 minute long-form episodes".
+  if (!Number.isFinite(m.duration_seconds) || m.duration_seconds < 45 || m.duration_seconds > 1200) {
+    errors.push('duration_seconds must be 45–1200 seconds (45–120s Short, up to 1200s/20min long-form)');
   }
   if (!Array.isArray(m.characters) || m.characters.length === 0) errors.push('at least one character is required');
   if (!Array.isArray(m.beats) || m.beats.length < 5) errors.push('at least 5 beats are required');

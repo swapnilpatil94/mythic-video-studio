@@ -7,7 +7,7 @@
     "project_id": {"type": "string", "minLength": 1},
     "title": {"type": "string", "minLength": 1},
     "language": {"const": "hi-IN"},
-    "duration_seconds": {"type": "number", "minimum": 45, "maximum": 120},
+    "duration_seconds": {"type": "number", "minimum": 45, "maximum": 1200, "description": "45-120s Short; above 120s is long-form (see src/remotion/format.ts profileFor)."},
     "characters": {"type": "array", "items": {"type": "string"}},
     "beats": {
       "type": "array",

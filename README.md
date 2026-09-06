@@ -18,6 +18,16 @@ That command will install Node dependencies when needed, validate the manifest, 
 
 During M1 the image/TTS adapters are intentionally being wired separately; the current renderer already proves the animation/compositing layer with procedural fallback artwork.
 
+## KATHAAYA Studio — local project manager
+
+A local control panel for managing multiple story projects and driving this same pipeline, instead of hand-editing manifest JSON. It is a thin UI layer only: it reads/writes project files under `projects/<id>/` and calls the existing `run.sh`/`preflight.ts` — it does not add a second renderer or duplicate any pipeline logic.
+
+```bash
+npm run studio
+```
+
+Opens the API server (`src/studio/server.ts`, port 4321) and the web UI (Vite, port 5173) together. From the dashboard you can create a project (blank or by pasting a story-package JSON, which is auto-split into `project.json`/`story.json`/`script.json`/`manifest.json`/`characters.json`/`metadata.json`), edit its Story/Script/Visuals/Characters/Metadata, and run Preflight or the full pipeline from the Production tab with live logs — the same `run.sh` a terminal user would call, just against `projects/<id>/manifest.json`.
+
 ## Vision
 
 ChatGPT Frontier/Work is the creative director and research/writing environment. The local Mac is the production studio: asset generation, TTS, animation, compositing and rendering.
@@ -73,7 +83,8 @@ Then stress-test with 3 Shorts. Only after that do we enable long-form mode.
 - `docs/` — product vision, architecture, quality gates, progress
 - `prompts/` — Frontier prompts used to create production artifacts
 - `schemas/` — machine-readable contracts
-- `src/` — local orchestration, adapters and rendering code
+- `src/` — local orchestration, adapters and rendering code (`src/studio/` — KATHAAYA Studio's API server and project-file logic; `src/shared/` — brand/platform-safe-zone data shared with the Remotion compositor)
+- `web/` — KATHAAYA Studio's frontend (Vite + React + TypeScript)
 - `examples/` — example project manifests
 - `projects/` — generated project data
 - `assets/` — generated media
