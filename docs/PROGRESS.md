@@ -1,34 +1,36 @@
 # Progress
 
-## 2026-09-06 — Deterministic cinematic motion primitives
+## 2026-09-06 — Captions + final-output technical QA
 
 ### Completed this iteration
 
-- [x] Added `src/remotion/motion.ts` with typed camera presets and deterministic eased motion.
-- [x] Added push-in, slow-push, reverse-push, pull-back, pan, tilt-up, edge-reveal, shot-reverse and armor-crop camera behaviors.
-- [x] Added depth-weighted parallax offsets so foreground and background layers respond differently to the same camera move.
-- [x] Added composable layer transform generation for scale + camera translation + depth offset.
-- [x] Wired environment, prop and character layers in `MythicShort` to different depth strengths.
-- [x] Replaced the prior generic generated-art drift with manifest camera presets for generated artwork.
-- [x] Added deterministic SVG draw-reveal progress and wired it to the armor highlight path.
-- [x] Added `src/check-motion.ts` smoke checks for monotonic camera motion, depth separation, reveal endpoints and transform composition.
-- [x] Added `npm run check:motion` to the package scripts.
-- [x] Updated `docs/STATUS.md` with the new implementation state, verification boundary, commands and next milestone.
+- [x] Added `src/generate-captions.ts` for deterministic beat-timed Hindi SRT/VTT generation.
+- [x] Caption source priority is `beat.narration`, then `beat.text`.
+- [x] Caption files and a generation report are persisted under `projects/<project_id>/captions/`.
+- [x] Added `src/check-output.ts` for final MP4 technical QA.
+- [x] QA checks 1080x1920 resolution, 30fps, duration tolerance, video/audio stream presence, black-frame intervals and audio peak.
+- [x] QA report is persisted under `projects/<project_id>/logs/output-qa-report.json`.
+- [x] Added `REQUIRE_OUTPUT_QA=1` strict failure behavior.
+- [x] Added `npm run generate:captions` and `npm run check:output` scripts.
+- [x] Integrated caption generation and output QA into the one-command production path.
+- [x] Fixed the output QA implementation to inspect FFmpeg diagnostics from stderr and keep the final QA invocation single-pass.
+- [x] Updated `docs/STATUS.md` with implementation state, commands, blockers, verification boundary and next milestone.
 
 ### Verification boundary
 
-The motion module and wiring are repository-verified by accepted GitHub commits and source review. The smoke-check command exists but has not been executed in this environment, and the compositor has not been rendered against real FLUX/ComfyUI masters here. Therefore cinematic quality, depth strength, crop safety and perceived motion are **not** claimed as runtime-verified.
+The new code is repository-verified by accepted GitHub commits and source review. It has not been executed here against a real rendered MP4 because the local FLUX/ComfyUI and Chatterbox/deep-Hindi runtime are machine-specific and not available in this environment. Therefore the new QA checks and caption timing are implemented but **not runtime-verified** on actual footage.
 
 ## Current milestone: M1 — First real Short
 
 ### Immediate next engineering sequence
 
-1. Run `npm run check:motion` locally and then render a real generated-art beat to tune depth strengths and crop safety.
-2. Add captions/subtitles as a manifest-driven render layer with safe-area rules.
-3. Add automated technical QA for duration, resolution, fps, audio presence, clipping and black-frame detection.
-4. Add visual QA artifact generation for contact sheets/keyframes so the first real Karna render can be reviewed systematically.
-5. Verify FLUX/ComfyUI and Chatterbox/deep-Hindi against the user's actual local installations.
-6. Run the complete Karna Short on the target Mac and record runtime, generated asset count, retries, motion notes and audio notes.
+1. Run `npm install` and `npm run check:motion` locally.
+2. Execute the real FLUX/ComfyUI and Chatterbox/deep-Hindi adapters and record runtime, retries and outputs.
+3. Run the strict one-command Karna production with output QA enabled.
+4. Review the generated MP4 visually and audibly; inspect the generated SRT/VTT and QA report.
+5. Add automated contact-sheet/keyframe visual QA so crop, parallax, character consistency and dark-frame findings can be reviewed systematically.
+6. Tune caption safe-area styling and motion strengths against real masters.
+7. Only after the real MP4 passes those gates, record M1 as complete.
 
 ## Exact reproducible commands
 
@@ -36,23 +38,14 @@ The motion module and wiring are repository-verified by accepted GitHub commits 
 npm install
 npm run validate -- examples/karna-short.json
 npm run check:motion
-npm run prepare -- examples/karna-short.json
-npm run generate:assets -- examples/karna-short.json
-npm run inspect:assets -- examples/karna-short.json
-npm run normalize:assets -- examples/karna-short.json
-npm run check:asset-requirements -- examples/karna-short.json
-npm run generate:voice -- examples/karna-short.json
-npm run inspect:audio -- examples/karna-short.json
-npm run align:audio -- examples/karna-short.json
-npm run mix:audio -- examples/karna-short.json
-npm run stage:assets -- examples/karna-short.json
-bash run.sh examples/karna-short.json
+npm run generate:captions -- examples/karna-short.json
+npm run check:output -- examples/karna-short.json renders/karna-short.mp4
 ```
 
 Strict first real-model run:
 
 ```bash
-REQUIRE_CHARACTER_REFERENCES=1 REQUIRE_GENERATED_ASSETS=1 REQUIRE_ASSET_REQUIREMENTS=1 REQUIRE_TTS=1 REQUIRE_TTS_ALIGNMENT=1 REQUIRE_AUDIO_MIX=1 NORMALIZE_ASSETS=1 IMAGE_GENERATION_MAX_ATTEMPTS=2 bash run.sh examples/karna-short.json
+REQUIRE_CHARACTER_REFERENCES=1 REQUIRE_GENERATED_ASSETS=1 REQUIRE_ASSET_REQUIREMENTS=1 REQUIRE_TTS=1 REQUIRE_TTS_ALIGNMENT=1 REQUIRE_AUDIO_MIX=1 REQUIRE_OUTPUT_QA=1 NORMALIZE_ASSETS=1 IMAGE_GENERATION_MAX_ATTEMPTS=2 bash run.sh examples/karna-short.json
 ```
 
 ## Verification policy
@@ -71,6 +64,7 @@ For every completed milestone record:
 - motion/crop notes
 - visual quality notes
 - audio quality notes
+- caption/QA notes
 - next bottleneck
 
 ## Product goal remains unchanged
@@ -86,6 +80,8 @@ The final system must support:
 - fast visual pacing with controlled camera/motion
 - deep Hindi narration
 - sound design/music
+- captions/subtitles
+- technical and visual quality gates
 - one-command local production after one-time setup
 - three-Short daily batching
 - 8–12 minute long-form episodes using the same engine
