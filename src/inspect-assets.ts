@@ -2,7 +2,7 @@ import {existsSync} from 'node:fs';
 import {readFile} from 'node:fs/promises';
 import {buildAssetPlan} from './pipeline/asset-plan';
 import {projectPaths, ensureProjectPaths} from './pipeline/paths';
-import {loadRegistry} from './pipeline/asset-registry';
+import {loadRegistry, registerAsset} from './pipeline/asset-registry';
 import type {ProductionManifest} from './pipeline/types';
 import {probeImage, validateImage} from './pipeline/image-validation';
 
@@ -26,10 +26,22 @@ for (const request of plan) {
   try {
     const probe = await probeImage(record.path);
     validateImage(probe);
+    await registerAsset(paths, registry, {
+      ...record,
+      status: 'ready',
+      width: probe.width,
+      height: probe.height,
+      alpha: probe.hasAlpha,
+    });
     valid += 1;
     console.log(`[asset] OK ${request.id} ${probe.width}x${probe.height} ${probe.format}${probe.hasAlpha ? ' alpha' : ''} ${probe.bytes}B`);
   } catch (error) {
     invalid += 1;
+    await registerAsset(paths, registry, {
+      ...record,
+      status: 'failed',
+      last_error: error instanceof Error ? error.message : String(error),
+    });
     console.error(`[asset] INVALID ${request.id}: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
