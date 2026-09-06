@@ -8,7 +8,7 @@ Updated: 2026-09-06
 
 **North star:** one command produces a publishable Hindi mythology video.
 
-**Current engineering focus:** semantic asset contracts are now persisted through image inspection/normalization. The next focus is per-segment narration timing and audio synchronization.
+**Current engineering focus:** per-segment narration timing/alignment is now implemented as a deterministic analysis stage. The next focus is music/SFX and final audio mixing.
 
 ## Done — implemented and structurally verified in repository
 
@@ -66,38 +66,40 @@ Updated: 2026-09-06
 - [x] Runtime asset-reference map generated before Remotion render
 - [x] Remotion can layer staged master artwork behind/alongside procedural illustration
 - [x] Generated-art camera entrance/drift and character/environment/prop placement fallback rules
-- [x] Semantic asset requirement module: character masters require isolated compositing intent; environments/backgrounds remain opaque scene layers
-- [x] Asset requirement report can be generated deterministically from a manifest and registry
+- [x] Semantic asset requirement module
+- [x] Asset requirement report generation
 - [x] Asset registry persists probed alpha metadata (`alpha`)
-- [x] Image inspection updates width/height/alpha metadata after probing
-- [x] Image normalization re-probes and persists alpha metadata after FFmpeg output
+- [x] Image inspection/normalization persists measured alpha metadata
 - [x] Semantic asset gate consumes persisted alpha metadata in strict production
+- [x] Per-beat narration alignment analysis using FFmpeg `silencedetect`
+- [x] Per-beat target/speech/silence timing report persisted under project logs
+- [x] Strict narration alignment gate integrated into one-command production
 
 ## In progress
 
 - [ ] Runtime verification against the user's actual FLUX/ComfyUI installation
 - [ ] Runtime verification against the user's actual Chatterbox/deep-Hindi voice setup
-- [ ] Per-segment narration duration/alignment and waveform inspection
+- [ ] Validate semantic audio alignment against real generated narration
 - [ ] Music/SFX adapter
+- [ ] Deterministic final audio mix
 - [ ] SVG draw-on animation primitives beyond the current procedural fallback
 - [ ] True layered 2.5D camera/parallax system
 - [ ] Generated-art visual QA and character consistency review
 - [ ] Automated subtitles/captions
-- [ ] Final audio mix
 - [ ] Automated visual/technical QA report
 - [ ] End-to-end real Karna render on the user's machine
 
 ## Blockers
 
-No repository-level blocker is preventing further coding. The remaining integration blockers are machine-specific: the exact local FLUX/ComfyUI invocation and Chatterbox/deep-Hindi invocation are not verified in this environment. The adapters deliberately do not invent model-specific commands. Runtime verification also requires real generated assets/audio to exercise the semantic and timing gates.
+No repository-level blocker is preventing further coding. Machine-specific blockers remain: the exact local FLUX/ComfyUI invocation and Chatterbox/deep-Hindi invocation are not verified in this environment. The new audio alignment stage also requires a real narration WAV to validate the detected silence/speech regions against human-perceived beat timing.
 
-## Semantic asset contract
+## Audio alignment contract
 
-`src/pipeline/asset-requirements.ts` classifies every planned asset before generation. Character masters are intended to be isolated compositing assets and therefore require alpha-capable artwork; environments/backgrounds are opaque scene layers; props/overlays are constrained according to their role. Image inspection and normalization now persist the measured `alpha` value in the registry, so strict semantic validation can evaluate the actual probed file rather than an assumed property.
+`src/align-audio.ts` probes the narration WAV, detects silence regions with FFmpeg, maps detected speech time into each manifest beat window, and writes `projects/<project_id>/logs/audio-alignment-report.json`. It intentionally reports timing evidence rather than pretending to know word-level alignment. Strict mode is enabled with `REQUIRE_TTS_ALIGNMENT=1`; the whole-track duration tolerance remains independently enforced by `inspect-audio.ts`.
 
 ## Verification boundary
 
-Repository implementation is not the same as runtime verification. M1 cannot be marked complete until local dependencies/models are actually executed and a real MP4 is rendered and visually reviewed on the target machine.
+Repository implementation is not the same as runtime verification. M1 cannot be marked complete until local dependencies/models are actually executed, real artwork/audio are generated, and a final MP4 is rendered and visually/audibly reviewed on the target machine.
 
 ## Exact reproducible commands
 
@@ -112,6 +114,7 @@ npm run normalize:assets -- examples/karna-short.json
 npm run check:asset-requirements -- examples/karna-short.json
 npm run generate:voice -- examples/karna-short.json
 npm run inspect:audio -- examples/karna-short.json
+npm run align:audio -- examples/karna-short.json
 npm run stage:assets -- examples/karna-short.json
 bash run.sh examples/karna-short.json
 ```
@@ -119,7 +122,7 @@ bash run.sh examples/karna-short.json
 Reference-aware strict run:
 
 ```bash
-REQUIRE_CHARACTER_REFERENCES=1 REQUIRE_GENERATED_ASSETS=1 REQUIRE_ASSET_REQUIREMENTS=1 REQUIRE_TTS=1 NORMALIZE_ASSETS=1 IMAGE_GENERATION_MAX_ATTEMPTS=2 bash run.sh examples/karna-short.json
+REQUIRE_CHARACTER_REFERENCES=1 REQUIRE_GENERATED_ASSETS=1 REQUIRE_ASSET_REQUIREMENTS=1 REQUIRE_TTS=1 REQUIRE_TTS_ALIGNMENT=1 NORMALIZE_ASSETS=1 IMAGE_GENERATION_MAX_ATTEMPTS=2 bash run.sh examples/karna-short.json
 ```
 
 ## Release gates
