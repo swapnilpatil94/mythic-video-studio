@@ -44,6 +44,10 @@ await writeFile('src/remotion/runtime-manifest.ts', runtimeSource, 'utf8');
 
 await run('npx', ['remotion', 'render', 'src/remotion/index.ts', 'MythicShort', output]);
 await run('npx', ['tsx', 'src/generate-visual-qa.ts', input, output]);
-await run('npx', ['tsx', 'src/check-output.ts', input, output]);
+if (process.env.REQUIRE_OUTPUT_QA === '1') {
+  await run('npx', ['tsx', 'src/check-output.ts', input, output]);
+} else {
+  await run('npx', ['tsx', 'src/check-output.ts', input, output]);
+}
 if (process.env.REQUIRE_RELEASE_EVIDENCE === '1') await run('npx', ['tsx', 'src/check-release.ts', input, output]);
 console.log(`DONE: ${output}`);
