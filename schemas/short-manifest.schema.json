@@ -9,6 +9,15 @@
     "language": {"const": "hi-IN"},
     "duration_seconds": {"type": "number", "minimum": 45, "maximum": 120},
     "characters": {"type": "array", "items": {"type": "string"}},
+    "tempo_profile": {"enum": ["short", "medium", "longform"]},
+    "narration_profile": {
+      "type": "object",
+      "properties": {
+        "target_wpm": {"type": "number", "minimum": 100, "maximum": 220},
+        "max_pause_seconds": {"type": "number", "minimum": 0.1, "maximum": 2},
+        "speed_factor": {"type": "number", "minimum": 0.8, "maximum": 1.2}
+      }
+    },
     "beats": {
       "type": "array",
       "minItems": 5,
@@ -23,7 +32,9 @@
           "new_asset_required": {"type": "boolean"},
           "camera": {"type": "string"},
           "animation": {"type": "string"},
-          "text": {"type": "string"}
+          "text": {"type": "string"},
+          "narration": {"type": "string"},
+          "kinetic_keywords": {"type": "array", "items": {"type": "string"}}
         }
       }
     }
