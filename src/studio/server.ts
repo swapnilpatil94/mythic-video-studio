@@ -109,8 +109,13 @@ async function handle(req: IncomingMessage, res: ServerResponse) {
       if (body?.json === undefined) return sendJson(res, 400, {error: 'json is required'});
       const raw = typeof body.json === 'string' ? JSON.parse(body.json) : body.json;
       const {uniqueProjectId} = await import('./project-store');
-      const projectId = await uniqueProjectId(body.name || (raw as Record<string, unknown>)?.title as string || 'imported-story');
-      const split = splitStoryPackage(raw, {projectId, fallbackName: body.name});
+      const rawObj = raw as Record<string, unknown>;
+      const rawProject = rawObj?.project as Record<string, unknown> | undefined;
+      // project_id (already meant to be a valid kebab-case slug) takes priority over project_name/
+      // title, which may be Hindi/Devanagari text that slugify() would strip to nothing.
+      const slugSource = body.name || rawProject?.project_id || rawProject?.project_name || rawObj?.title || 'imported-story';
+      const projectId = await uniqueProjectId(String(slugSource));
+      const split = splitStoryPackage(raw, {projectId});
       if (!split.ok) return sendJson(res, 422, {error: 'validation failed', errors: split.errors});
       const {mkdir} = await import('node:fs/promises');
       const dir = join(PROJECTS_ROOT, projectId);

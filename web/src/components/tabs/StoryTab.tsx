@@ -62,7 +62,11 @@ export default function StoryTab({data, projectId, reload}: {data: ProjectFiles;
           <h3 style={{margin: 0}}>Story package import</h3>
           <button className="btn btn-sm" onClick={() => setShowImport((s) => !s)}>{showImport ? 'Hide' : 'Paste JSON'}</button>
         </div>
-        <p className="hint">Paste one JSON (a full manifest, or a project/story/script/manifest/characters/metadata package) to re-split and overwrite this project's six files.</p>
+        <p className="hint">
+          Paste one story-package JSON (see <code>prompts/story-package.md</code> / <code>schemas/story-package.schema.json</code> —
+          project/story/script/characters/environments/props/visual_manifest/audio/metadata/sources) or a flat manifest,
+          to re-split and overwrite this project's six files.
+        </p>
         {showImport ? (
           <div className="stack" style={{marginTop: 10}}>
             <JsonEditor value={importJson} onChange={setImportJson} rows={10} placeholder="Paste story package or manifest JSON here…" />
@@ -78,42 +82,79 @@ export default function StoryTab({data, projectId, reload}: {data: ProjectFiles;
       <div className="card">
         <h3>Story</h3>
         <div className="field">
+          <label>Title</label>
+          <input type="text" value={story.title} onChange={(e) => setStory({...story, title: e.target.value})} />
+        </div>
+        <div className="field">
           <label>Hook</label>
           <textarea rows={2} value={story.hook} onChange={(e) => setStory({...story, hook: e.target.value})} />
         </div>
         <div className="field">
-          <label>Summary</label>
-          <textarea rows={4} value={story.summary} onChange={(e) => setStory({...story, summary: e.target.value})} />
-        </div>
-        <div className="field">
-          <label>Source notes (canonical vs. interpretation)</label>
-          <textarea rows={3} value={story.source_notes} onChange={(e) => setStory({...story, source_notes: e.target.value})} />
-        </div>
-        <div className="field">
-          <label>Continuity notes</label>
-          <textarea rows={2} value={story.continuity_notes} onChange={(e) => setStory({...story, continuity_notes: e.target.value})} />
+          <label>Premise</label>
+          <textarea rows={3} value={story.premise} onChange={(e) => setStory({...story, premise: e.target.value})} />
         </div>
         <div className="row">
           <div className="field" style={{flex: 1}}>
-            <label>Title candidates</label>
-            <TagList values={story.title_candidates} onChange={(v) => setStory({...story, title_candidates: v})} />
+            <label>Conflict</label>
+            <textarea rows={2} value={story.conflict} onChange={(e) => setStory({...story, conflict: e.target.value})} />
+          </div>
+          <div className="field" style={{flex: 1}}>
+            <label>Reveal</label>
+            <textarea rows={2} value={story.reveal} onChange={(e) => setStory({...story, reveal: e.target.value})} />
           </div>
         </div>
         <div className="row">
           <div className="field" style={{flex: 1}}>
-            <label>Locations</label>
-            <TagList values={story.locations} onChange={(v) => setStory({...story, locations: v})} />
+            <label>Climax</label>
+            <textarea rows={2} value={story.climax} onChange={(e) => setStory({...story, climax: e.target.value})} />
           </div>
           <div className="field" style={{flex: 1}}>
-            <label>Props</label>
-            <TagList values={story.props} onChange={(v) => setStory({...story, props: v})} />
+            <label>Payoff</label>
+            <textarea rows={2} value={story.payoff} onChange={(e) => setStory({...story, payoff: e.target.value})} />
           </div>
         </div>
         <div className="field">
-          <label>Visual opportunities</label>
-          <TagList values={story.visual_opportunities} onChange={(v) => setStory({...story, visual_opportunities: v})} />
+          <label>Emotional core</label>
+          <input type="text" value={story.emotional_core} onChange={(e) => setStory({...story, emotional_core: e.target.value})} />
+        </div>
+        <div className="field">
+          <label>Story arc</label>
+          <textarea rows={2} value={story.story_arc} onChange={(e) => setStory({...story, story_arc: e.target.value})} />
         </div>
         <div className="row">
+          <div className="field" style={{flex: 1}}>
+            <label>Established facts</label>
+            <TagList values={story.facts} onChange={(v) => setStory({...story, facts: v})} />
+          </div>
+          <div className="field" style={{flex: 1}}>
+            <label>Interpretations / tradition</label>
+            <TagList values={story.interpretations} onChange={(v) => setStory({...story, interpretations: v})} />
+          </div>
+        </div>
+        <div className="row">
+          <button className="btn btn-primary" disabled={saving} onClick={save}>{saving ? 'Saving…' : saved ? 'Saved' : 'Save story.json'}</button>
+        </div>
+      </div>
+
+      <div className="card">
+        <h3>Sources</h3>
+        <p className="hint">Reliable references, each marked as a fact your source directly supports vs. a traditional interpretation — the mythology rule: never invent canon.</p>
+        {story.sources.map((s, i) => (
+          <div key={i} className="row" style={{marginBottom: 8, alignItems: 'flex-start'}}>
+            <input type="text" style={{flex: 2}} value={s.source} placeholder="Source"
+              onChange={(e) => setStory({...story, sources: story.sources.map((x, j) => j === i ? {...x, source: e.target.value} : x)})} />
+            <input type="text" style={{flex: 2}} value={s.claim_supported} placeholder="Claim supported"
+              onChange={(e) => setStory({...story, sources: story.sources.map((x, j) => j === i ? {...x, claim_supported: e.target.value} : x)})} />
+            <select style={{flex: 1}} value={s.fact_or_interpretation}
+              onChange={(e) => setStory({...story, sources: story.sources.map((x, j) => j === i ? {...x, fact_or_interpretation: e.target.value as 'fact' | 'interpretation'} : x)})}>
+              <option value="fact">fact</option>
+              <option value="interpretation">interpretation</option>
+            </select>
+            <button className="btn btn-sm btn-danger" onClick={() => setStory({...story, sources: story.sources.filter((_, j) => j !== i)})}>Remove</button>
+          </div>
+        ))}
+        <button className="btn btn-sm" onClick={() => setStory({...story, sources: [...story.sources, {source: '', claim_supported: '', fact_or_interpretation: 'fact'}]})}>+ Add source</button>
+        <div className="row" style={{marginTop: 10}}>
           <button className="btn btn-primary" disabled={saving} onClick={save}>{saving ? 'Saving…' : saved ? 'Saved' : 'Save story.json'}</button>
         </div>
       </div>

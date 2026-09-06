@@ -26,7 +26,18 @@ A local control panel for managing multiple story projects and driving this same
 npm run studio
 ```
 
-Opens the API server (`src/studio/server.ts`, port 4321) and the web UI (Vite, port 5173) together. From the dashboard you can create a project (blank or by pasting a story-package JSON, which is auto-split into `project.json`/`story.json`/`script.json`/`manifest.json`/`characters.json`/`metadata.json`), edit its Story/Script/Visuals/Characters/Metadata, and run Preflight or the full pipeline from the Production tab with live logs — the same `run.sh` a terminal user would call, just against `projects/<id>/manifest.json`.
+Opens the API server (`src/studio/server.ts`, port 4321) and the web UI (Vite, port 5173) together. From the dashboard you can create a project (blank, or by pasting a story-package JSON — see below — which is auto-split into `project.json`/`story.json`/`script.json`/`manifest.json`/`characters.json`/`metadata.json`), edit its Story/Script/Visuals/Characters/Metadata, and run Preflight or the full pipeline from the Production tab with live logs — the same `run.sh` a terminal user would call, just against `projects/<id>/manifest.json`.
+
+### Story package contract
+
+`prompts/story-package.md` is a ready-to-paste prompt for ChatGPT/Claude: give it a topic and a
+format (SHORT/LONGFORM), it researches the source material and returns ONE JSON object —
+`project`/`story`/`script`/`characters`/`environments`/`props`/`visual_manifest`/`audio`/
+`metadata`/`sources` — validated against `schemas/story-package.schema.json`. `visual_manifest`
+describes visual **events** per beat (shot type, camera, action, reveal, keyword text), not one
+image per beat — the Studio's importer (`src/studio/story-package.ts`) joins it against
+`script.beats` (by `id`) to build the same `manifest.json` the pipeline already consumes
+unmodified. See `examples/karna-story-package-test.json` for a complete real example.
 
 ## Vision
 

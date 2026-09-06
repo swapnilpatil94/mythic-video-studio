@@ -1,5 +1,53 @@
 # Progress
 
+## 2026-09-06 (story-package contract session) — main branch reconciliation + story package contract
+
+Brief: "create pr and merge" the prior session's pending work, then implement the story package
+contract (`prompts/story-package.md`, `schemas/story-package.schema.json`) for real — implement,
+validate, test with a real Karna example, fix, not just document.
+
+### Main branch reconciliation
+
+`origin/main` had diverged ~60 commits (a parallel, never-tested-on-Mac line of work: a vanilla-JS
+Studio, a manual `tempo_profile` timing model, draft story-package files). Per explicit user
+direction, merged keeping this session's React/Vite Studio and Whisper-driven compositor canonical,
+discarded the parallel Studio/timing model, kept independently-useful non-conflicting pieces (CI
+workflow, a long-form test fixture). PR #1 opened and merged after CI passed.
+
+### Story package contract — implemented, not just documented
+
+- `prompts/story-package.md`: full authoring prompt (research-first, mythology rule, the 10-section
+  contract, SHORT/LONGFORM guidance, "visual events not image counts").
+- `schemas/story-package.schema.json`: strict (`additionalProperties: false` throughout), with
+  required-field lists hand-verified against the actual zod enforcement so the two can't drift.
+- `src/studio/story-package.ts`: `StoryPackageSchema` (zod, `.strict()`) is the enforced contract;
+  `splitStoryPackage` joins `visual_manifest.beats` to `script.beats` by `id` to build the same
+  `manifest.json` the pipeline already consumes, extended with new optional fields on
+  `ProductionBeat`/`manifest.audio` (`src/pipeline/types.ts`) so the richer data survives losslessly.
+  Flat-manifest quick-import kept as a fallback, not replaced.
+- Updated `src/studio/schemas.ts` and every affected web tab (Story/Script/Characters/Metadata/
+  Overview) to the new field set — verified a schema nobody's UI can read/write isn't "implemented."
+
+### Verified with a real Karna example
+
+`examples/karna-story-package-test.json` — built from the real, already-produced Karna kavacha
+narration (not placeholder text). `/story-package/validate` → ok, zero warnings. `/projects/import`
+→ real files on disk. `npx tsx src/cli.ts validate` on the resulting manifest.json (the actual
+unmodified pipeline command) → **PASS**. `prepare-project.ts` → real asset-plan.json with correctly
+beat-derived prompts. A real `remotion still` render completed without error. Web UI tabs verified
+via real browser clicks — Story/Characters/Visuals render the imported content correctly, zero
+console errors.
+
+**Bug found and fixed during this verification**: `/projects/import`'s slug selection picked
+`project_name` (often Hindi text, stripped to nothing by `slugify()`) before the already-slugified
+`project_id`, silently producing `untitled-project`. Reproduced with the real Karna package (Hindi
+title), fixed the priority order, reran, confirmed the correct slug.
+
+**Honest scope boundary**: the new beat/audio fields persist correctly but aren't wired into the
+compositor's actual shot-selection/rendering decisions, and `sacred_or_respected` doesn't yet
+differentially alter asset-generation prompts beyond the existing character-kind default — both
+would be materially larger changes than "implement the contract."
+
 ## 2026-09-06 (KATHAAYA Studio session) — Local project-manager UI, KATHAAYA branding, safe zones
 
 Brief: build a local Studio UI (dashboard, per-project management, story-package import, production runner) on top of the existing pipeline — explicitly no second renderer, no pipeline rebuild, no new frontend framework, code→run→test→fix with no plan document. Also: replace the old header/footer video branding with KATHAAYA (subtle open, minimal watermark, full end card), and add configurable, collision-aware platform safe zones so subtitles land in a real lower-storytelling zone instead of the visual center.

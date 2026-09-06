@@ -31,8 +31,10 @@ export default function OverviewTab({data}: {data: ProjectFiles; projectId: stri
               <td>Beat duration sum</td>
               <td>{beatSum.toFixed(2)}s / {data.manifest.duration_seconds}s {durationMatches ? <span className="badge badge-rendered">matches</span> : <span className="badge badge-failed">mismatch</span>}</td>
             </tr>
-            <tr><td>Story sections filled</td><td>{[data.story.hook, data.story.summary].filter(Boolean).length}/2</td></tr>
-            <tr><td>Characters described</td><td>{data.characters.characters.filter((c) => !c.generation_prompt.startsWith('TODO')).length}/{data.characters.characters.length || 0}</td></tr>
+            <tr><td>Story sections filled</td><td>{[data.story.hook, data.story.premise, data.story.conflict, data.story.payoff].filter(Boolean).length}/4</td></tr>
+            <tr><td>Characters described</td><td>{data.characters.characters.filter((c) => c.visual_direction).length}/{data.characters.characters.length || 0}</td></tr>
+            <tr><td>Environments / Props</td><td>{data.characters.environments.length} / {data.characters.props.length}</td></tr>
+            <tr><td>Sources cited</td><td>{data.story.sources.length}</td></tr>
           </tbody>
         </table>
         {!durationMatches ? <p className="hint" style={{color: 'var(--red)'}}>Beat durations must sum to the manifest duration before the pipeline will validate this project — edit in the Script or Visuals tab.</p> : null}

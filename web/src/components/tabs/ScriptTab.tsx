@@ -2,24 +2,21 @@ import {useState} from 'react';
 import {api, type ProjectFiles, type Script} from '../../api';
 
 export default function ScriptTab({data, projectId}: {data: ProjectFiles; projectId: string; reload: () => void}) {
-  const [script, setScript] = useState<Script>(data.script.narration_beats.length ? data.script : {
-    narration_beats: data.manifest.beats.map((b) => ({beat_id: b.beat_id, text: b.text ?? '', narration: b.narration ?? ''})),
+  const [script, setScript] = useState<Script>(data.script.beats.length ? data.script : {
     full_narration: data.manifest.beats.map((b) => b.narration).filter(Boolean).join(' '),
+    beats: data.manifest.beats.map((b) => ({id: b.beat_id, narration: b.narration ?? '', emotion: '', pace: '', duration_seconds: b.duration_seconds})),
   });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  const updateBeat = (beatId: string, field: 'text' | 'narration', value: string) => {
-    setScript({
-      ...script,
-      narration_beats: script.narration_beats.map((b) => b.beat_id === beatId ? {...b, [field]: value} : b),
-    });
+  const updateBeat = (id: string, patch: Partial<Script['beats'][number]>) => {
+    setScript({...script, beats: script.beats.map((b) => b.id === id ? {...b, ...patch} : b)});
   };
 
   const save = async () => {
     setSaving(true);
     try {
-      const full_narration = script.narration_beats.map((b) => b.narration).filter(Boolean).join(' ');
+      const full_narration = script.beats.map((b) => b.narration).filter(Boolean).join(' ');
       const next = {...script, full_narration};
       await api.writeFile(projectId, 'script.json', next);
       setScript(next);
@@ -33,27 +30,43 @@ export default function ScriptTab({data, projectId}: {data: ProjectFiles; projec
   };
 
   const words = script.full_narration.trim() ? script.full_narration.trim().split(/\s+/).length : 0;
+  const totalSeconds = script.beats.reduce((n, b) => n + (b.duration_seconds || 0), 0);
 
   return (
     <div className="stack">
       <div className="card">
         <div className="row-between">
           <h3 style={{margin: 0}}>Narration beats</h3>
-          <span className="hint">{words} words total</span>
+          <span className="hint">{words} words · {totalSeconds.toFixed(1)}s total</span>
         </div>
-        <p className="hint">Each row's <code>beat_id</code> is matched to the manifest's beats — edit narration here, or edit beat timing/camera/visual_role in the Visuals tab's manifest editor.</p>
-        {script.narration_beats.map((b) => (
-          <div key={b.beat_id} className="card" style={{marginTop: 10, background: 'var(--cream)'}}>
+        <div className="field">
+          <label>Target WPM</label>
+          <input type="number" value={script.target_wpm ?? ''} placeholder="e.g. 150"
+            onChange={(e) => setScript({...script, target_wpm: e.target.value ? Number(e.target.value) : undefined})} style={{maxWidth: 160}} />
+        </div>
+        <p className="hint">Each row's <code>id</code> is matched to the manifest's beats (via <code>visual_manifest</code> on import) — duration here is the approximate timing that drives the beat's length in the manifest.</p>
+        {script.beats.map((b) => (
+          <div key={b.id} className="card" style={{marginTop: 10, background: 'var(--cream)'}}>
             <div className="row-between" style={{marginBottom: 6}}>
-              <strong>{b.beat_id}</strong>
+              <strong>{b.id}</strong>
+            </div>
+            <div className="row">
+              <div className="field" style={{flex: 1}}>
+                <label>Emotion</label>
+                <input type="text" value={b.emotion} onChange={(e) => updateBeat(b.id, {emotion: e.target.value})} />
+              </div>
+              <div className="field" style={{flex: 1}}>
+                <label>Pace</label>
+                <input type="text" value={b.pace} placeholder="slow / medium / fast" onChange={(e) => updateBeat(b.id, {pace: e.target.value})} />
+              </div>
+              <div className="field" style={{width: 140}}>
+                <label>Duration (s)</label>
+                <input type="number" value={b.duration_seconds} onChange={(e) => updateBeat(b.id, {duration_seconds: Number(e.target.value)})} />
+              </div>
             </div>
             <div className="field">
-              <label>On-screen text (short)</label>
-              <input type="text" value={b.text} onChange={(e) => updateBeat(b.beat_id, 'text', e.target.value)} />
-            </div>
-            <div className="field">
-              <label>Narration (spoken)</label>
-              <textarea rows={2} value={b.narration} onChange={(e) => updateBeat(b.beat_id, 'narration', e.target.value)} />
+              <label>Narration (spoken Hindi)</label>
+              <textarea rows={2} value={b.narration} onChange={(e) => updateBeat(b.id, {narration: e.target.value})} />
             </div>
           </div>
         ))}

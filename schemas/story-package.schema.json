@@ -1,19 +1,182 @@
 {
-  "$schema":"https://json-schema.org/draft/2020-12/schema",
-  "title":"Kathaaya Story Package",
-  "type":"object",
-  "additionalProperties":false,
-  "required":["project","story","script","characters","environments","props","visual_manifest","audio","metadata","sources"],
-  "properties":{
-    "project":{"type":"object","required":["project_name","project_id","format","language","target_duration"],"properties":{"project_name":{"type":"string"},"project_id":{"type":"string","pattern":"^[a-z0-9]+(?:-[a-z0-9]+)*$"},"format":{"enum":["short","longform"]},"language":{"type":"string"},"target_duration":{"type":"number","exclusiveMinimum":0}},"additionalProperties":true},
-    "story":{"type":"object"},
-    "script":{"type":"object"},
-    "characters":{"type":"array"},
-    "environments":{"type":"array"},
-    "props":{"type":"array"},
-    "visual_manifest":{"type":"object"},
-    "audio":{"type":"object"},
-    "metadata":{"type":"object"},
-    "sources":{"type":"array"}
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "KATHAAYA Story Package",
+  "description": "One JSON object a Story Architect (ChatGPT/Claude) generates for Mythic Video Studio to import directly. See prompts/story-package.md. Mirrored exactly by src/studio/story-package.ts's StoryPackageSchema (zod) — that is the enforced runtime contract; this file is the published/external-facing copy of the same rules.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["project", "story", "script", "characters", "environments", "props", "visual_manifest", "audio", "metadata", "sources"],
+  "properties": {
+    "project": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["project_id", "project_name", "format", "target_duration_seconds"],
+      "properties": {
+        "project_id": {"type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$", "description": "lowercase kebab-case, e.g. karna-kavacha"},
+        "project_name": {"type": "string", "minLength": 1},
+        "format": {"enum": ["SHORT", "LONGFORM"]},
+        "language": {"type": "string", "minLength": 2, "default": "hi-IN"},
+        "target_duration_seconds": {"type": "number", "exclusiveMinimum": 0, "description": "SHORT: 60-90s. LONGFORM: 480-900s+ (8-15+ min)."}
+      }
+    },
+    "story": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "hook"],
+      "properties": {
+        "title": {"type": "string", "minLength": 1},
+        "hook": {"type": "string", "minLength": 1, "description": "The curiosity/tension opener — what makes someone stop scrolling."},
+        "premise": {"type": "string"},
+        "conflict": {"type": "string"},
+        "reveal": {"type": "string"},
+        "climax": {"type": "string"},
+        "payoff": {"type": "string"},
+        "emotional_core": {"type": "string", "description": "The one feeling this story should leave the viewer with."},
+        "story_arc": {"type": "string", "description": "A short description of the tension -> reveal -> payoff shape used."},
+        "facts": {"type": "array", "items": {"type": "string"}, "description": "Claims directly supported by a listed source — see `sources`."},
+        "interpretations": {"type": "array", "items": {"type": "string"}, "description": "Traditional or artistic interpretation, explicitly NOT presented as established fact."}
+      }
+    },
+    "script": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["full_narration", "beats"],
+      "properties": {
+        "full_narration": {"type": "string", "minLength": 1, "description": "The complete Hindi narration, concatenated."},
+        "target_wpm": {"type": "number", "exclusiveMinimum": 0, "description": "Target words-per-minute for narration pacing (typically 140-170 for natural conversational Hindi)."},
+        "beats": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "narration", "duration_seconds"],
+            "properties": {
+              "id": {"type": "string", "minLength": 1, "description": "Joins to the matching visual_manifest beat by id."},
+              "narration": {"type": "string", "minLength": 1, "description": "The Hindi narration spoken during this beat."},
+              "emotion": {"type": "string", "description": "e.g. reverent, tense, triumphant, sorrowful."},
+              "pace": {"type": "string", "description": "e.g. slow, measured, quick."},
+              "duration_seconds": {"type": "number", "exclusiveMinimum": 0, "description": "Approximate timing for this beat."}
+            }
+          }
+        }
+      }
+    },
+    "characters": {"type": "array", "items": {"$ref": "#/$defs/character"}, "description": "Only characters required by the story."},
+    "environments": {"type": "array", "items": {"$ref": "#/$defs/environment"}, "description": "Only environments required by the story."},
+    "props": {"type": "array", "items": {"$ref": "#/$defs/prop"}, "description": "Only story-relevant props."},
+    "visual_manifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["beats"],
+      "properties": {
+        "beats": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/visual_beat"}
+        }
+      },
+      "description": "Describes visual EVENTS, not image counts. Does NOT require one AI image per beat — reuse master artwork through crops, details, layers, parallax, movement, draw-on/ink reveal and wash; generate a new master asset only when genuinely required."
+    },
+    "audio": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["voice_style"],
+      "properties": {
+        "voice_style": {"type": "string", "minLength": 1},
+        "target_wpm": {"type": "number", "exclusiveMinimum": 0},
+        "music_direction": {"type": "string"},
+        "sfx": {"type": "array", "items": {"type": "string"}, "description": "Global/ambient SFX direction, distinct from a beat's own visual_manifest.sfx."},
+        "silence_guidance": {"type": "string", "description": "How to handle pauses/dead air — e.g. 'no pause longer than 0.4s except before a reveal'."}
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["youtube_title", "description"],
+      "properties": {
+        "youtube_title": {"type": "string", "minLength": 1},
+        "description": {"type": "string", "minLength": 1},
+        "tags": {"type": "array", "items": {"type": "string"}},
+        "hashtags": {"type": "array", "items": {"type": "string"}},
+        "thumbnail_concept": {"type": "string"},
+        "seo_keywords": {"type": "array", "items": {"type": "string"}},
+        "social_caption": {"type": "string"}
+      }
+    },
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["source", "fact_or_interpretation"],
+        "properties": {
+          "source": {"type": "string", "minLength": 1},
+          "claim_supported": {"type": "string"},
+          "fact_or_interpretation": {"enum": ["fact", "interpretation"]}
+        }
+      },
+      "description": "Reliable references. Every entry in story.facts should trace to at least one 'fact' source here."
+    }
+  },
+  "$defs": {
+    "character": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "name": {"type": "string", "minLength": 1},
+        "role": {"type": "string", "description": "e.g. protagonist, antagonist, mentor, deity, supporting."},
+        "importance": {"enum": ["primary", "secondary", "minor"]},
+        "visual_direction": {"type": "string"},
+        "required_views": {"type": "array", "items": {"type": "string"}, "description": "e.g. face, three-quarter, full-body, hands, profile."},
+        "required_actions": {"type": "array", "items": {"type": "string"}, "description": "e.g. raising a weapon, kneeling, reacting."},
+        "sacred_or_respected": {"type": "boolean", "description": "Mythology rule: if true, this figure must be dignified and non-comedic — never a generic cartoon character."}
+      }
+    },
+    "environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "name": {"type": "string", "minLength": 1},
+        "visual_direction": {"type": "string"},
+        "important_layers": {"type": "array", "items": {"type": "string"}, "description": "e.g. foreground crowd, sky/light, background architecture — what a compositor needs to isolate for parallax/crops."}
+      }
+    },
+    "prop": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "name": {"type": "string", "minLength": 1},
+        "required_views": {"type": "array", "items": {"type": "string"}},
+        "required_actions": {"type": "array", "items": {"type": "string"}, "description": "e.g. being raised, glowing, changing hands."}
+      }
+    },
+    "visual_beat": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "scene_role", "camera"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1, "description": "Joins to the matching script.beats entry by id."},
+        "narration": {"type": "string", "description": "Denormalized copy of this beat's narration for self-contained context; script.beats[id].narration is authoritative."},
+        "scene_role": {"type": "string", "minLength": 1, "description": "e.g. hook, stakes, threat, decision, sacrifice, reveal, payoff."},
+        "pace": {"type": "string"},
+        "shot_type": {"type": "string", "description": "e.g. wide, face, eyes/reaction, hand, weapon, detail, OTS, two-shot."},
+        "composition": {"type": "string"},
+        "visual_action": {"type": "string", "description": "What actually moves/happens — entrance, reaction, object/weapon movement, layered interaction. Avoid repetitive static full-body shots."},
+        "characters": {"type": "array", "items": {"type": "string"}, "description": "character ids present in this beat."},
+        "props": {"type": "array", "items": {"type": "string"}, "description": "prop ids present in this beat."},
+        "environments": {"type": "array", "items": {"type": "string"}, "description": "environment ids providing this beat's backdrop, if any."},
+        "camera": {"type": "string", "minLength": 1, "description": "e.g. push_in, pan, tilt_up, reveal_from_edge, reverse_push, shot_reverse, armor_crop, slow_push, pull_back."},
+        "reveal": {"type": "boolean", "description": "Whether this beat uses the hand-drawn ink-reveal."},
+        "keyword_text": {"type": "string", "description": "The on-screen kinetic keyword/emphasis text for this beat."},
+        "sfx": {"type": "array", "items": {"type": "string"}},
+        "transition": {"type": "string", "description": "e.g. cut, ink-wipe, push."}
+      }
+    }
   }
 }
