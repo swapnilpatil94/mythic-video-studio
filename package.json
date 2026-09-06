@@ -8,6 +8,7 @@
     "inspect": "tsx src/cli.ts inspect",
     "prepare": "tsx src/pipeline/prepare-project.ts",
     "preflight": "tsx src/preflight.ts",
+    "discover:local": "tsx src/discover-local.ts",
     "check:pipeline": "tsx src/check-pipeline.ts",
     "check:release": "tsx src/check-release.ts",
     "generate:assets": "tsx src/generate-assets.ts",
