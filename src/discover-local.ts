@@ -1,6 +1,5 @@
-import {access, existsSync} from 'node:fs';
-import {constants} from 'node:fs';
-import {readFile, writeFile} from 'node:fs/promises';
+import {existsSync, constants} from 'node:fs';
+import {access, readFile, writeFile} from 'node:fs/promises';
 import {homedir} from 'node:os';
 import {join} from 'node:path';
 import {spawn} from 'node:child_process';
