@@ -2,6 +2,7 @@ import React, {useMemo} from 'react';
 import {AbsoluteFill, Audio, Img, interpolate, staticFile, useCurrentFrame, useVideoConfig} from 'remotion';
 import {runtimeAssets} from './runtime-assets';
 import {runtimeAudio} from './runtime-audio';
+import {runtimeTiming} from './runtime-timing';
 import {cameraMotion, drawRevealProgress, layerTransform} from './motion';
 import {InkReveal, InkTransition, WashReveal, profileForAnimation} from './visual-beats';
 
@@ -13,6 +14,7 @@ const RED = '#8E2F24';
 type Manifest = {
   title: string;
   duration_seconds: number;
+  tempo_profile?: 'short' | 'medium' | 'longform';
   beats: Array<{
     beat_id: string;
     duration_seconds: number;
@@ -22,10 +24,12 @@ type Manifest = {
     animation?: string;
     text?: string;
     narration?: string;
+    kinetic_keywords?: string[];
   }>;
 };
 
 type Beat = Manifest['beats'][number] & {start: number; end: number; label: string};
+type WordTiming = {text: string; start_seconds: number; end_seconds: number; index: number};
 
 function SketchSun({opacity = 1, pulse = 0}: {opacity?: number; pulse?: number}) {
   const scale = 1 + pulse * 0.06;
@@ -92,6 +96,10 @@ function artDirection(role: string, index: number) {
   }
 }
 
+function phaseProgress(progress: number, start: number, end: number) {
+  return Math.max(0, Math.min(1, (progress - start) / Math.max(0.01, end - start)));
+}
+
 function GeneratedArtwork({beat, progress}: {beat: Beat; progress: number}) {
   const refs = beat.asset_refs.filter((ref) => runtimeAssets[ref]);
   if (refs.length === 0) return null;
@@ -99,28 +107,45 @@ function GeneratedArtwork({beat, progress}: {beat: Beat; progress: number}) {
   const characters = refs.filter((ref) => /character|\.master/i.test(ref) || ref.includes('karna') || ref.includes('indra'));
   const other = refs.filter((ref) => ref !== environment && !characters.includes(ref));
   const profile = profileForAnimation(beat.animation, beat.visual_role);
-  const entrance = interpolate(progress, [0, 0.12, 1], [0, 1, 1]);
+  const entrance = interpolate(progress, [0, 0.08, 1], [0, 1, 1]);
   const camera = cameraMotion(beat.camera, progress);
   const direction = beat.camera === 'pan' ? {x: 120, y: 30} : {x: 86, y: 46};
   const environmentTransform = layerTransform(camera, 0.16, progress, direction);
+  const inkProgress = phaseProgress(progress, 0.02, 0.48);
+  const colorProgress = phaseProgress(progress, 0.28, 0.72);
 
   return <div style={{position: 'absolute', inset: 0, opacity: entrance, pointerEvents: 'none', overflow: 'hidden'}}>
-    {environment ? <InkReveal progress={progress} direction={profile.reveal} style={{position: 'absolute', inset: '-7%', width: '114%', height: '114%', transform: environmentTransform, transformOrigin: '50% 50%'}}>
-      <Img src={staticFile(runtimeAssets[environment])} style={{position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.9}}/>
+    {environment ? <InkReveal progress={inkProgress} direction={profile.reveal} style={{position: 'absolute', inset: '-7%', width: '114%', height: '114%', transform: environmentTransform, transformOrigin: '50% 50%'}}>
+      <Img src={staticFile(runtimeAssets[environment])} style={{position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.78, filter: 'grayscale(1) contrast(1.18)'}}/>
+    </InkReveal> : null}
+    {environment ? <InkReveal progress={colorProgress} direction={profile.reveal} style={{position: 'absolute', inset: '-7%', width: '114%', height: '114%', transform: environmentTransform, transformOrigin: '50% 50%'}}>
+      <Img src={staticFile(runtimeAssets[environment])} style={{position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.94}}/>
     </InkReveal> : null}
 
     {characters.slice(0, 2).map((ref, index) => {
       const frame = artDirection(beat.visual_role, index);
-      const transform = `${layerTransform(camera, 0.76 - index * 0.08, progress, direction)} translateX(${interpolate(progress, [0, 1], [index === 0 ? -42 : 48, 0])}px) scale(${1 + index * 0.02})`;
-      return <InkReveal key={ref} progress={drawRevealProgress(progress, 0.06 + index * 0.03)} direction={profile.reveal} style={{position: 'absolute', ...frame, transform, transformOrigin: 'center bottom'}}>
-        <Img src={staticFile(runtimeAssets[ref])} style={{position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', objectPosition: frame.objectPosition, opacity: 0.97}}/>
-        {profile.wash !== 'none' ? <WashReveal progress={progress} color={profile.wash} strength={profile.washStrength}/> : null}
-      </InkReveal>;
+      const entranceX = index === 0 ? -58 : 72;
+      const bob = Math.sin(progress * Math.PI * 2 + index) * (beat.visual_role === 'decision' || beat.visual_role === 'request' ? 10 : 5);
+      const baseTransform = `${layerTransform(camera, 0.76 - index * 0.08, progress, direction)} translate(${interpolate(progress, [0, 1], [entranceX, 0])}px, ${bob}px) scale(${1 + index * 0.02})`;
+      return <React.Fragment key={ref}>
+        <InkReveal progress={phaseProgress(progress, 0.04 + index * 0.03, 0.52 + index * 0.03)} direction={profile.reveal} style={{position: 'absolute', ...frame, transform: baseTransform, transformOrigin: 'center bottom'}}>
+          <Img src={staticFile(runtimeAssets[ref])} style={{position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', objectPosition: frame.objectPosition, opacity: 0.82, filter: 'grayscale(1) contrast(1.2)'}}/>
+        </InkReveal>
+        <InkReveal progress={phaseProgress(progress, 0.26 + index * 0.03, 0.78 + index * 0.03)} direction={profile.reveal} style={{position: 'absolute', ...frame, transform: baseTransform, transformOrigin: 'center bottom'}}>
+          <Img src={staticFile(runtimeAssets[ref])} style={{position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', objectPosition: frame.objectPosition, opacity: 0.98}}/>
+          {profile.wash !== 'none' ? <WashReveal progress={colorProgress} color={profile.wash} strength={profile.washStrength}/> : null}
+        </InkReveal>
+      </React.Fragment>;
     })}
 
-    {other.slice(0, 2).map((ref, index) => <InkReveal key={ref} progress={drawRevealProgress(progress, 0.14 + index * 0.04)} direction={index === 0 ? 'center' : 'left'} style={{position: 'absolute', left: index === 0 ? '12%' : '52%', top: index === 0 ? '15%' : '34%', width: index === 0 ? '72%' : '42%', height: index === 0 ? '58%' : '42%', transform: layerTransform(camera, 0.46, progress, direction)}}>
-      <Img src={staticFile(runtimeAssets[ref])} style={{position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', opacity: 0.92}}/>
-    </InkReveal>)}
+    {other.slice(0, 2).map((ref, index) => <React.Fragment key={ref}>
+      <InkReveal progress={phaseProgress(progress, 0.10 + index * 0.04, 0.55)} direction={index === 0 ? 'center' : 'left'} style={{position: 'absolute', left: index === 0 ? '12%' : '52%', top: index === 0 ? '15%' : '34%', width: index === 0 ? '72%' : '42%', height: index === 0 ? '58%' : '42%', transform: layerTransform(camera, 0.46, progress, direction)}}>
+        <Img src={staticFile(runtimeAssets[ref])} style={{position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', opacity: 0.72, filter: 'grayscale(1) contrast(1.18)'}}/>
+      </InkReveal>
+      <InkReveal progress={phaseProgress(progress, 0.34 + index * 0.04, 0.82)} direction={index === 0 ? 'center' : 'left'} style={{position: 'absolute', left: index === 0 ? '12%' : '52%', top: index === 0 ? '15%' : '34%', width: index === 0 ? '72%' : '42%', height: index === 0 ? '58%' : '42%', transform: layerTransform(camera, 0.46, progress, direction)}}>
+        <Img src={staticFile(runtimeAssets[ref])} style={{position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', opacity: 0.92}}/>
+      </InkReveal>
+    </React.Fragment>)}
   </div>;
 }
 
@@ -136,6 +161,58 @@ function BeatFX({beat, progress}: {beat: Beat; progress: number}) {
     {profile.wash !== 'none' ? <WashReveal progress={progress} color={profile.wash} strength={profile.washStrength * 0.7}/> : null}
     <InkTransition progress={progress} direction={profile.reveal}/>
   </>;
+}
+
+function fallbackWordTimings(text: string, start: number, end: number): WordTiming[] {
+  const words = text.split(/\s+/).filter(Boolean);
+  if (!words.length) return [];
+  const weights = words.map((word) => Math.max(1, [...word].length));
+  const total = weights.reduce((sum, value) => sum + value, 0);
+  let cursor = start;
+  return words.map((word, index) => {
+    const duration = (end - start) * (weights[index] / total);
+    const item = {text: word, start_seconds: cursor, end_seconds: Math.min(end, cursor + duration), index};
+    cursor = item.end_seconds;
+    return item;
+  });
+}
+
+function KineticCaption({beat, local}: {beat: Beat; local: number}) {
+  const text = (beat.narration ?? beat.text ?? '').trim();
+  if (!text) return null;
+  const timings = (runtimeTiming[beat.beat_id] as readonly WordTiming[] | undefined)?.length
+    ? [...runtimeTiming[beat.beat_id]]
+    : fallbackWordTimings(text, beat.start, beat.end);
+  const now = interpolate(local, [0, 1], [beat.start, beat.end]);
+  const active = timings.findIndex((word) => now >= word.start_seconds && now < word.end_seconds);
+  const keywordActive = (beat.kinetic_keywords ?? []).some((candidate) => text.includes(candidate));
+
+  return <div style={{position: 'absolute', left: 70, right: 70, bottom: 145, display: 'flex', justifyContent: 'center', pointerEvents: 'none'}}>
+    <div style={{maxWidth: 960, padding: '10px 18px 14px', background: 'rgba(244,232,207,0.68)', borderBottom: `5px solid ${keywordActive ? RED : INK}`, textAlign: 'center'}}>
+      <div style={{display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '0 12px', alignItems: 'baseline'}}>
+        {timings.map((word, index) => {
+          const isActive = index === active;
+          const isPast = index < active;
+          const isFuture = active >= 0 && index > active;
+          const scale = isActive ? 1.16 : isPast ? 1 : 0.92;
+          const y = isActive ? -6 : isFuture ? 5 : 0;
+          return <span key={`${word.index}-${word.text}`} style={{fontSize: isActive ? 48 : 39, lineHeight: 1.14, fontWeight: isActive ? 900 : 760, opacity: isFuture ? 0.22 : isPast ? 0.58 : 1, transform: `translateY(${y}px) scale(${scale})`, display: 'inline-block', transformOrigin: 'center bottom', textShadow: isActive ? `0 3px 0 rgba(244,232,207,0.95)` : 'none'}}>{word.text}</span>;
+        })}
+      </div>
+    </div>
+  </div>;
+}
+
+function RevealText({beat, local}: {beat: Beat; local: number}) {
+  const text = (beat.narration ?? beat.text ?? '').trim();
+  if (!text) return null;
+  const words = text.split(/\s+/).filter(Boolean);
+  const visible = Math.min(words.length, Math.max(1, Math.floor(interpolate(local, [0.08, 0.72], [0, words.length]))));
+  return <div style={{position: 'absolute', left: 80, right: 80, top: 680, textAlign: 'center'}}>
+    <div style={{fontSize: 72, lineHeight: 1.05, fontWeight: 900}}>
+      {words.map((word, index) => <span key={`${index}-${word}`} style={{display: 'inline-block', margin: '0 7px', opacity: index < visible ? 1 : 0, transform: `translateY(${index < visible ? 0 : 18}px) scale(${index < visible ? 1 : 0.9})`}}>{word}</span>)}
+    </div>
+  </div>;
 }
 
 export const MythicShort: React.FC<{manifest: Manifest}> = ({manifest}) => {
@@ -157,9 +234,8 @@ export const MythicShort: React.FC<{manifest: Manifest}> = ({manifest}) => {
   const camera = cameraMotion(beat.camera, local);
   const isVisitor = beat.visual_role.includes('visitor') || beat.visual_role === 'decision' || beat.visual_role === 'request' || beat.visual_role === 'sacrifice';
   const isArmor = beat.visual_role.includes('armor') || beat.visual_role === 'sacrifice';
-  const caption = (beat.narration ?? beat.text ?? '').trim();
   const profile = profileForAnimation(beat.animation, beat.visual_role);
-  const captionOpacity = interpolate(local, [0, 0.10, 0.78, 1], [0, 1, 1, 0]);
+  const captionOpacity = interpolate(local, [0, 0.08, 0.92, 1], [0, 1, 1, 0]);
 
   return <AbsoluteFill style={{backgroundColor: CREAM, fontFamily: 'Noto Sans Devanagari, Noto Sans, sans-serif', color: INK}}>
     {runtimeAudio ? <Audio src={staticFile(runtimeAudio)} volume={1}/> : null}
@@ -183,10 +259,9 @@ export const MythicShort: React.FC<{manifest: Manifest}> = ({manifest}) => {
       <div style={{fontSize: 22, letterSpacing: 2, opacity: 0.48}}>SOURCE • STORY • REVEAL</div>
     </div>
 
-    {caption ? <div style={{position: 'absolute', left: 78, right: 78, bottom: profile.textMode === 'reveal' ? 390 : profile.textMode === 'keyword' ? 220 : 132, opacity: captionOpacity, textAlign: 'center'}}>
-      {profile.textMode === 'reveal' ? <div style={{fontSize: 68, lineHeight: 1.08, fontWeight: 900, letterSpacing: -1, textShadow: '0 5px 0 rgba(244,232,207,0.85)'}}>{caption}</div> : profile.textMode === 'keyword' ? <div style={{display: 'inline-block', padding: '12px 22px 15px', borderBottom: `8px solid ${RED}`, fontSize: 56, lineHeight: 1.08, fontWeight: 900, background: 'rgba(244,232,207,0.72)'}}>{caption}</div> : <div style={{display: 'inline-block', maxWidth: 900, padding: '14px 22px 16px', borderRadius: 12, background: 'rgba(244,232,207,0.78)', boxShadow: '0 6px 22px rgba(23,21,16,0.10)', fontSize: 44, lineHeight: 1.16, fontWeight: 800}}>{caption}</div>}
-      <div style={{marginTop: 14, fontSize: 18, letterSpacing: 4, color: RED, opacity: 0.78}}>{beat.label}</div>
-    </div> : null}
+    {profile.textMode === 'reveal' ? <RevealText beat={beat} local={local}/> : <KineticCaption beat={beat} local={local}/>} 
+
+    <div style={{position: 'absolute', top: 178, left: 70, right: 70, opacity: captionOpacity * 0.72, textAlign: 'center', fontSize: 18, letterSpacing: 4, color: RED}}>{beat.label}</div>
 
     <div style={{position: 'absolute', left: 70, bottom: 48, fontSize: 18, opacity: 0.38}}>
       hand-illustrated • ink • wash • motion
