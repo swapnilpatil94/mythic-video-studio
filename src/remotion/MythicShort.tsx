@@ -2,6 +2,7 @@ import React, {useMemo} from 'react';
 import {AbsoluteFill, Audio, Img, interpolate, staticFile, useCurrentFrame, useVideoConfig} from 'remotion';
 import {runtimeAssets} from './runtime-assets';
 import {runtimeAudio} from './runtime-audio';
+import {cameraMotion, drawRevealProgress, layerTransform} from './motion';
 
 const INK = '#171510';
 const CREAM = '#F4E8CF';
@@ -78,14 +79,30 @@ function GeneratedArtwork({beat, progress}: {beat: Beat; progress: number}) {
   const environment = refs.find((ref) => /environment|background|battlefield|location/i.test(ref));
   const characters = refs.filter((ref) => /character|\.master/i.test(ref) || ref.includes('karna') || ref.includes('indra'));
   const other = refs.filter((ref) => ref !== environment && !characters.includes(ref));
-  const entrance = interpolate(progress, [0, 0.25, 1], [0, 1, 1]);
-  const drift = beat.camera?.includes('push') ? interpolate(progress, [0, 1], [1.08, 1]) : interpolate(progress, [0, 1], [1.02, 1.04]);
-  return <div style={{position: 'absolute', inset: 0, opacity: entrance, pointerEvents: 'none'}}>
-    {environment ? <Img src={staticFile(runtimeAssets[environment])} style={{position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', transform: `scale(${drift})`, transformOrigin: '50% 50%', opacity: 0.88}}/> : null}
+  const entrance = interpolate(progress, [0, 0.18, 1], [0, 1, 1]);
+  const camera = cameraMotion(beat.camera, progress);
+  const characterDepth = 0.78;
+  const environmentDepth = 0.18;
+  const propDepth = 0.48;
+  const characterDirection = beat.camera === 'pan' ? {x: 110, y: 26} : {x: 72, y: 42};
+  const environmentTransform = layerTransform(camera, environmentDepth, progress, characterDirection);
+  return <div style={{position: 'absolute', inset: 0, opacity: entrance, pointerEvents: 'none', overflow: 'hidden'}}>
+    {environment ? <Img src={staticFile(runtimeAssets[environment])} style={{position: 'absolute', inset: '-5%', width: '110%', height: '110%', objectFit: 'cover', transform: environmentTransform, transformOrigin: '50% 50%', opacity: 0.88}}/> : null}
     {characters.slice(0, 2).map((ref, index) => (
-      <Img key={ref} src={staticFile(runtimeAssets[ref])} style={{position: 'absolute', left: index === 0 ? '2%' : '48%', bottom: '5%', width: index === 0 ? '56%' : '50%', height: '78%', objectFit: 'contain', objectPosition: 'center bottom', transform: `translateX(${interpolate(progress, [0, 1], [index === 0 ? -35 : 35, 0])}px) scale(${1 + index * 0.02})`, opacity: 0.96}}/>
+      <Img key={ref} src={staticFile(runtimeAssets[ref])} style={{
+        position: 'absolute',
+        left: index === 0 ? '2%' : '48%',
+        bottom: '5%',
+        width: index === 0 ? '56%' : '50%',
+        height: '78%',
+        objectFit: 'contain',
+        objectPosition: 'center bottom',
+        transform: `${layerTransform(camera, characterDepth, progress, characterDirection)} translateX(${interpolate(progress, [0, 1], [index === 0 ? -35 : 35, 0])}px) scale(${1 + index * 0.02})`,
+        transformOrigin: 'center bottom',
+        opacity: 0.96,
+      }}/>
     ))}
-    {other.slice(0, 1).map((ref) => <Img key={ref} src={staticFile(runtimeAssets[ref])} style={{position: 'absolute', left: '20%', top: '18%', width: '60%', height: '55%', objectFit: 'contain', opacity: 0.9}}/>)}
+    {other.slice(0, 1).map((ref) => <Img key={ref} src={staticFile(runtimeAssets[ref])} style={{position: 'absolute', left: '20%', top: '18%', width: '60%', height: '55%', objectFit: 'contain', transform: layerTransform(camera, propDepth, progress, characterDirection), opacity: 0.9}}/>)}
   </div>;
 }
 
@@ -104,9 +121,8 @@ export const MythicShort: React.FC<{manifest: Manifest}> = ({manifest}) => {
 
   const beat = beats.find((b) => t >= b.start && t < b.end) ?? beats[beats.length - 1];
   const local = Math.max(0, Math.min(1, (t - beat.start) / Math.max(0.1, beat.end - beat.start)));
-  const draw = interpolate(local, [0, 0.35, 1], [0, 0.65, 1]);
-  const camera = interpolate(local, [0, 1], [1.08, 1]);
-  const titleOpacity = interpolate(local, [0, 0.18, 0.8, 1], [0, 1, 1, 0]);
+  const draw = drawRevealProgress(local);
+  const camera = cameraMotion(beat.camera, local);
   const isVisitor = beat.visual_role.includes('visitor') || beat.visual_role === 'decision' || beat.visual_role === 'request' || beat.visual_role === 'sacrifice';
   const isArmor = beat.visual_role.includes('armor') || beat.visual_role === 'sacrifice';
   const isThreat = beat.visual_role === 'threat' || beat.visual_role === 'stakes';
@@ -114,15 +130,17 @@ export const MythicShort: React.FC<{manifest: Manifest}> = ({manifest}) => {
   return <AbsoluteFill style={{backgroundColor: CREAM, fontFamily: 'Noto Sans Devanagari, Noto Sans, sans-serif', color: INK}}>
     {runtimeAudio ? <Audio src={staticFile(runtimeAudio)} volume={1}/> : null}
     <GeneratedArtwork beat={beat} progress={local}/>
-    <AbsoluteFill style={{transform: `scale(${camera})`, transformOrigin: '50% 50%'}}>
+    <AbsoluteFill style={{transform: `translate(${camera.translateX * 0.18}px, ${camera.translateY * 0.18}px) scale(${camera.scale * 0.985})`, transformOrigin: '50% 50%'}}>
       <svg width="100%" height="100%" viewBox="0 0 1080 1920">
         <rect width="1080" height="1920" fill={CREAM} opacity={runtimeAssets[beat.asset_refs[0]] ? 0.18 : 1}/>
         <path d="M70 90 Q540 40 1010 90 M70 1830 Q540 1880 1010 1830" fill="none" stroke={INK} strokeWidth="4" opacity="0.25"/>
         <SketchSun opacity={beat.visual_role === 'hook' || isArmor ? 1 : 0.25}/>
-        <KarnaFigure progress={isVisitor ? 1 : draw}/>
-        {isVisitor ? <Visitor progress={draw}/> : null}
+        <g style={{transform: `translate(${camera.translateX * 0.72}px, ${camera.translateY * 0.72}px)`, transformOrigin: '540px 1120px'}}>
+          <KarnaFigure progress={isVisitor ? 1 : draw}/>
+          {isVisitor ? <Visitor progress={draw}/> : null}
+        </g>
         {isThreat ? <path d="M70 1450 Q250 1320 430 1460 T800 1420 T1010 1470" fill="none" stroke={RED} strokeWidth="18" opacity={draw}/> : null}
-        {isArmor ? <g opacity={draw}><path d="M350 980 Q540 820 730 980" fill="none" stroke={GOLD} strokeWidth="26"/><circle cx="540" cy="980" r="22" fill={GOLD}/></g> : null}
+        {isArmor ? <g opacity={draw}><path d="M350 980 Q540 820 730 980" fill="none" stroke={GOLD} strokeWidth="26" strokeDasharray="1200" strokeDashoffset={1200 * (1 - draw)}/><circle cx="540" cy="980" r="22" fill={GOLD}/></g> : null}
       </svg>
     </AbsoluteFill>
 
@@ -131,7 +149,7 @@ export const MythicShort: React.FC<{manifest: Manifest}> = ({manifest}) => {
       <div style={{fontSize: 22, letterSpacing: 2, opacity: 0.55}}>SOURCE • STORY • REVEAL</div>
     </div>
 
-    <div style={{position: 'absolute', left: 70, right: 70, bottom: 120, opacity: titleOpacity, textShadow: '0 2px 12px rgba(244,232,207,0.9)'}}>
+    <div style={{position: 'absolute', left: 70, right: 70, bottom: 120, opacity: interpolate(local, [0, 0.18, 0.8, 1], [0, 1, 1, 0]), textShadow: '0 2px 12px rgba(244,232,207,0.9)'}}>
       <div style={{fontSize: 60, lineHeight: 1.1, fontWeight: 800, maxWidth: 900}}>{beat.text}</div>
       <div style={{marginTop: 24, fontSize: 24, letterSpacing: 4, color: RED}}>{beat.label}</div>
     </div>
