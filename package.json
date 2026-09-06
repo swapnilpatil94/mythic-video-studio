@@ -1,6 +1,6 @@
 {
   "name": "mythic-video-studio",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -10,6 +10,7 @@
     "generate:assets": "tsx src/generate-assets.ts",
     "inspect:assets": "tsx src/inspect-assets.ts",
     "normalize:assets": "tsx src/normalize-assets.ts",
+    "check:asset-requirements": "tsx src/check-asset-requirements.ts",
     "stage:assets": "tsx src/stage-assets.ts",
     "generate:voice": "tsx src/generate-voice.ts",
     "inspect:audio": "tsx src/inspect-audio.ts",
