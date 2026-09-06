@@ -41,6 +41,73 @@ function clipFor(direction: RevealDirection, progress: number): string {
   return `inset(${100 - p}% 0 0 0)`;
 }
 
+type DrawPath = {d: string; length: number; delay: number; width: number; opacity: number};
+
+const DRAW_PATHS: DrawPath[] = [
+  {d: 'M70 330 Q250 390 180 560 T340 820 T220 1110 T420 1450 T300 1770', length: 1550, delay: 0.00, width: 9, opacity: 0.42},
+  {d: 'M1010 300 Q820 460 930 650 T760 930 T900 1220 T650 1510 T790 1770', length: 1660, delay: 0.12, width: 7, opacity: 0.32},
+  {d: 'M180 620 Q410 500 540 700 T880 660', length: 820, delay: 0.24, width: 6, opacity: 0.26},
+];
+
+function handPosition(direction: RevealDirection, progress: number) {
+  const p = smooth(progress);
+  if (direction === 'left') return {x: 1080 * (1 - p) + 42, y: 980 - p * 470, angle: -18};
+  if (direction === 'right') return {x: 1080 * p - 42, y: 940 + p * 470, angle: 18};
+  if (direction === 'down') return {x: 570 + Math.sin(p * Math.PI) * 170, y: 70 + p * 1760, angle: 6};
+  if (direction === 'center') return {x: 540 + Math.cos(p * Math.PI * 2) * 250, y: 960 + Math.sin(p * Math.PI * 2) * 480, angle: p * 180};
+  return {x: 500 + p * 120, y: 1870 - p * 1760, angle: -8};
+}
+
+function ArtistHand({direction, progress}: {direction: RevealDirection; progress: number}) {
+  const p = clamp01(progress);
+  if (p <= 0.02 || p >= 0.98) return null;
+  const {x, y, angle} = handPosition(direction, p);
+  return (
+    <g transform={`translate(${x} ${y}) rotate(${angle})`} opacity={0.92}>
+      <path d="M-12 34 Q-5 4 14-4 L82-72 Q94-84 104-72 Q110-62 98-48 L44 12 L112-36 Q126-44 133-31 Q138-18 124-8 L56 48 L112 14 Q126 8 132 22 Q136 34 122 42 L52 76 Q28 86 8 70Z" fill="#E7C9A4" stroke="#171510" strokeWidth="7" strokeLinejoin="round"/>
+      <path d="M82-72 L104-94" stroke="#171510" strokeWidth="6" strokeLinecap="round"/>
+      <circle cx="106" cy="-96" r="7" fill="#171510"/>
+    </g>
+  );
+}
+
+/**
+ * Whiteboard draw-on primitive.
+ *
+ * Research basis: HandDraw-Skill uses explicit draw timelines for path-oriented
+ * SVG assets; SVG stroke-dasharray/dashoffset provides deterministic path
+ * progression. We keep this renderer-native and dependency-free so raster FLUX
+ * masters can still use the same draw language through masks/reveal layers.
+ */
+function DrawSweep({direction, progress}: {direction: RevealDirection; progress: number}) {
+  const p = clamp01(progress);
+  const hand = handPosition(direction, p);
+  return (
+    <svg viewBox="0 0 1080 1920" width="100%" height="100%" style={{position: 'absolute', inset: 0, pointerEvents: 'none'}}>
+      {DRAW_PATHS.map((path, index) => {
+        const local = clamp01((p - path.delay) / (1 - path.delay));
+        const eased = smooth(local);
+        return (
+          <path
+            key={index}
+            d={path.d}
+            fill="none"
+            stroke="#171510"
+            strokeWidth={path.width}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeDasharray={path.length}
+            strokeDashoffset={path.length * (1 - eased)}
+            opacity={path.opacity}
+          />
+        );
+      })}
+      <ArtistHand direction={direction} progress={p} />
+      <circle cx={hand.x} cy={hand.y} r="5" fill="#171510" opacity={0.7}/>
+    </svg>
+  );
+}
+
 export function InkReveal({
   progress,
   direction,
@@ -53,24 +120,11 @@ export function InkReveal({
   style?: React.CSSProperties;
 }) {
   const p = smooth(progress);
-  const dash = 1250;
-  const dashOffset = dash * (1 - p);
   const translate = interpolate(p, [0, 1], [direction === 'left' ? -24 : direction === 'right' ? 24 : 0, 0]);
   return (
     <div style={{...style, clipPath: clipFor(direction, p), transform: `${style?.transform ?? ''} translateX(${translate}px)`, overflow: 'hidden'}}>
       {children}
-      <svg viewBox="0 0 1080 1920" width="100%" height="100%" style={{position: 'absolute', inset: 0, pointerEvents: 'none'}}>
-        <path
-          d={direction === 'right' ? 'M980 260 Q760 430 900 650 T720 980 T850 1320 T600 1680' : 'M120 260 Q320 420 180 700 T360 1080 T210 1420 T470 1710'}
-          fill="none"
-          stroke="#171510"
-          strokeWidth="10"
-          strokeLinecap="round"
-          strokeDasharray={dash}
-          strokeDashoffset={dashOffset}
-          opacity={0.32}
-        />
-      </svg>
+      <DrawSweep direction={direction} progress={p} />
     </div>
   );
 }
