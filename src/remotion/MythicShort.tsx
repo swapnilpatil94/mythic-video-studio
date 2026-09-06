@@ -20,6 +20,7 @@ type Manifest = {
     camera?: string;
     animation?: string;
     text?: string;
+    narration?: string;
   }>;
 };
 
@@ -126,6 +127,7 @@ export const MythicShort: React.FC<{manifest: Manifest}> = ({manifest}) => {
   const isVisitor = beat.visual_role.includes('visitor') || beat.visual_role === 'decision' || beat.visual_role === 'request' || beat.visual_role === 'sacrifice';
   const isArmor = beat.visual_role.includes('armor') || beat.visual_role === 'sacrifice';
   const isThreat = beat.visual_role === 'threat' || beat.visual_role === 'stakes';
+  const caption = (beat.narration ?? beat.text ?? '').trim();
 
   return <AbsoluteFill style={{backgroundColor: CREAM, fontFamily: 'Noto Sans Devanagari, Noto Sans, sans-serif', color: INK}}>
     {runtimeAudio ? <Audio src={staticFile(runtimeAudio)} volume={1}/> : null}
@@ -149,10 +151,12 @@ export const MythicShort: React.FC<{manifest: Manifest}> = ({manifest}) => {
       <div style={{fontSize: 22, letterSpacing: 2, opacity: 0.55}}>SOURCE • STORY • REVEAL</div>
     </div>
 
-    <div style={{position: 'absolute', left: 70, right: 70, bottom: 120, opacity: interpolate(local, [0, 0.18, 0.8, 1], [0, 1, 1, 0]), textShadow: '0 2px 12px rgba(244,232,207,0.9)'}}>
-      <div style={{fontSize: 60, lineHeight: 1.1, fontWeight: 800, maxWidth: 900}}>{beat.text}</div>
-      <div style={{marginTop: 24, fontSize: 24, letterSpacing: 4, color: RED}}>{beat.label}</div>
-    </div>
+    {caption ? <div style={{position: 'absolute', left: 70, right: 70, bottom: 150, opacity: interpolate(local, [0, 0.12, 0.82, 1], [0, 1, 1, 0]), textAlign: 'center'}}>
+      <div style={{display: 'inline-block', maxWidth: 900, padding: '18px 28px 20px', borderRadius: 18, background: 'rgba(244,232,207,0.90)', boxShadow: '0 8px 28px rgba(23,21,16,0.16)', fontSize: 52, lineHeight: 1.18, fontWeight: 800, textShadow: '0 1px 1px rgba(244,232,207,0.7)'}}>
+        {caption}
+      </div>
+      <div style={{marginTop: 18, fontSize: 22, letterSpacing: 4, color: RED}}>{beat.label}</div>
+    </div> : null}
 
     <div style={{position: 'absolute', left: 70, bottom: 55, fontSize: 18, opacity: 0.45}}>
       hand-illustrated • procedural motion
