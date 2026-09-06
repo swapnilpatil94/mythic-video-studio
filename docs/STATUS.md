@@ -8,21 +8,21 @@ Updated: 2026-09-06
 
 **North star:** one command produces a publishable Hindi mythology video.
 
-**Current engineering focus:** the production path now has runtime preflight, a deterministic pipeline-contract audit, source-aligned captions, and a post-render release-evidence audit. The remaining decisive work is real FLUX/ComfyUI + Chatterbox/deep-Hindi execution and review of the resulting MP4.
+**Current engineering focus:** bridge the repository to the user's real local model stack without guessing providers. The pipeline now records a local-runtime discovery report before production, while keeping provider selection explicit and mythology-respect/master-asset architecture unchanged.
 
-## Latest milestone — release evidence
+## Latest milestone — local runtime discovery
 
 Implemented and source-verified:
 
-- `src/check-release.ts` verifies the final MP4 and required post-render evidence artifacts in strict mode.
-- The release audit fingerprints the manifest and final MP4 with SHA-256.
-- It records final video/audio stream metadata through `ffprobe`.
-- It verifies the applicable preflight, audio, output-QA, visual-QA and contact-sheet artifacts.
-- It persists `projects/<project_id>/logs/release-evidence-report.json`.
-- `REQUIRE_RELEASE_EVIDENCE=1` is wired into `src/produce.ts` after render and QA.
-- `src/check-pipeline.ts` now verifies the release-audit source, npm script, production wiring and strict gate.
+- `src/discover-local.ts` inspects PATH commands and common local project directories.
+- It records configured image/TTS/Whisper environment variables without silently selecting a provider.
+- It discovers `ffmpeg`, `ffprobe`, Python, and possible ComfyUI/Draw Things/Whisper CLI candidates when present on PATH.
+- It checks common directories such as `~/ComfyUI`, `~/Draw Things`, `~/Projects`, `~/Developer` and records them only as candidates, never as proof of a working provider.
+- It persists `projects/<project_id>/logs/local-runtime-discovery.json`.
+- `npm run discover:local -- <manifest>` exposes the report directly.
+- `src/produce.ts` now runs discovery before strict preflight, so the one-command path captures machine evidence before model execution.
 
-This is an evidence boundary, not an artistic-quality certification. Human mythology-respect, visual, audio and caption review remain required.
+This is a discovery/evidence boundary, not an automatic model/workflow selector. A real ComfyUI workflow, Draw Things invocation, Whisper model, or Chatterbox setup is not claimed to work until actually executed.
 
 ## Implemented — structurally verified
 
@@ -55,11 +55,13 @@ This is an evidence boundary, not an artistic-quality certification. Human mytho
 - Local runtime preflight and persisted preflight report
 - Deterministic pipeline-contract audit
 - Release-evidence audit and strict release gate
+- Local runtime discovery report and production integration
 
 ## In progress
 
-- Runtime verification against the user's actual FLUX/ComfyUI installation
+- Runtime verification against the user's actual FLUX/ComfyUI or Draw Things installation
 - Runtime verification against the user's actual Chatterbox/deep-Hindi voice setup
+- Runtime verification against Whisper, if used for word/segment timing
 - Real generated master-asset quality/consistency review
 - Real narration alignment and mix-level review
 - Visual review/tuning of 2.5D camera language
@@ -71,17 +73,17 @@ This is an evidence boundary, not an artistic-quality certification. Human mytho
 
 ## Blockers
 
-No repository-level blocker prevents further coding. The decisive blocker is machine-specific execution: the exact local FLUX/ComfyUI invocation and Chatterbox/deep-Hindi invocation are not executable from this environment. Structural audits can verify wiring and evidence contracts, but cannot prove model output quality. Output/visual/release evidence becomes meaningful only after a real MP4 exists. The black-frame QA threshold is intentionally conservative and must be reviewed against legitimate dark mythic footage.
+No repository-level blocker prevents further coding. The decisive blocker is machine-specific execution: GitHub cannot inspect the user's Mac filesystem. The new discovery stage will collect that evidence when run locally, but it intentionally does not guess which ComfyUI/Draw Things workflow or Chatterbox/Whisper invocation is correct. Structural audits can verify wiring; only a real local run can prove model output and quality.
 
 ## Exact reproducible commands
 
 ```bash
 npm install
+npm run discover:local -- examples/karna-short.json
 npm run check:pipeline -- examples/karna-short.json
 npm run preflight -- examples/karna-short.json
 npm run validate -- examples/karna-short.json
 npm run check:motion
-npm run check:release -- examples/karna-short.json renders/karna-short.mp4
 ```
 
 Full strict first real-model run:
@@ -90,7 +92,7 @@ Full strict first real-model run:
 REQUIRE_CHARACTER_REFERENCES=1 REQUIRE_GENERATED_ASSETS=1 REQUIRE_ASSET_REQUIREMENTS=1 REQUIRE_TTS=1 REQUIRE_TTS_ALIGNMENT=1 REQUIRE_AUDIO_MIX=1 REQUIRE_OUTPUT_QA=1 REQUIRE_RELEASE_EVIDENCE=1 NORMALIZE_ASSETS=1 IMAGE_GENERATION_MAX_ATTEMPTS=2 bash run.sh examples/karna-short.json
 ```
 
-Manual post-render sequence if needed:
+Post-render evidence check:
 
 ```bash
 npm run generate:visual-qa -- examples/karna-short.json renders/karna-short.mp4
