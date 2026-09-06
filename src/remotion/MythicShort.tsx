@@ -15,16 +15,16 @@ type Manifest = {
   title: string;
   duration_seconds: number;
   tempo_profile?: 'short' | 'medium' | 'longform';
-  beats: Array<{
+  beats: ReadonlyArray<{
     beat_id: string;
     duration_seconds: number;
     visual_role: string;
-    asset_refs: string[];
+    asset_refs: ReadonlyArray<string>;
     camera?: string;
     animation?: string;
     text?: string;
     narration?: string;
-    kinetic_keywords?: string[];
+    kinetic_keywords?: ReadonlyArray<string>;
   }>;
 };
 
@@ -259,7 +259,7 @@ export const MythicShort: React.FC<{manifest: Manifest}> = ({manifest}) => {
       <div style={{fontSize: 22, letterSpacing: 2, opacity: 0.48}}>SOURCE • STORY • REVEAL</div>
     </div>
 
-    {profile.textMode === 'reveal' ? <RevealText beat={beat} local={local}/> : <KineticCaption beat={beat} local={local}/>} 
+    {profile.textMode === 'reveal' ? <RevealText beat={beat} local={local}/> : <KineticCaption beat={beat} local={local}/>}
 
     <div style={{position: 'absolute', top: 178, left: 70, right: 70, opacity: captionOpacity * 0.72, textAlign: 'center', fontSize: 18, letterSpacing: 4, color: RED}}>{beat.label}</div>
 
