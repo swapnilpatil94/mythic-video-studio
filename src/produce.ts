@@ -15,6 +15,9 @@ const run = (cmd: string, args: string[]) => new Promise<void>((resolve, reject)
 
 if (!existsSync(input)) throw new Error(`Manifest not found: ${input}`);
 
+const strictRuntime = process.env.REQUIRE_GENERATED_ASSETS === '1' || process.env.REQUIRE_TTS === '1';
+if (strictRuntime) await run('npx', ['tsx', 'src/preflight.ts', input]);
+
 await run('npx', ['tsx', 'src/cli.ts', 'validate', input]);
 await run('npx', ['tsx', 'src/pipeline/prepare-project.ts', input]);
 await run('npx', ['tsx', 'src/generate-assets.ts', input]);
