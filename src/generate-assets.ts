@@ -6,6 +6,7 @@ import {loadRegistry, registerAsset} from './pipeline/asset-registry';
 import type {ProductionManifest} from './pipeline/types';
 import {runCommand} from './adapters/command';
 import {sha256File} from './pipeline/file-hash';
+import {resolveReferenceImage} from './pipeline/asset-references';
 
 const input = process.argv[2] ?? 'examples/karna-short.json';
 const manifest = JSON.parse(await readFile(input, 'utf8')) as ProductionManifest;
@@ -18,31 +19,48 @@ const command = (process.env.IMAGE_GENERATOR_COMMAND ?? process.env.FLUX_COMMAND
 const argsTemplate = (process.env.IMAGE_GENERATOR_ARGS ?? process.env.FLUX_ARGS ?? '').trim();
 const strict = process.env.REQUIRE_GENERATED_ASSETS === '1';
 const maxAttempts = Math.max(1, Number(process.env.IMAGE_GENERATION_MAX_ATTEMPTS ?? 2));
+const projectRoot = paths.root;
 
 function outputFor(request: AssetRequest): string {
   const bucket = request.kind === 'character' ? 'characters' : request.kind === 'environment' ? 'environments' : request.kind === 'prop' ? 'props' : 'assets';
   return `${paths.root}/assets/${bucket}/${request.id.replaceAll('.', '_')}.png`;
 }
 
-function commandArgs(template: string, jobPath: string, outputPath: string): string[] {
+function commandArgs(template: string, jobPath: string, outputPath: string, referencePath?: string): string[] {
   return template.split(/\s+/).filter(Boolean).map((token) => token
     .replaceAll('{job}', jobPath)
-    .replaceAll('{output}', outputPath));
+    .replaceAll('{output}', outputPath)
+    .replaceAll('{reference}', referencePath ?? ''))
+    .filter((token) => token !== '');
 }
 
 let ready = 0;
 let generated = 0;
 let skipped = 0;
 let failed = 0;
+let referenceCount = 0;
 
 for (const request of plan) {
   const outputPath = registry.assets[request.id]?.path ?? outputFor(request);
   const existing = registry.assets[request.id];
+  const referencePath = resolveReferenceImage(request.id, projectRoot);
+
+  if (request.reference_required && !referencePath) {
+    const message = `Required character reference not found for ${request.id}. Place ${request.id}.{png,jpg,jpeg,webp} in ${projectRoot}/references or set ASSET_REFERENCE_DIR.`;
+    failed += 1;
+    await registerAsset(paths, registry, {
+      ...(existing ?? {}), id: request.id, kind: request.kind, path: outputPath,
+      prompt: request.promptHint, source: 'generated', status: 'failed',
+      attempts: existing?.attempts ?? 0, last_error: message,
+    });
+    console.error(`[image] FAILED ${request.id}: ${message}`);
+    if (strict) throw new Error(message);
+    continue;
+  }
+  if (referencePath) referenceCount += 1;
 
   if (existing?.status === 'ready' && existsSync(existing.path)) {
-    if (!existing.sha256) {
-      await registerAsset(paths, registry, {...existing, sha256: await sha256File(existing.path)});
-    }
+    if (!existing.sha256) await registerAsset(paths, registry, {...existing, sha256: await sha256File(existing.path)});
     ready += 1;
     continue;
   }
@@ -61,8 +79,8 @@ for (const request of plan) {
     skipped += 1;
     await registerAsset(paths, registry, {
       ...(existing ?? {}), id: request.id, kind: request.kind, path: outputPath,
-      prompt: request.promptHint, source: 'generated', status: 'missing',
-      attempts: existing?.attempts ?? 0,
+      prompt: request.promptHint, source: 'generated', status: 'missing', attempts: existing?.attempts ?? 0,
+      last_error: 'No image generator command configured',
     });
     continue;
   }
@@ -75,6 +93,8 @@ for (const request of plan) {
     role: request.role,
     prompt: request.promptHint,
     output_path: outputPath,
+    reference_path: referencePath ?? null,
+    reference_required: request.reference_required,
   };
   await writeFile(jobPath, `${JSON.stringify(job, null, 2)}\n`, 'utf8');
 
@@ -85,7 +105,7 @@ for (const request of plan) {
 
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     console.log(`[image] generating ${request.id} (attempt ${attempt}/${maxAttempts})`);
-    const result = await runCommand(command, [...commandArgs(argsTemplate, jobPath, outputPath), JSON.stringify(job)]);
+    const result = await runCommand(command, [...commandArgs(argsTemplate, jobPath, outputPath, referencePath), JSON.stringify(job)]);
     const exists = existsSync(outputPath);
     if (result.code === 0 && exists) {
       success = true;
@@ -116,6 +136,6 @@ for (const request of plan) {
   }
 }
 
-console.log(`Image stage: ready=${ready}, generated=${generated}, skipped=${skipped}, failed=${failed}`);
+console.log(`Image stage: ready=${ready}, generated=${generated}, skipped=${skipped}, failed=${failed}, references=${referenceCount}`);
 if (strict && skipped > 0) throw new Error(`Image generator is not configured; ${skipped} assets are still missing.`);
 if (strict && failed > 0) throw new Error(`${failed} image generation job(s) failed.`);
