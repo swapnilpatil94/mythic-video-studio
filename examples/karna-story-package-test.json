@@ -1,0 +1,123 @@
+{
+  "project": {
+    "project_id": "karna-kavacha-package-test",
+    "project_name": "कर्ण ने अपनी सबसे बड़ी ताकत खुद क्यों दे दी?",
+    "format": "SHORT",
+    "language": "hi-IN",
+    "target_duration_seconds": 75
+  },
+  "story": {
+    "title": "कर्ण ने अपनी सबसे बड़ी ताकत खुद क्यों दे दी?",
+    "hook": "कर्ण की सबसे बड़ी ताकत, वही कवच, जो उसने खुद अपने हाथों से त्याग दिया।",
+    "premise": "सूर्यदेव से जन्म के समय मिला दिव्य कवच और कुंडल कर्ण को हर युद्ध में अजेय बनाते थे — जब तक कि कुरुक्षेत्र युद्ध से ठीक पहले एक याचक उन्हें माँगने नहीं आया।",
+    "conflict": "याचक बने इंद्र स्वयं कर्ण से उसकी जन्मजात सुरक्षा माँगते हैं, यह जानते हुए कि इसे देने से कर्ण युद्ध में अत्यधिक असुरक्षित हो जाएगा।",
+    "reveal": "कर्ण भली-भाँति पहचान लेता है कि यह याचक कौन है, फिर भी दान देने से मना नहीं करता।",
+    "climax": "कर्ण बिना झिझक अपना कवच और कुंडल स्वयं उतारकर याचक को सौंप देता है।",
+    "payoff": "अपनी सबसे बड़ी सुरक्षा खोकर भी कर्ण ने अपना धर्म और अपना दिया हुआ वचन कभी नहीं खोया।",
+    "emotional_core": "सच्चा दान वही है जो सबसे बड़ी कीमत पर भी बिना शर्त दिया जाए।",
+    "story_arc": "तनाव (जन्मजात सुरक्षा पर मंडराता खतरा) → रहस्योद्घाटन (याचक की असली पहचान) → भावनात्मक चरम (बिना झिझक त्याग) → अर्थपूर्ण परिणाम (धर्म की परिभाषा)।",
+    "facts": [
+      "महाभारत के अनुसार कर्ण को जन्म से ही सूर्यदेव से कवच और कुंडल प्राप्त थे।",
+      "कुरुक्षेत्र युद्ध से पहले इंद्र ब्राह्मण का वेश धरकर कर्ण से उसका कवच और कुंडल माँगने आए थे।",
+      "कर्ण ने अपना कवच और कुंडल स्वयं उतारकर दान में दे दिए, यह जानते हुए भी कि याचक वास्तव में कौन था।"
+    ],
+    "interpretations": [
+      "कर्ण के आंतरिक द्वंद्व और उसकी सोच का विस्तृत वर्णन (उसके ठीक-ठीक शब्द व विचार) कथा-परंपरा और नाट्य रूपांतरणों में जोड़ा गया है, मूल श्लोकों में शब्दशः नहीं मिलता।",
+      "\"सूर्यदेव ने कर्ण को इंद्र के आगमन की पूर्व चेतावनी दी थी\" — यह प्रसंग कुछ परंपराओं में मिलता है, इसे सार्वभौमिक स्थापित तथ्य के रूप में प्रस्तुत नहीं किया गया है।"
+    ]
+  },
+  "script": {
+    "full_narration": "कर्ण की सबसे बड़ी ताकत, वही कवच, जो उसने खुद अपने हाथों से त्याग दिया। जन्म से मिला यह दिव्य कवच और कुंडल कर्ण के शरीर से जुड़े थे, और हर शत्रु के वार से उसे सुरक्षित रखते, उसे अजेय बनाते थे। यह कवच और कुंडल उसे सूर्यदेव से जन्म के समय ही मिले थे, इसलिए इन्हें खोना उसके जीवन को सीधे जोखिम में डाल सकता था। कुरुक्षेत्र का महायुद्ध निकट आ चुका था, और कर्ण अपने जन्मजात कवच के भरोसे निश्चिंत खड़ा था। तभी एक दिन एक ब्राह्मण के वेश में एक याचक कर्ण के द्वार पर भिक्षा माँगने आ पहुँचा। उस याचक ने कर्ण से और कुछ नहीं, बल्कि वही दिव्य कवच और कुंडल माँग लिए, जो उसकी रक्षा करते थे। कर्ण भली-भाँति जानता था कि यह याचक असल में कौन है, फिर भी उसने उसे मना करना उचित नहीं समझा। बिना कोई झिझक दिखाए, कर्ण ने अपना कवच और कुंडल स्वयं उतारकर उस याचक को सौंप दिए। क्योंकि कर्ण के लिए दान का अर्थ केवल कोई वस्तु देना नहीं था, बल्कि अपने दिए हुए वचन को हर हाल में निभाना था। अपनी सबसे बड़ी सुरक्षा खोकर भी, कर्ण ने अपना धर्म और अपना वचन कभी नहीं खोया।",
+    "target_wpm": 155,
+    "beats": [
+      {"id": "B01", "narration": "कर्ण की सबसे बड़ी ताकत, वही कवच, जो उसने खुद अपने हाथों से त्याग दिया।", "emotion": "curious, foreboding", "pace": "measured", "duration_seconds": 6},
+      {"id": "B02", "narration": "जन्म से मिला यह दिव्य कवच और कुंडल कर्ण के शरीर से जुड़े थे, और हर शत्रु के वार से उसे सुरक्षित रखते, उसे अजेय बनाते थे।", "emotion": "reverent, awed", "pace": "measured", "duration_seconds": 9},
+      {"id": "B03", "narration": "यह कवच और कुंडल उसे सूर्यदेव से जन्म के समय ही मिले थे, इसलिए इन्हें खोना उसके जीवन को सीधे जोखिम में डाल सकता था।", "emotion": "solemn", "pace": "slow", "duration_seconds": 9},
+      {"id": "B04", "narration": "कुरुक्षेत्र का महायुद्ध निकट आ चुका था, और कर्ण अपने जन्मजात कवच के भरोसे निश्चिंत खड़ा था।", "emotion": "tense", "pace": "quick", "duration_seconds": 7},
+      {"id": "B05", "narration": "तभी एक दिन एक ब्राह्मण के वेश में एक याचक कर्ण के द्वार पर भिक्षा माँगने आ पहुँचा।", "emotion": "mysterious", "pace": "measured", "duration_seconds": 7},
+      {"id": "B06", "narration": "उस याचक ने कर्ण से और कुछ नहीं, बल्कि वही दिव्य कवच और कुंडल माँग लिए, जो उसकी रक्षा करते थे।", "emotion": "shocked", "pace": "measured", "duration_seconds": 7},
+      {"id": "B07", "narration": "कर्ण भली-भाँति जानता था कि यह याचक असल में कौन है, फिर भी उसने उसे मना करना उचित नहीं समझा।", "emotion": "contemplative", "pace": "slow", "duration_seconds": 8},
+      {"id": "B08", "narration": "बिना कोई झिझक दिखाए, कर्ण ने अपना कवच और कुंडल स्वयं उतारकर उस याचक को सौंप दिए।", "emotion": "resolute, sacrificial", "pace": "slow", "duration_seconds": 6},
+      {"id": "B09", "narration": "क्योंकि कर्ण के लिए दान का अर्थ केवल कोई वस्तु देना नहीं था, बल्कि अपने दिए हुए वचन को हर हाल में निभाना था।", "emotion": "reverent", "pace": "measured", "duration_seconds": 8},
+      {"id": "B10", "narration": "अपनी सबसे बड़ी सुरक्षा खोकर भी, कर्ण ने अपना धर्म और अपना वचन कभी नहीं खोया।", "emotion": "triumphant, peaceful", "pace": "slow", "duration_seconds": 8}
+    ]
+  },
+  "characters": [
+    {
+      "id": "karna",
+      "name": "कर्ण",
+      "role": "protagonist",
+      "importance": "primary",
+      "visual_direction": "Dignified Suryaputra warrior in his prime — golden kavach fused to his chest, kundala earrings, regal but weathered bearing. Hand-illustrated Indian mythology style: cream parchment, black ink linework, restrained gold/red accents. Never comedic, never generic.",
+      "required_views": ["three-quarter", "face close-up", "full-body", "hands/armor detail"],
+      "required_actions": ["standing resolute", "removing armor", "reacting with quiet recognition", "offering with open hands"],
+      "sacred_or_respected": true
+    },
+    {
+      "id": "indra",
+      "name": "इंद्र (ब्राह्मण वेश में)",
+      "role": "deity in disguise",
+      "importance": "primary",
+      "visual_direction": "Regal deity concealed as an aged Brahmin mendicant — modest robes but an unmistakable dignity and quiet radiance beneath the disguise. Reverent, never a comic beggar caricature.",
+      "required_views": ["three-quarter", "face close-up"],
+      "required_actions": ["arriving at the door", "asking", "receiving the gift"],
+      "sacred_or_respected": true
+    }
+  ],
+  "environments": [
+    {
+      "id": "kurukshetra_battlefield",
+      "name": "Kurukshetra battlefield, pre-war",
+      "visual_direction": "Vast dust-lit battlefield under a tense sky, distant war tents and banners, restrained ink-wash atmosphere — foreboding, not gory.",
+      "important_layers": ["distant army silhouettes", "sky/light", "foreground dust/ground"]
+    },
+    {
+      "id": "surya_tejas",
+      "name": "Surya's radiance (sun motif)",
+      "visual_direction": "A stylized sun-ring/glow motif representing Surya's divine gift and Karna's radiance — ornamental, not literal scenery.",
+      "important_layers": ["sun-ring glow", "radiating lines"]
+    }
+  ],
+  "props": [
+    {
+      "id": "kavach_kundal",
+      "name": "दिव्य कवच और कुंडल (armor and earrings)",
+      "required_views": ["worn on body", "close detail", "being removed"],
+      "required_actions": ["gleaming/highlighted", "being unclasped", "changing hands"]
+    }
+  ],
+  "visual_manifest": {
+    "beats": [
+      {"id": "B01", "narration": "कर्ण की सबसे बड़ी ताकत, वही कवच, जो उसने खुद अपने हाथों से त्याग दिया।", "scene_role": "hook", "pace": "measured", "shot_type": "wide", "composition": "Karna centered, spear raised, sun motif behind", "visual_action": "Karna's entrance settles into frame as the ink reveal draws him in", "characters": ["karna"], "props": [], "environments": ["surya_tejas"], "camera": "push_in", "reveal": true, "keyword_text": "कर्ण की सबसे बड़ी ताकत...", "sfx": [], "transition": "cut"},
+      {"id": "B02", "narration": "जन्म से मिला यह दिव्य कवच और कुंडल कर्ण के शरीर से जुड़े थे...", "scene_role": "armor_reveal", "pace": "measured", "shot_type": "chest/armor detail", "composition": "Tight crop on the fused kavach", "visual_action": "Gold highlight sweeps across the armor as it's emphasized", "characters": ["karna"], "props": ["kavach_kundal"], "environments": [], "camera": "armor_crop", "reveal": false, "keyword_text": "कवच और कुंडल", "sfx": ["soft gold shimmer"], "transition": "cut"},
+      {"id": "B03", "narration": "यह कवच और कुंडल उसे सूर्यदेव से जन्म के समय ही मिले थे...", "scene_role": "stakes", "pace": "slow", "shot_type": "face, tilt to sun", "composition": "Karna's face tilted toward the sun motif above", "visual_action": "Sun-ring pulses gently as the divine origin is spoken", "characters": ["karna"], "props": [], "environments": ["surya_tejas"], "camera": "tilt_up", "reveal": false, "keyword_text": "जो उसे जन्म से मिले थे", "sfx": [], "transition": "cut"},
+      {"id": "B04", "narration": "कुरुक्षेत्र का महायुद्ध निकट आ चुका था...", "scene_role": "threat", "pace": "quick", "shot_type": "wide, battlefield", "composition": "Karna small against the vast battlefield backdrop", "visual_action": "Camera pans across the battlefield, ink-motion war-lines appear", "characters": ["karna"], "props": [], "environments": ["kurukshetra_battlefield"], "camera": "pan", "reveal": false, "keyword_text": "लेकिन युद्ध से पहले...", "sfx": ["distant war drums"], "transition": "ink-wipe"},
+      {"id": "B05", "narration": "तभी एक दिन एक ब्राह्मण के वेश में एक याचक कर्ण के द्वार पर भिक्षा माँगने आ पहुँचा।", "scene_role": "visitor_reveal", "pace": "measured", "shot_type": "entrance, edge reveal", "composition": "Indra's disguised figure emerging from frame edge", "visual_action": "Indra's figure draws in from the side as he arrives", "characters": ["indra"], "props": [], "environments": [], "camera": "reveal_from_edge", "reveal": true, "keyword_text": "एक याचक आया", "sfx": ["footsteps"], "transition": "cut"},
+      {"id": "B06", "narration": "उस याचक ने कर्ण से और कुछ नहीं, बल्कि वही दिव्य कवच और कुंडल माँग लिए...", "scene_role": "request", "pace": "measured", "shot_type": "two-shot, hand gesture", "composition": "Indra's open hand toward Karna, both in frame", "visual_action": "Indra's hand gesture of asking, layered over Karna's reaction", "characters": ["karna", "indra"], "props": ["kavach_kundal"], "environments": [], "camera": "reverse_push", "reveal": false, "keyword_text": "उसने कर्ण से वही माँगा", "sfx": [], "transition": "cut"},
+      {"id": "B07", "narration": "कर्ण भली-भाँति जानता था कि यह याचक असल में कौन है, फिर भी उसने उसे मना करना उचित नहीं समझा।", "scene_role": "decision", "pace": "slow", "shot_type": "face reaction, eyes", "composition": "Close on Karna's eyes registering recognition", "visual_action": "Subtle parallax as Karna's expression settles into quiet resolve", "characters": ["karna", "indra"], "props": [], "environments": [], "camera": "shot_reverse", "reveal": false, "keyword_text": "जिसे कोई योद्धा कभी नहीं देता", "sfx": [], "transition": "cut"},
+      {"id": "B08", "narration": "बिना कोई झिझक दिखाए, कर्ण ने अपना कवच और कुंडल स्वयं उतारकर उस याचक को सौंप दिए।", "scene_role": "sacrifice", "pace": "slow", "shot_type": "hand/armor detail", "composition": "Hands unclasping the armor, gold fading from the body", "visual_action": "Karna's hands remove the armor; gold light fades as it leaves him", "characters": ["karna"], "props": ["kavach_kundal"], "environments": [], "camera": "armor_crop", "reveal": false, "keyword_text": "कर्ण ने अपना कवच दे दिया", "sfx": ["soft cloth/metal unclasp"], "transition": "cut"},
+      {"id": "B09", "narration": "क्योंकि कर्ण के लिए दान का अर्थ केवल कोई वस्तु देना नहीं था...", "scene_role": "reveal", "pace": "measured", "shot_type": "wide two-shot", "composition": "Both figures pulling back into a wider, symmetrical frame", "visual_action": "Camera pulls back as light settles between the two figures", "characters": ["karna", "indra"], "props": [], "environments": [], "camera": "pull_back", "reveal": false, "keyword_text": "क्योंकि उसके लिए दान...", "sfx": [], "transition": "cut"},
+      {"id": "B10", "narration": "अपनी सबसे बड़ी सुरक्षा खोकर भी, कर्ण ने अपना धर्म और अपना वचन कभी नहीं खोया।", "scene_role": "payoff", "pace": "slow", "shot_type": "wide, settling", "composition": "Karna alone, calm, sun motif softly behind", "visual_action": "Slow push as the ink settles into the final calm image", "characters": ["karna"], "props": [], "environments": ["surya_tejas"], "camera": "slow_push", "reveal": false, "keyword_text": "सिर्फ चीज़ देना नहीं था", "sfx": [], "transition": "cut"}
+    ]
+  },
+  "audio": {
+    "voice_style": "Warm, reverent Hindi male storyteller voice — measured and dignified, not theatrical or rushed.",
+    "target_wpm": 155,
+    "music_direction": "Sparse tanpura/string drone underneath, swelling only slightly at the sacrifice and payoff beats — never overpowering the narration.",
+    "sfx": ["distant war drums (B04)", "soft footsteps (B05)", "soft cloth/metal unclasp (B08)"],
+    "silence_guidance": "No pause longer than 0.4s except a brief held beat right before B07's decision and B08's sacrifice."
+  },
+  "metadata": {
+    "youtube_title": "कर्ण ने अपनी सबसे बड़ी ताकत खुद क्यों दे दी? | Karna's Kavacha",
+    "description": "जन्म से मिला अजेय कवच — फिर भी कर्ण ने उसे अपने हाथों से त्याग दिया। महाभारत की यह कथा दान और धर्म के सच्चे अर्थ को दर्शाती है।",
+    "tags": ["Karna", "Mahabharata", "Hindu mythology", "kavach kundal", "Indian mythology shorts"],
+    "hashtags": ["#Karna", "#Mahabharata", "#HinduMythology", "#Kathaaya"],
+    "thumbnail_concept": "Close on Karna's face in three-quarter profile, golden kavach glinting, sun-ring motif behind him, dramatic ink-linework contrast.",
+    "seo_keywords": ["karna story", "karna kavach kundal", "mahabharata karna sacrifice", "indra karna story hindi"],
+    "social_caption": "सच्चा दान वही है जो सबसे बड़ी कीमत पर भी बिना शर्त दिया जाए। 🙏 #Kathaaya"
+  },
+  "sources": [
+    {"source": "Mahabharata, Vana Parva / Karna Parva (traditional narrative of Karna's birth-gifted kavacha-kundala and Indra's request)", "claim_supported": "Karna received divine armor and earrings from Surya at birth; Indra requested and received them disguised as a Brahmin before the Kurukshetra war.", "fact_or_interpretation": "fact"},
+    {"source": "Popular retellings and dramatized adaptations (e.g. televised/theatrical Mahabharata adaptations)", "claim_supported": "The specific interior dialogue and Karna's exact phrased reasoning in the moment of decision", "fact_or_interpretation": "interpretation"}
+  ]
+}

@@ -18,39 +18,80 @@ export const ProjectMetaSchema = z.object({
 });
 export type ProjectMeta = z.infer<typeof ProjectMetaSchema>;
 
+// Mirrors the story-package contract's STORY section (schemas/story-package.schema.json /
+// prompts/story-package.md) field for field, so a validated import round-trips losslessly.
 export const StorySchema = z.object({
-  title_candidates: z.array(z.string()).default([]),
+  title: z.string().default(''),
   hook: z.string().default(''),
-  summary: z.string().default(''),
-  source_notes: z.string().default(''),
-  locations: z.array(z.string()).default([]),
-  props: z.array(z.string()).default([]),
-  visual_opportunities: z.array(z.string()).default([]),
-  continuity_notes: z.string().default(''),
+  premise: z.string().default(''),
+  conflict: z.string().default(''),
+  reveal: z.string().default(''),
+  climax: z.string().default(''),
+  payoff: z.string().default(''),
+  emotional_core: z.string().default(''),
+  story_arc: z.string().default(''),
+  facts: z.array(z.string()).default([]),
+  interpretations: z.array(z.string()).default([]),
+  // Reliable references, kept alongside facts/interpretations since they're the evidence for that
+  // fact/interpretation split (see the mythology rule: never invent canon).
+  sources: z.array(z.object({
+    source: z.string().min(1),
+    claim_supported: z.string().default(''),
+    fact_or_interpretation: z.enum(['fact', 'interpretation']),
+  })).default([]),
 });
 export type Story = z.infer<typeof StorySchema>;
 
 export const ScriptSchema = z.object({
-  narration_beats: z.array(z.object({
-    beat_id: z.string(),
-    text: z.string().default(''),
-    narration: z.string().default(''),
-  })).default([]),
   full_narration: z.string().default(''),
+  target_wpm: z.number().positive().optional(),
+  beats: z.array(z.object({
+    id: z.string().min(1),
+    narration: z.string().default(''),
+    emotion: z.string().default(''),
+    pace: z.string().default(''),
+    duration_seconds: z.number().positive(),
+  })).default([]),
 });
 export type Script = z.infer<typeof ScriptSchema>;
 
-// Mirrors schemas/character.schema.json (the pipeline's own character contract), wrapped in a list
-// so the Studio can manage every character for a project as one file.
+const VIEW_HINT = z.array(z.string()).default([]);
+
 export const CharacterSchema = z.object({
-  character_id: z.string().min(1),
+  id: z.string().min(1),
   name: z.string().min(1),
-  type: z.enum(['revered_mythological', 'historical', 'generic', 'creature', 'symbolic']),
-  visual_rules: z.array(z.string()).default([]),
-  required_poses: z.array(z.string()).default([]),
-  generation_prompt: z.string().min(1),
+  role: z.string().default(''),
+  importance: z.enum(['primary', 'secondary', 'minor']).default('secondary'),
+  visual_direction: z.string().default(''),
+  required_views: VIEW_HINT,
+  required_actions: VIEW_HINT,
+  sacred_or_respected: z.boolean().default(false),
+}).strict();
+export type Character = z.infer<typeof CharacterSchema>;
+
+export const EnvironmentSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  visual_direction: z.string().default(''),
+  important_layers: VIEW_HINT,
+}).strict();
+export type Environment = z.infer<typeof EnvironmentSchema>;
+
+export const PropSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  required_views: VIEW_HINT,
+  required_actions: VIEW_HINT,
+}).strict();
+export type Prop = z.infer<typeof PropSchema>;
+
+// One file (characters.json) holds all three "cast & asset" lists — they're small, edited
+// together in the Studio's Characters tab, and none of them warrant their own project file.
+export const CharactersSchema = z.object({
+  characters: z.array(CharacterSchema).default([]),
+  environments: z.array(EnvironmentSchema).default([]),
+  props: z.array(PropSchema).default([]),
 });
-export const CharactersSchema = z.object({characters: z.array(CharacterSchema).default([])});
 export type Characters = z.infer<typeof CharactersSchema>;
 
 const PlatformMetaSchema = z.object({
@@ -63,7 +104,8 @@ const PlatformMetaSchema = z.object({
 export const MetadataSchema = z.object({
   youtube_shorts: PlatformMetaSchema.partial().default({}),
   instagram_reels: PlatformMetaSchema.partial().default({}),
-  thumbnail_notes: z.string().default(''),
+  thumbnail_concept: z.string().default(''),
+  seo_keywords: z.array(z.string()).default([]),
 });
 export type Metadata = z.infer<typeof MetadataSchema>;
 

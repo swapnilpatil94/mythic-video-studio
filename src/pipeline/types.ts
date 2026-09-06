@@ -28,6 +28,17 @@ export type ProductionBeat = {
   text?: string;
   narration?: string;
   sfx?: string[];
+  // Optional, additive: carried through from a story package's visual_manifest (see
+  // src/studio/story-package.ts) for traceability and future compositor use. The renderer does
+  // not currently branch on these — capturing them losslessly on import is the scope of the story
+  // package contract; wiring them into MythicShort.tsx's actual shot/reveal decisions is not.
+  pace?: string;
+  shot_type?: string;
+  composition?: string;
+  visual_action?: string;
+  reveal?: boolean;
+  keyword_text?: string;
+  transition?: string;
 };
 
 export type ProductionManifest = {
@@ -41,5 +52,11 @@ export type ProductionManifest = {
     narration_path?: string;
     music_path?: string;
     sfx_dir?: string;
+    // Optional, additive production-direction fields carried from a story package's `audio`
+    // section. Not currently consumed by tools/chatterbox_tts.py — captured for fidelity/future use.
+    voice_style?: string;
+    target_wpm?: number;
+    music_direction?: string;
+    silence_guidance?: string;
   };
 };

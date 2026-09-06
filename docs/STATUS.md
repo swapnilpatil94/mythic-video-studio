@@ -1,6 +1,6 @@
 # Implementation Status
 
-Updated: 2026-09-06 (KATHAAYA Studio UI session)
+Updated: 2026-09-06 (story-package contract session)
 
 ## Overall
 
@@ -10,7 +10,89 @@ Updated: 2026-09-06 (KATHAAYA Studio UI session)
 
 **Current engineering focus:** `bash run.sh examples/karna-short.json` (or, equivalently, a project run from **KATHAAYA Studio**'s Production tab) runs the complete pipeline end-to-end on this machine using real local FLUX image generation, real local Chatterbox Hindi voice cloning, and real local Whisper (whisperx) forced alignment, producing a real, technically-passing MP4. `npm run studio` now gives a local dashboard for managing multiple projects, importing story-package JSON, and driving that same pipeline instead of hand-editing manifest files — see the latest milestone below. The compositor (`src/remotion/MythicShort.tsx`) is **format-aware** (one engine, a Short vs. long-form tempo/motion profile selected purely from the manifest's existing `duration_seconds` — no schema change, no second pipeline), branded as **KATHAAYA** (subtle open, minimal watermark, full end card — no more MYTHIC STORIES header/footer), and its kinetic keyword/caption emphasis is driven by whichever word Whisper actually found emphasized in the real narration, not a fixed per-story vocabulary table. Remaining work is visual/asset-consistency tuning (character distinction, source `sun.symbol` asset content review), a real long-form production to validate the long-form profile beyond a structural smoke test, and human mythology-respect/editorial review — not pipeline wiring.
 
-## Latest milestone — KATHAAYA Studio: local project-manager UI
+## Latest milestone — story package contract + main branch reconciliation
+
+Two pieces of work this session. First: `origin/main` had diverged with ~60 commits from a
+parallel line of work (a separate minimal vanilla-JS Studio, a "tempo_profile"-driven manual
+timing model, and draft `prompts/story-package.md`/`schemas/story-package.schema.json` files) —
+reconciled by merge, keeping this session's React/Vite Studio and Whisper-driven compositor as
+canonical (explicit user direction), discarding the parallel Studio/timing model entirely (it
+doesn't use real Whisper forced alignment, which this project treats as required, not optional),
+and keeping independently-valuable non-conflicting pieces (a GitHub Actions CI workflow, a
+long-form test fixture). See `git log` around the merge commit for the full reconciliation record.
+
+Second, and the actual new feature: **the story package contract**, implemented for real — not
+just a schema file sitting unused.
+
+### What "for real" means here
+
+- [prompts/story-package.md](prompts/story-package.md): a complete authoring prompt for ChatGPT/Claude —
+  research-first, explicit mythology rule (never invent canon, dignified sacred-figure treatment,
+  never comedic/generic), the exact 10-section contract, SHORT (60-90s, ~0.5-2s visual density) vs
+  LONGFORM (8-15+min, ~2-5s beats), and an explicit "visual EVENTS, not one image per beat" rule.
+- [schemas/story-package.schema.json](schemas/story-package.schema.json): strict JSON Schema
+  (`additionalProperties: false` throughout, `$defs` for character/environment/prop/visual_beat) —
+  required-field lists were hand-verified against what the actual zod validator enforces (see
+  below), not just asserted independently, so the two can't silently drift apart.
+- [src/studio/story-package.ts](src/studio/story-package.ts): `StoryPackageSchema` (zod, `.strict()`
+  on every nested object — unknown fields are rejected, not silently stripped) is the **enforced**
+  runtime contract; the JSON Schema file is its published mirror. `splitStoryPackage` joins
+  `visual_manifest.beats` against `script.beats` by `id` to build `manifest.json`'s `beats[]` —
+  the same `ProductionManifest` the pipeline already consumes, extended with new *optional*
+  fields (`pace`/`shot_type`/`composition`/`visual_action`/`reveal`/`keyword_text`/`transition` on
+  `ProductionBeat`; `voice_style`/`target_wpm`/`music_direction`/`silence_guidance` on
+  `manifest.audio`) so the richer authoring data survives the translation losslessly instead of
+  being discarded at the door. The renderer does not currently branch on these — capturing them
+  is this session's scope; wiring them into `MythicShort.tsx`'s actual shot/reveal decisions is not.
+  A flat-manifest quick-import path (the pre-existing, already-tested behavior) is kept as a
+  fallback alongside the new contract, not replaced by it.
+- `src/studio/schemas.ts` and every affected web tab (Story/Script/Characters/Metadata/Overview)
+  were updated to the new field set — a schema nobody's UI can actually read/write/round-trip is
+  not "implemented," it's a document.
+
+### Verified for real, with a real Karna example
+
+[examples/karna-story-package-test.json](examples/karna-story-package-test.json) — a complete
+package built from the real, already-produced Karna kavacha narration/beats (not placeholder text):
+10 script beats with real Hindi narration/emotion/pace, 2 sacred-flagged characters (Karna, Indra)
+with real visual direction, an environment (Kurukshetra) and a prop (kavach-kundal), a full
+visual_manifest with real shot/camera/action direction per beat, and a real fact/interpretation
+source split.
+
+- `POST /story-package/validate` → `ok: true`, zero warnings, zero file errors.
+- `POST /projects/import` → real files written to `projects/karna-kavacha-package-test/`.
+- `npx tsx src/cli.ts validate <the resulting manifest.json>` (the actual unmodified pipeline
+  command) → **PASS**, 10 beats, 2 characters, 5 unique assets.
+- `npx tsx src/pipeline/prepare-project.ts` on that manifest → real `asset-plan.json` with
+  correctly-derived per-asset generation prompts (e.g. `kavach_kundal`'s prompt aggregates the
+  "detailed sacred armor and ornaments, dignified presentation" language from the beats that
+  reference it) — the existing asset-prompt system, untouched, consuming the new data correctly.
+- A real `remotion still` render (manifest swapped into `runtime-manifest.ts`, restored after)
+  completed without error — the compositor tolerates the new optional beat/audio fields.
+- Web UI, real clicks/navigation via the Browser tool: Story/Characters/Visuals tabs render the
+  imported package's full content correctly (title/hook/premise/…, the sacred-figure checkbox
+  correctly checked for Karna, environments/props lists), zero console errors.
+
+### Bug found and fixed during this verification
+
+`POST /projects/import`'s slug-selection picked `project.project_name` (often Hindi/Devanagari
+text, which `slugify()` strips to nothing) before the already-slugified `project.project_id`,
+silently producing `untitled-project` for any package with a non-Latin title. Caught because the
+real Karna package has a Hindi `project_name` — reproduced, fixed the priority order (`project_id`
+first), reran the same import, got the correct slug.
+
+### Honest scope boundary
+
+The new `ProductionBeat`/`manifest.audio` fields are captured and persist correctly but are not
+wired into the compositor's actual rendering decisions (shot selection already comes from
+`src/remotion/shots.ts`'s own logic, independent of `visual_manifest.shot_type`) — that would be a
+materially larger change than "implement the contract," and wasn't asked for here. Similarly,
+`character.sacred_or_respected` is captured and editable but doesn't yet differentially alter the
+asset-generation prompt beyond what the existing character-kind heuristic in `asset-prompts.ts`
+already does by default (which happens to already be reverent-by-default for anything classified
+as a character).
+
+## Previous milestone — KATHAAYA Studio: local project-manager UI
 
 Built a local control-panel UI (dashboard, per-project tabs, story-package import, production runner) on top of the existing pipeline, per an explicit "code → run → test → fix, do not return a plan" brief. Hard constraints honored: **no second renderer, no pipeline rebuild, no new frontend framework** — the UI is a client of the existing `run.sh`/`preflight.ts`/`validate-manifest.ts`, and everything below was verified against real running servers and real file-system state, not assumed.
 

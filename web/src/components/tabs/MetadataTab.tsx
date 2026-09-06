@@ -52,8 +52,14 @@ export default function MetadataTab({data, projectId}: {data: ProjectFiles; proj
       </div>
 
       <div className="card">
-        <h3>Thumbnail notes</h3>
-        <textarea rows={2} value={meta.thumbnail_notes} onChange={(e) => setMeta({...meta, thumbnail_notes: e.target.value})} />
+        <h3>Thumbnail concept</h3>
+        <textarea rows={2} value={meta.thumbnail_concept} onChange={(e) => setMeta({...meta, thumbnail_concept: e.target.value})} />
+      </div>
+
+      <div className="card">
+        <h3>SEO keywords (comma-separated)</h3>
+        <input type="text" value={meta.seo_keywords.join(', ')}
+          onChange={(e) => setMeta({...meta, seo_keywords: e.target.value.split(',').map((s) => s.trim()).filter(Boolean)})} />
       </div>
 
       <div className="row">
