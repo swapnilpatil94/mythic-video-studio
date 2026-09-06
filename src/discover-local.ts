@@ -1,6 +1,6 @@
-import {existsSync} from 'node:fs';
-import {access, mkdir, readdir, writeFile} from 'node:fs/promises';
+import {access, existsSync} from 'node:fs';
 import {constants} from 'node:fs';
+import {readFile, writeFile} from 'node:fs/promises';
 import {homedir} from 'node:os';
 import {join} from 'node:path';
 import {spawn} from 'node:child_process';
@@ -39,10 +39,6 @@ async function addCommand(kind: string, command: string, note: string) {
   if (path) candidates.push({kind, source: 'PATH', path, runnable: true, note});
 }
 
-async function addPath(kind: string, path: string, note: string) {
-  if (existsSync(path)) candidates.push({kind, source: 'filesystem', path, runnable: await runnable(path), note});
-}
-
 await addCommand('ffmpeg', 'ffmpeg', 'media processing');
 await addCommand('ffprobe', 'ffprobe', 'media inspection');
 await addCommand('python', 'python3', 'possible local model runtime');
@@ -50,7 +46,7 @@ await addCommand('comfyui', 'comfy', 'possible ComfyUI CLI; verify workflow/API 
 await addCommand('draw-things', 'draw-things', 'possible Draw Things CLI; verify installation separately');
 await addCommand('whisper', 'whisper', 'possible Whisper CLI; verify model/runtime separately');
 
-for (const env of ['IMAGE_GENERATOR_COMMAND', 'FLUX_COMMAND', 'TTS_COMMAND', 'CHATTERBOX_COMMAND']) {
+for (const env of ['IMAGE_GENERATOR_COMMAND', 'FLUX_COMMAND', 'TTS_COMMAND', 'CHATTERBOX_COMMAND', 'WHISPER_COMMAND']) {
   const value = process.env[env]?.trim();
   if (value) candidates.push({kind: env, source: 'environment', path: value, runnable: true, note: 'configured by user; preflight validates executable'});
 }
