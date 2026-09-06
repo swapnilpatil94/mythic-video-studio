@@ -14,6 +14,7 @@
     "stage:assets": "tsx src/stage-assets.ts",
     "generate:voice": "tsx src/generate-voice.ts",
     "inspect:audio": "tsx src/inspect-audio.ts",
+    "align:audio": "tsx src/align-audio.ts",
     "dev": "remotion studio src/remotion/index.ts",
     "render:sample": "remotion render src/remotion/index.ts MythicShort renders/karna-short.mp4",
     "produce": "tsx src/produce.ts"
