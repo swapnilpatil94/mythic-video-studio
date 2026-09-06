@@ -1,0 +1,21 @@
+{
+  "project_id":"karna-longform-test",
+  "title":"कर्ण — 3 Minute Long-form Architecture Test",
+  "language":"hi-IN",
+  "duration_seconds":180,
+  "characters":["karna"],
+  "tempo_profile":"longform",
+  "narration_profile":{"target_wpm":155,"max_pause_seconds":1.2,"speed_factor":1},
+  "beats":[
+    {"beat_id":"b01","duration_seconds":18,"visual_role":"hook","asset_refs":["karna"]},
+    {"beat_id":"b02","duration_seconds":18,"visual_role":"setup","asset_refs":["karna"]},
+    {"beat_id":"b03","duration_seconds":18,"visual_role":"context","asset_refs":["karna"]},
+    {"beat_id":"b04","duration_seconds":18,"visual_role":"conflict","asset_refs":["karna"]},
+    {"beat_id":"b05","duration_seconds":18,"visual_role":"escalation","asset_refs":["karna"]},
+    {"beat_id":"b06","duration_seconds":18,"visual_role":"turn","asset_refs":["karna"]},
+    {"beat_id":"b07","duration_seconds":18,"visual_role":"reveal","asset_refs":["karna"]},
+    {"beat_id":"b08","duration_seconds":18,"visual_role":"climax","asset_refs":["karna"]},
+    {"beat_id":"b09","duration_seconds":18,"visual_role":"emotional_payoff","asset_refs":["karna"]},
+    {"beat_id":"b10","duration_seconds":18,"visual_role":"ending","asset_refs":["karna"]}
+  ]
+}
