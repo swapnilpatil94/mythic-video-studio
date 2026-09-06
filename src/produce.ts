@@ -22,6 +22,9 @@ await run('npx', ['tsx', 'src/normalize-assets.ts', input]);
 if (process.env.REQUIRE_GENERATED_ASSETS === '1') {
   await run('npx', ['tsx', 'src/inspect-assets.ts', input]);
 }
+if (process.env.REQUIRE_ASSET_REQUIREMENTS === '1') {
+  await run('npx', ['tsx', 'src/check-asset-requirements.ts', input]);
+}
 await run('npx', ['tsx', 'src/generate-voice.ts', input]);
 if (process.env.REQUIRE_TTS === '1') {
   await run('npx', ['tsx', 'src/inspect-audio.ts', input]);
