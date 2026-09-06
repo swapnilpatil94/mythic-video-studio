@@ -1,38 +1,31 @@
 # Progress
 
-## 2026-09-06 — Semantic asset requirements
+## 2026-09-06 — Semantic asset alpha persistence and enforcement
 
 ### Completed this iteration
 
-- [x] Added `src/pipeline/asset-requirements.ts` with deterministic requirements by asset kind.
-- [x] Character masters are classified as `isolated-transparent` and require alpha-capable artwork.
-- [x] Environment/background assets are classified as `opaque-full-frame`.
-- [x] Overlay assets are classified as `transparent-overlay`.
-- [x] Supporting props default to `opaque-supporting` until segmentation is explicitly requested.
-- [x] Added minimum/maximum dimension requirements per asset class.
-- [x] Added `src/check-asset-requirements.ts` to generate a non-mutating requirement report.
-- [x] Added `npm run check:asset-requirements`.
-- [x] Strict production can now fail on semantic requirement errors with `REQUIRE_ASSET_REQUIREMENTS=1`.
-- [x] Updated `src/produce.ts` to run the semantic gate before narration/rendering when strict mode is enabled.
-- [x] Updated `package.json` with the new check command.
-- [x] Updated `docs/STATUS.md` to track the semantic contract and its verification boundary.
+- [x] Added optional `alpha` metadata to `AssetRecord`.
+- [x] Updated `inspect-assets.ts` to persist measured PNG/JPEG alpha capability into the project registry.
+- [x] Updated `normalize-assets.ts` to re-probe normalized output and persist its actual alpha capability.
+- [x] Semantic asset requirements now evaluate the persisted probe result instead of relying on an unpopulated field.
+- [x] Strict production already invokes `check:asset-requirements` after image inspection/normalization when `REQUIRE_ASSET_REQUIREMENTS=1`, so the semantic gate now has the metadata it needs to reject non-transparent character/overlay masters.
+- [x] Updated `docs/STATUS.md` with the implementation boundary and exact strict command.
 
 ### Verification boundary
 
-The new TypeScript files and package integration were committed and re-read through GitHub. This is **structural verification only**. No claim is made that an actual FLUX-generated transparent character master passes the alpha requirement until a real generated asset is inspected on the target machine.
+The changed repository files were written through GitHub and the resulting commits were accepted. This is repository-level structural verification only. No claim is made that a real FLUX-generated character master has passed the gate until an actual image is generated and inspected on the target machine.
 
 ## Current milestone: M1 — First real Short
 
 ### Immediate next engineering sequence
 
-1. Make semantic requirements enforceable after image inspection/normalization, including persisted `alpha` metadata in the registry.
-2. Add per-segment narration timing/alignment and waveform inspection.
-3. Add music/SFX adapter and final audio mix.
-4. Expand compositor into reusable layered crops, pans, zooms and SVG draw-on transitions.
-5. Add true 2.5D/parallax and deterministic depth rules.
-6. Add automated captions and technical/visual QA report.
-7. Verify FLUX/ComfyUI and Chatterbox/deep-Hindi against the user's actual local installations.
-8. Run the complete Karna Short on the target Mac and record real runtime/quality metrics.
+1. Add per-segment narration timing/alignment and waveform inspection, including measured duration for each beat's narration rather than only whole-track duration.
+2. Add music/SFX adapter and deterministic final audio mix.
+3. Expand compositor into reusable layered crops, pans, zooms and SVG draw-on transitions.
+4. Add true 2.5D/parallax and deterministic depth rules.
+5. Add automated captions and technical/visual QA report.
+6. Verify FLUX/ComfyUI and Chatterbox/deep-Hindi against the user's actual local installations.
+7. Run the complete Karna Short on the target Mac and record real runtime/quality metrics.
 
 ## Exact reproducible commands
 
