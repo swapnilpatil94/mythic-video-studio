@@ -1,24 +1,27 @@
 # Progress
 
-## 2026-09-06 — Captions + final-output technical QA
+## 2026-09-06 — Captions + output QA + visual review artifact
 
 ### Completed this iteration
 
 - [x] Added `src/generate-captions.ts` for deterministic beat-timed Hindi SRT/VTT generation.
 - [x] Caption source priority is `beat.narration`, then `beat.text`.
 - [x] Caption files and a generation report are persisted under `projects/<project_id>/captions/`.
+- [x] Caption timestamp formatting was hardened to keep milliseconds normalized to 000–999.
 - [x] Added `src/check-output.ts` for final MP4 technical QA.
 - [x] QA checks 1080x1920 resolution, 30fps, duration tolerance, video/audio stream presence, black-frame intervals and audio peak.
 - [x] QA report is persisted under `projects/<project_id>/logs/output-qa-report.json`.
 - [x] Added `REQUIRE_OUTPUT_QA=1` strict failure behavior.
-- [x] Added `npm run generate:captions` and `npm run check:output` scripts.
-- [x] Integrated caption generation and output QA into the one-command production path.
-- [x] Fixed the output QA implementation to inspect FFmpeg diagnostics from stderr and keep the final QA invocation single-pass.
+- [x] Added `src/generate-visual-qa.ts` to create a nine-sample contact sheet across the rendered duration with timestamps.
+- [x] Visual QA report is persisted under `projects/<project_id>/qa/visual-qa-report.json`.
+- [x] Added `npm run generate:visual-qa` and exposed it in the production package scripts.
+- [x] Integrated visual QA artifact generation and final output QA into the one-command production path.
+- [x] Fixed output QA to consume FFmpeg diagnostics from stderr and keep final QA single-pass.
 - [x] Updated `docs/STATUS.md` with implementation state, commands, blockers, verification boundary and next milestone.
 
 ### Verification boundary
 
-The new code is repository-verified by accepted GitHub commits and source review. It has not been executed here against a real rendered MP4 because the local FLUX/ComfyUI and Chatterbox/deep-Hindi runtime are machine-specific and not available in this environment. Therefore the new QA checks and caption timing are implemented but **not runtime-verified** on actual footage.
+The new code is repository-verified by accepted GitHub commits and source review. It has not been executed here against a real rendered MP4 because the local FLUX/ComfyUI and Chatterbox/deep-Hindi runtime are machine-specific and not available in this environment. The contact sheet and final QA therefore remain **runtime-unverified** until an actual MP4 exists.
 
 ## Current milestone: M1 — First real Short
 
@@ -27,9 +30,9 @@ The new code is repository-verified by accepted GitHub commits and source review
 1. Run `npm install` and `npm run check:motion` locally.
 2. Execute the real FLUX/ComfyUI and Chatterbox/deep-Hindi adapters and record runtime, retries and outputs.
 3. Run the strict one-command Karna production with output QA enabled.
-4. Review the generated MP4 visually and audibly; inspect the generated SRT/VTT and QA report.
-5. Add automated contact-sheet/keyframe visual QA so crop, parallax, character consistency and dark-frame findings can be reviewed systematically.
-6. Tune caption safe-area styling and motion strengths against real masters.
+4. Review the generated MP4, contact sheet, SRT/VTT and QA reports visually and audibly.
+5. Tune caption safe-area styling, crop/parallax strength, black-frame thresholds and audio balance against real masters.
+6. Add stronger per-beat visual QA where needed (keyframes at beat boundaries and asset/reference consistency checks).
 7. Only after the real MP4 passes those gates, record M1 as complete.
 
 ## Exact reproducible commands
@@ -39,6 +42,7 @@ npm install
 npm run validate -- examples/karna-short.json
 npm run check:motion
 npm run generate:captions -- examples/karna-short.json
+npm run generate:visual-qa -- examples/karna-short.json renders/karna-short.mp4
 npm run check:output -- examples/karna-short.json renders/karna-short.mp4
 ```
 
