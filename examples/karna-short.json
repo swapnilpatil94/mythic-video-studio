@@ -3,17 +3,23 @@
   "title": "कर्ण ने अपनी सबसे बड़ी ताकत खुद क्यों दे दी?",
   "language": "hi-IN",
   "duration_seconds": 75,
+  "tempo_profile": "short",
+  "narration_profile": {
+    "target_wpm": 155,
+    "max_pause_seconds": 0.45,
+    "speed_factor": 1.08
+  },
   "characters": ["karna", "indra"],
   "beats": [
-    {"beat_id":"B01","duration_seconds":5,"visual_role":"hook","asset_refs":["karna.master"],"new_asset_required":false,"camera":"push_in","animation":"draw_reveal","text":"कर्ण की सबसे बड़ी ताकत..."},
-    {"beat_id":"B02","duration_seconds":7,"visual_role":"armor_reveal","asset_refs":["karna.master"],"new_asset_required":false,"camera":"armor_crop","animation":"gold_highlight","text":"कवच और कुंडल"},
-    {"beat_id":"B03","duration_seconds":7,"visual_role":"stakes","asset_refs":["karna.master","sun.symbol"],"new_asset_required":false,"camera":"tilt_up","animation":"sun_pulse","text":"जो उसे जन्म से मिले थे"},
-    {"beat_id":"B04","duration_seconds":7,"visual_role":"threat","asset_refs":["battlefield.001","karna.master"],"new_asset_required":true,"camera":"pan","animation":"ink_motion","text":"लेकिन युद्ध से पहले..."},
-    {"beat_id":"B05","duration_seconds":8,"visual_role":"visitor_reveal","asset_refs":["indra.master"],"new_asset_required":true,"camera":"reveal_from_edge","animation":"draw_reveal","text":"एक याचक आया"},
-    {"beat_id":"B06","duration_seconds":8,"visual_role":"request","asset_refs":["indra.master","karna.master"],"new_asset_required":false,"camera":"reverse_push","animation":"hand_reveal","text":"उसने कर्ण से वही माँगा"},
-    {"beat_id":"B07","duration_seconds":8,"visual_role":"decision","asset_refs":["karna.master","indra.master"],"new_asset_required":false,"camera":"shot_reverse","animation":"subtle_parallax","text":"जिसे कोई योद्धा कभी नहीं देता"},
-    {"beat_id":"B08","duration_seconds":8,"visual_role":"sacrifice","asset_refs":["karna.master","armor.detail"],"new_asset_required":false,"camera":"armor_crop","animation":"gold_fade","text":"कर्ण ने अपना कवच दे दिया"},
-    {"beat_id":"B09","duration_seconds":9,"visual_role":"reveal","asset_refs":["indra.master","karna.master"],"new_asset_required":false,"camera":"pull_back","animation":"light_reveal","text":"क्योंकि उसके लिए दान..."},
-    {"beat_id":"B10","duration_seconds":8,"visual_role":"payoff","asset_refs":["karna.master","sun.symbol"],"new_asset_required":false,"camera":"slow_push","animation":"ink_settle","text":"सिर्फ चीज़ देना नहीं था"}
+    {"beat_id":"B01","duration_seconds":5,"visual_role":"hook","asset_refs":["karna.master"],"new_asset_required":false,"camera":"push_in","animation":"draw_reveal","text":"कर्ण की सबसे बड़ी ताकत...","kinetic_keywords":["कर्ण","सबसे बड़ी ताकत"]},
+    {"beat_id":"B02","duration_seconds":7,"visual_role":"armor_reveal","asset_refs":["karna.master"],"new_asset_required":false,"camera":"armor_crop","animation":"gold_highlight","text":"कवच और कुंडल","kinetic_keywords":["कवच","कुंडल"]},
+    {"beat_id":"B03","duration_seconds":7,"visual_role":"stakes","asset_refs":["karna.master","sun.symbol"],"new_asset_required":false,"camera":"tilt_up","animation":"sun_pulse","text":"जो उसे जन्म से मिले थे","kinetic_keywords":["जन्म से"]},
+    {"beat_id":"B04","duration_seconds":7,"visual_role":"threat","asset_refs":["battlefield.001","karna.master"],"new_asset_required":true,"camera":"pan","animation":"ink_motion","text":"लेकिन युद्ध से पहले...","kinetic_keywords":["युद्ध से पहले"]},
+    {"beat_id":"B05","duration_seconds":8,"visual_role":"visitor_reveal","asset_refs":["indra.master"],"new_asset_required":true,"camera":"reveal_from_edge","animation":"draw_reveal","text":"एक याचक आया","kinetic_keywords":["एक याचक"]},
+    {"beat_id":"B06","duration_seconds":8,"visual_role":"request","asset_refs":["indra.master","karna.master"],"new_asset_required":false,"camera":"reverse_push","animation":"hand_reveal","text":"उसने कर्ण से वही माँगा","kinetic_keywords":["वही माँगा"]},
+    {"beat_id":"B07","duration_seconds":8,"visual_role":"decision","asset_refs":["karna.master","indra.master"],"new_asset_required":false,"camera":"shot_reverse","animation":"subtle_parallax","text":"जिसे कोई योद्धा कभी नहीं देता","kinetic_keywords":["कोई योद्धा"]},
+    {"beat_id":"B08","duration_seconds":8,"visual_role":"sacrifice","asset_refs":["karna.master","armor.detail"],"new_asset_required":false,"camera":"armor_crop","animation":"gold_fade","text":"कर्ण ने अपना कवच दे दिया","kinetic_keywords":["कवच दे दिया"]},
+    {"beat_id":"B09","duration_seconds":9,"visual_role":"reveal","asset_refs":["indra.master","karna.master"],"new_asset_required":false,"camera":"pull_back","animation":"light_reveal","text":"क्योंकि उसके लिए दान...","kinetic_keywords":["दान"]},
+    {"beat_id":"B10","duration_seconds":8,"visual_role":"payoff","asset_refs":["karna.master","sun.symbol"],"new_asset_required":false,"camera":"slow_push","animation":"ink_settle","text":"सिर्फ चीज़ देना नहीं था","kinetic_keywords":["सिर्फ चीज़ देना नहीं था"]}
   ]
 }
