@@ -1,6 +1,6 @@
 {
   "name": "mythic-video-studio",
-  "version": "0.9.0",
+  "version": "0.10.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -17,8 +17,10 @@
     "check:asset-requirements": "tsx src/check-asset-requirements.ts",
     "stage:assets": "tsx src/stage-assets.ts",
     "generate:voice": "tsx src/generate-voice.ts",
+    "tune:narration": "tsx src/tune-narration.ts",
     "inspect:audio": "tsx src/inspect-audio.ts",
     "align:audio": "tsx src/align-audio.ts",
+    "prepare:timing": "tsx src/prepare-timing.ts",
     "mix:audio": "tsx src/mix-audio.ts",
     "check:motion": "tsx src/check-motion.ts",
     "check:visual-beats": "tsx src/check-visual-beats.ts",
