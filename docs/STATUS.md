@@ -10,7 +10,18 @@ Updated: 2026-09-06
 
 **Current engineering focus:** turn the Remotion compositor into a reusable **Cinematic Indian Ink Whiteboard** engine with audio-led pacing, hand-draw → ink → wash treatment, kinetic Hindi typography and master-asset reuse.
 
-## Latest milestone — pacing + kinetic timing contract
+## Latest milestone — research-informed whiteboard draw primitive
+
+Implemented in GitHub:
+
+- Reviewed current open-source whiteboard approaches before changing the compositor: HandDraw-Skill's explicit path-oriented draw timelines, SVG stroke-dash progression, and hand-drawn procedural approaches such as Rough.js-style path treatment. The research confirms that convincing whiteboard drawing depends on path-oriented progressive construction and explicit animation timing, not merely revealing a finished raster with a camera move.
+- Reworked `src/remotion/visual-beats.tsx` so `InkReveal` now uses a reusable staged `DrawSweep` primitive with multiple independently timed SVG strokes, deterministic stroke-dash progression, a moving artist-hand cue and a leading draw cursor.
+- Preserved the existing raster FLUX master-asset strategy: the new primitive is an overlay/reveal language inside Remotion rather than a second renderer or a one-image-per-shot system.
+- Kept Short and Long-form format support unchanged.
+
+This is a **source implementation milestone**, not an M1 visual-release claim. The new draw primitive has been committed, but a real local Karna render using the updated commit has not yet been verified in this environment.
+
+## Previous milestone — pacing + kinetic timing contract
 
 Implemented in GitHub:
 
@@ -19,16 +30,14 @@ Implemented in GitHub:
 - Tuned the Karna Short manifest to `short`, target 155 WPM, 0.45s preferred max pause and 1.08 default pacing factor.
 - Added `src/tune-narration.ts`: if generated narration exceeds the manifest duration beyond tolerance, it applies bounded FFmpeg `atempo` pacing and records `narration-pacing-report.json`.
 - Added pacing instructions to the Chatterbox/TTS job so the provider receives conversational, low-dead-air narration guidance.
-- Added `src/prepare-timing.ts`: creates deterministic word-level fallback timings from beat windows and audio-alignment data, persisted as `projects/<project_id>/timing/word-timing.json` and `src/remotion/runtime-timing.ts`.
-- Updated `MythicShort.tsx` to use progressive grayscale/ink treatment followed by color/wash reveal and kinetic word-by-word Hindi captions instead of a single static caption block.
+- Added `src/prepare-timing.ts`: creates deterministic word-level fallback timings from beat windows and audio-alignment data.
+- Updated `MythicShort.tsx` to use progressive grayscale/ink treatment followed by color/wash reveal and kinetic word-by-word Hindi captions.
 - Added independent character entrance/bob motion while preserving master-asset reuse.
-- Added `kinetic_keywords` to the beat contract for future stronger keyword-specific motion.
-- Added TypeScript checking for both `.ts` and `.tsx` sources and a GitHub Actions structural/typecheck workflow.
-- Extended `check-pipeline.ts` so the pacing/timing stages, strict output-QA gate and `typecheck` are part of the repository contract audit.
-- Fixed shared project-path typing for persisted logs and corrected the local-runtime discovery filesystem API usage.
-- CI run #13 completed successfully on 2026-09-06: TypeScript typecheck, manifest validation, motion checks, visual-beat checks and the pipeline contract audit all passed.
-
-This is a **source implementation milestone**, not an M1 release claim. The uploaded 2026-09-06 Karna render was technically inspected outside the repo: it is 1080×1920, 30fps and about 81.05s, with several detected internal silences including pauses above 1.5s. That confirms the pacing problem is real. It does not prove the new code has been rendered on the user's Mac.
+- Added `kinetic_keywords` to the beat contract.
+- Added TypeScript checking and CI structural/typecheck workflow.
+- Extended pipeline audit so pacing/timing, strict output-QA and typecheck are contract-checked.
+- Fixed shared project-path typing, local-runtime discovery and strict output-QA wiring.
+- CI run #13 passed typecheck, manifest validation, motion checks, visual-beat checks and pipeline audit.
 
 ## Implemented — structurally verified
 
@@ -54,8 +63,9 @@ This is a **source implementation milestone**, not an M1 release claim. The uplo
 - Deterministic fallback word timing for kinetic typography
 - Deterministic narration/music/SFX mixer with limiter and configurable gains
 - Final mix staging and Remotion audio playback
-- Deterministic camera presets, easing, depth-weighted 2.5D parallax and SVG draw-reveal primitive
+- Deterministic camera presets, easing, depth-weighted 2.5D parallax and SVG draw-reveal primitives
 - Reusable visual beat reveal/wash/transition primitives and beat-profile contract check
+- Research-informed staged whiteboard draw sweep with SVG stroke progression and artist-hand cue
 - Ink-to-color reveal treatment and kinetic caption compositor path
 - Motion smoke checks
 - Manifest-driven SRT/VTT generation
@@ -70,16 +80,17 @@ This is a **source implementation milestone**, not an M1 release claim. The uplo
 
 ## In progress
 
+- Real local render verification of the new whiteboard draw primitive
 - Runtime verification against the user's actual FLUX/ComfyUI or Draw Things installation
 - Runtime verification against the user's actual Chatterbox/deep-Hindi voice setup
-- Runtime verification against Whisper; current word timing is explicitly a deterministic fallback, not Whisper output
+- Runtime verification against Whisper; current word timing remains a deterministic fallback unless the local adapter supplies word timestamps
 - Real generated master-asset quality/consistency review
 - Real narration alignment and mix-level review
-- Visual review/tuning of the new ink-to-color and kinetic caption engine on actual generated assets
+- Visual review/tuning of the new draw sweep, ink-to-color and kinetic caption engine on actual generated assets
 - Expanded layer/mask extraction for richer master-art animation where source assets support it
 - Caption wrapping/safe-area review on real footage
 - Human contact-sheet review
-- End-to-end real Karna render using the updated code
+- End-to-end real Karna render using the latest GitHub commit
 - Runtime verification of release-evidence report
 
 ## Blockers
@@ -101,17 +112,7 @@ npm run check:visual-beats -- examples/karna-short.json
 npm run preflight -- examples/karna-short.json
 ```
 
-Targeted pacing/timing checks after a narration exists:
-
-```bash
-npm run generate:voice -- examples/karna-short.json
-npm run tune:narration -- examples/karna-short.json
-npm run inspect:audio -- examples/karna-short.json
-npm run align:audio -- examples/karna-short.json
-npm run prepare:timing -- examples/karna-short.json
-```
-
-Full strict first real-model run:
+Full strict real-model run:
 
 ```bash
 REQUIRE_CHARACTER_REFERENCES=1 REQUIRE_GENERATED_ASSETS=1 REQUIRE_ASSET_REQUIREMENTS=1 REQUIRE_TTS=1 REQUIRE_TTS_ALIGNMENT=1 REQUIRE_AUDIO_MIX=1 REQUIRE_OUTPUT_QA=1 REQUIRE_RELEASE_EVIDENCE=1 NORMALIZE_ASSETS=1 IMAGE_GENERATION_MAX_ATTEMPTS=2 bash run.sh examples/karna-short.json
@@ -127,9 +128,9 @@ npm run check:release -- examples/karna-short.json renders/karna-short.mp4
 
 ## Verification policy
 
-A completed checkbox means the repository implementation exists and has been structurally reviewed. It does not mean local models executed successfully. M1 remains open until a real MP4 is rendered and reviewed with the updated code.
+A completed checkbox means the repository implementation exists and has been structurally reviewed. It does not mean local models executed successfully. M1 remains open until a real MP4 is rendered and reviewed with the latest code.
 
-For the first real run record: machine/model, runtime, generated asset count, retries/failures, reference usage, motion/crop notes, visual notes, audio notes, caption notes, QA reports and output/release hashes.
+For the next real run record: commit, machine/model, runtime, generated asset count, retries/failures, reference usage, draw/reveal notes, motion/crop notes, visual notes, audio notes, caption notes, QA reports and output/release hashes.
 
 ## Release gates
 
