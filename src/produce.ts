@@ -37,6 +37,7 @@ await writeFile('src/remotion/runtime-manifest.ts', runtimeSource, 'utf8');
 await run('npx', ['remotion', 'render', 'src/remotion/index.ts', 'MythicShort', output]);
 await run('npx', ['tsx', 'src/check-output.ts', input, output]);
 if (process.env.REQUIRE_OUTPUT_QA === '1') {
-  await run('npx', ['tsx', 'src/check-output.ts', input, output]);
+  const qa = process.env.REQUIRE_OUTPUT_QA;
+  if (qa !== '1') throw new Error('unreachable QA configuration');
 }
 console.log(`DONE: ${output}`);
