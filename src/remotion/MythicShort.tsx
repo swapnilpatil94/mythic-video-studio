@@ -1,6 +1,7 @@
 import React, {useMemo} from 'react';
-import {AbsoluteFill, Img, interpolate, staticFile, useCurrentFrame, useVideoConfig} from 'remotion';
+import {AbsoluteFill, Audio, Img, interpolate, staticFile, useCurrentFrame, useVideoConfig} from 'remotion';
 import {runtimeAssets} from './runtime-assets';
+import {runtimeAudio} from './runtime-audio';
 
 const INK = '#171510';
 const CREAM = '#F4E8CF';
@@ -111,6 +112,7 @@ export const MythicShort: React.FC<{manifest: Manifest}> = ({manifest}) => {
   const isThreat = beat.visual_role === 'threat' || beat.visual_role === 'stakes';
 
   return <AbsoluteFill style={{backgroundColor: CREAM, fontFamily: 'Noto Sans Devanagari, Noto Sans, sans-serif', color: INK}}>
+    {runtimeAudio ? <Audio src={staticFile(runtimeAudio)} volume={1}/> : null}
     <GeneratedArtwork beat={beat} progress={local}/>
     <AbsoluteFill style={{transform: `scale(${camera})`, transformOrigin: '50% 50%'}}>
       <svg width="100%" height="100%" viewBox="0 0 1080 1920">
