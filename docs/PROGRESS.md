@@ -1,39 +1,38 @@
 # Progress
 
-## 2026-09-06 — Per-beat narration alignment and silence analysis
+## 2026-09-06 — Deterministic final audio mix
 
 ### Completed this iteration
 
-- [x] Added `src/align-audio.ts` as a provider-neutral narration timing analysis stage.
-- [x] Added `npm run align:audio -- examples/karna-short.json`.
-- [x] Probes the real narration WAV duration with `ffprobe`.
-- [x] Detects silence intervals using FFmpeg `silencedetect` with configurable noise floor and minimum silence duration.
-- [x] Maps detected speech regions into each manifest beat's start/end window.
-- [x] Persists per-beat target duration, detected speech duration, silence duration and narration text to `projects/<project_id>/logs/audio-alignment-report.json`.
-- [x] Added `REQUIRE_TTS_ALIGNMENT=1` strict mode.
-- [x] Integrated alignment into `src/produce.ts` after whole-track audio inspection and before asset staging/rendering when strict TTS mode is enabled.
-- [x] Added `AUDIO_SILENCE_NOISE_DB`, `AUDIO_MIN_SILENCE_SECONDS`, and `AUDIO_ALIGNMENT_TOLERANCE_SECONDS` configuration boundaries.
-- [x] Updated `docs/STATUS.md` with the new gate, commands, blockers and next milestone.
-
-### Why this is intentionally not word-level alignment
-
-The current manifest provides beat-level narration text but no word timestamps. This stage therefore measures actual speech/silence occupancy inside deterministic beat windows rather than fabricating word timings. Word-level alignment can be added later through a local forced-alignment provider if the real narration workflow needs it.
+- [x] Added `src/mix-audio.ts` as a provider-neutral FFmpeg final-audio stage.
+- [x] Added `npm run mix:audio -- examples/karna-short.json`.
+- [x] Uses the generated narration WAV as the primary track.
+- [x] Supports optional manifest-configured music and loops it to the narration duration.
+- [x] Applies deterministic music attenuation through `MUSIC_VOLUME` (default `0.16`).
+- [x] Discovers optional per-beat SFX from `audio.sfx_dir` using `<beat_id>.wav`, `.mp3`, or `.m4a` naming.
+- [x] Delays each discovered SFX to its manifest beat start and applies `SFX_VOLUME` (default `0.55`).
+- [x] Mixes active tracks with FFmpeg `amix` and applies a final limiter.
+- [x] Writes a deterministic 48 kHz stereo PCM WAV at `projects/<project_id>/audio/final-mix.wav`.
+- [x] Added `REQUIRE_AUDIO_MIX=1` strict mode.
+- [x] Integrated the mix gate into `src/produce.ts` after narration validation/alignment and before staging/rendering.
+- [x] Stages `final-mix.wav` into `public/audio/<project_id>/`.
+- [x] Added generated `runtime-audio.ts` and wired Remotion to play the staged final mix when present.
+- [x] Updated `docs/STATUS.md` with implementation state, commands, blockers and next milestone.
 
 ### Verification boundary
 
-The implementation is repository-verified by accepted GitHub commits and source review. It is **not runtime-verified against a real generated Chatterbox WAV** in this environment. The silence detector, thresholds and per-beat results must be validated with actual deep-Hindi narration before treating the audio alignment gate as production-proven.
+The implementation is repository-verified by accepted GitHub commits and source review. It is **not runtime-verified with real Chatterbox narration, music and SFX files** in this environment. Therefore the gain defaults are engineering defaults, not a claim of final mastering quality. A real listening pass is required before M1 can close.
 
 ## Current milestone: M1 — First real Short
 
 ### Immediate next engineering sequence
 
-1. Validate alignment against the first real Chatterbox/deep-Hindi WAV and tune silence thresholds from evidence.
-2. Add music/SFX adapter and deterministic final audio mix.
-3. Expand compositor into reusable layered crops, pans, zooms and SVG draw-on transitions.
-4. Add true 2.5D/parallax and deterministic depth rules.
-5. Add automated captions and technical/visual QA report.
-6. Verify FLUX/ComfyUI and Chatterbox/deep-Hindi against the user's actual local installations.
-7. Run the complete Karna Short on the target Mac and record real runtime/quality metrics.
+1. Run the real Chatterbox/deep-Hindi narration plus optional music/SFX through the mix and inspect perceived loudness.
+2. Expand the Remotion compositor into reusable asset-aware crop/pan/zoom and SVG draw-on primitives.
+3. Add true layered 2.5D depth/parallax with deterministic depth rules.
+4. Add automated captions and technical/visual QA report.
+5. Verify FLUX/ComfyUI and Chatterbox/deep-Hindi against the user's actual local installations.
+6. Run the complete Karna Short on the target Mac and record runtime, generated asset count, retries, visual notes and audio notes.
 
 ## Exact reproducible commands
 
@@ -48,6 +47,7 @@ npm run check:asset-requirements -- examples/karna-short.json
 npm run generate:voice -- examples/karna-short.json
 npm run inspect:audio -- examples/karna-short.json
 npm run align:audio -- examples/karna-short.json
+npm run mix:audio -- examples/karna-short.json
 npm run stage:assets -- examples/karna-short.json
 bash run.sh examples/karna-short.json
 ```
@@ -55,7 +55,19 @@ bash run.sh examples/karna-short.json
 Strict first real-model run:
 
 ```bash
-REQUIRE_CHARACTER_REFERENCES=1 REQUIRE_GENERATED_ASSETS=1 REQUIRE_ASSET_REQUIREMENTS=1 REQUIRE_TTS=1 REQUIRE_TTS_ALIGNMENT=1 NORMALIZE_ASSETS=1 IMAGE_GENERATION_MAX_ATTEMPTS=2 bash run.sh examples/karna-short.json
+REQUIRE_CHARACTER_REFERENCES=1 REQUIRE_GENERATED_ASSETS=1 REQUIRE_ASSET_REQUIREMENTS=1 REQUIRE_TTS=1 REQUIRE_TTS_ALIGNMENT=1 REQUIRE_AUDIO_MIX=1 NORMALIZE_ASSETS=1 IMAGE_GENERATION_MAX_ATTEMPTS=2 bash run.sh examples/karna-short.json
+```
+
+Audio input layout:
+
+```text
+projects/karna-kavacha-demo/audio/
+  narration.wav
+  music.wav              # optional; point manifest audio.music_path here
+  sfx/
+    B01.wav              # optional beat-start SFX
+    B02.wav
+    ...
 ```
 
 ## Verification policy
