@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+      - run: npm run validate -- examples/karna-short.json
+      - run: npm run validate -- examples/karna-longform-test.json
+      - run: npm run check:motion
+      - name: Pipeline audit
+        shell: bash
+        run: set -o pipefail; npm run check:pipeline -- examples/karna-short.json 2>&1 | tee pipeline-check.log
+      - name: Upload pipeline audit log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipeline-check-log
+          path: pipeline-check.log

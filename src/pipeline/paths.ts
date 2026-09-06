@@ -9,6 +9,7 @@ export type ProjectPaths = {
   props: string;
   audio: string;
   renders: string;
+  reports: string;
   logs: string;
 };
 
@@ -22,6 +23,7 @@ export function projectPaths(projectId: string): ProjectPaths {
     props: join(root, 'assets', 'props'),
     audio: join(root, 'audio'),
     renders: join(root, 'renders'),
+    reports: join(root, 'reports'),
     logs: join(root, 'logs'),
   };
 }

@@ -23,7 +23,8 @@
           "new_asset_required": {"type": "boolean"},
           "camera": {"type": "string"},
           "animation": {"type": "string"},
-          "text": {"type": "string"}
+          "text": {"type": "string"},
+          "narration": {"type": "string"}
         }
       }
     }
