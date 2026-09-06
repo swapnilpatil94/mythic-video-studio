@@ -8,7 +8,7 @@ Updated: 2026-09-06
 
 **North star:** one command produces a publishable Hindi mythology video.
 
-**Current engineering focus:** captions, final-output technical QA and automated contact-sheet visual QA are now part of the production path. The next focus is real-model runtime verification and human visual/audible review against generated masters.
+**Current engineering focus:** the production path now has an explicit local-runtime preflight so strict runs fail early when FFmpeg, FFprobe, image generation, TTS, or required character-reference prerequisites are unavailable. The next focus is executing the real FLUX/ComfyUI and Chatterbox/deep-Hindi stack and reviewing the resulting MP4.
 
 ## Done — implemented and structurally verified in repository
 
@@ -91,13 +91,16 @@ Updated: 2026-09-06
 - [x] Manifest-driven SRT/VTT caption generation from beat narration/text
 - [x] Caption generation report persisted under project captions
 - [x] Final MP4 technical QA command using ffprobe/FFmpeg
-- [x] Output QA checks resolution, fps, duration, video/audio presence, black-frame intervals and audio peak
+- [x] Output QA checks resolution, fps, duration, black-frame intervals and audio peak
 - [x] Output QA report persisted under project logs
 - [x] Strict output QA mode (`REQUIRE_OUTPUT_QA=1`)
 - [x] Caption generation and output QA integrated into one-command production
 - [x] Automated 9-sample contact-sheet generation across rendered duration
 - [x] Visual QA report persisted under project QA artifacts
 - [x] Visual QA artifact integrated into one-command production
+- [x] Local production preflight command (`npm run preflight`)
+- [x] Preflight report persisted under project logs
+- [x] Strict production invokes preflight before expensive generation when image/TTS gates are enabled
 
 ## In progress
 
@@ -112,20 +115,17 @@ Updated: 2026-09-06
 
 ## Blockers
 
-No repository-level blocker is preventing further coding. Machine-specific blockers remain: the exact local FLUX/ComfyUI invocation and Chatterbox/deep-Hindi invocation are not verified in this environment. Output and visual QA are implemented but cannot provide meaningful release evidence until a real MP4 exists. The black-frame check is intentionally conservative and must be reviewed against real generated footage so legitimate dark mythic frames are not rejected.
+No repository-level blocker is preventing further coding. Machine-specific blockers remain: the exact local FLUX/ComfyUI invocation and Chatterbox/deep-Hindi invocation are not available for execution in this environment. The new preflight can now identify missing local executables/configuration before a strict run, but it cannot validate model quality or a model-specific workflow without executing it. Output and visual QA cannot provide release evidence until a real MP4 exists. The black-frame check is intentionally conservative and must be reviewed against real generated footage so legitimate dark mythic frames are not rejected.
 
-## Caption + QA contract
+## Runtime preflight contract
 
-`src/generate-captions.ts` derives deterministic subtitle windows from manifest beat timing and emits SRT/VTT plus a report. `src/generate-visual-qa.ts` samples nine frames across the rendered duration and emits a contact sheet plus report for human review. `src/check-output.ts` inspects a rendered MP4 with ffprobe/FFmpeg and checks 1080x1920, 30fps, duration tolerance, required audio/video streams, black intervals and audio peak. `REQUIRE_OUTPUT_QA=1` turns output-QA findings into a hard production failure.
-
-## Verification boundary
-
-Repository implementation is not the same as runtime verification. M1 cannot be marked complete until local dependencies/models are actually executed, real artwork/audio are generated, the final mix is listened to, a final MP4 is rendered, and that MP4 passes technical and visual/audible review on the target machine.
+`src/preflight.ts` checks the manifest, Node, FFmpeg, FFprobe, npx, configured image-generator executable, configured TTS executable, and the required character-reference directory when strict references are enabled. It persists `projects/<project_id>/logs/preflight-report.json`. A failed required check exits non-zero. `src/produce.ts` invokes this gate before generation whenever `REQUIRE_GENERATED_ASSETS=1` or `REQUIRE_TTS=1` is enabled.
 
 ## Exact reproducible commands
 
 ```bash
 npm install
+npm run preflight -- examples/karna-short.json
 npm run validate -- examples/karna-short.json
 npm run check:motion
 npm run inspect -- examples/karna-short.json
