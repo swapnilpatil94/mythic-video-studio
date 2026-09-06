@@ -1,0 +1,18 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "title":"Mythic Video Production Manifest",
+  "type":"object",
+  "required":["project_id","title","language","duration_seconds","characters","beats"],
+  "properties":{
+    "project_id":{"type":"string","minLength":1},
+    "title":{"type":"string","minLength":1},
+    "language":{"const":"hi-IN"},
+    "duration_seconds":{"type":"number","exclusiveMinimum":0},
+    "characters":{"type":"array","minItems":1,"items":{"type":"string"}},
+    "tempo_profile":{"enum":["short","medium","longform"]},
+    "narration_profile":{"type":"object"},
+    "beats":{"type":"array","minItems":5,"items":{"type":"object","required":["beat_id","duration_seconds","visual_role","asset_refs"],"properties":{"beat_id":{"type":"string","minLength":1},"duration_seconds":{"type":"number","exclusiveMinimum":0},"visual_role":{"type":"string","minLength":1},"asset_refs":{"type":"array","items":{"type":"string"}},"new_asset_required":{"type":"boolean"},"camera":{"type":"string"},"animation":{"type":"string"},"text":{"type":"string"},"narration":{"type":"string"},"sfx":{"type":"array","items":{"type":"string"}},"kinetic_keywords":{"type":"array","items":{"type":"string"}}},"additionalProperties":true}},
+    "audio":{"type":"object"}
+  },
+  "additionalProperties":true
+}
