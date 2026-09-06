@@ -8,7 +8,7 @@ Updated: 2026-09-06
 
 **North star:** one command produces a publishable Hindi mythology video.
 
-**Current engineering focus:** deterministic final audio mixing is now implemented as a provider-neutral FFmpeg stage. The next focus is reusable cinematic animation primitives and true layered 2.5D motion.
+**Current engineering focus:** reusable deterministic cinematic motion primitives are now wired into the Remotion compositor. The next focus is captions and automated technical/visual QA after real-model runtime verification.
 
 ## Done — implemented and structurally verified in repository
 
@@ -81,26 +81,32 @@ Updated: 2026-09-06
 - [x] Strict final-audio-mix gate (`REQUIRE_AUDIO_MIX=1`)
 - [x] Final mix staged into Remotion public audio space
 - [x] Remotion plays staged final mix when present
+- [x] Deterministic camera presets for push/pull/pan/tilt/reveal/reverse/armor crop
+- [x] Deterministic eased camera motion primitive module
+- [x] Depth-weighted 2.5D parallax transform primitive
+- [x] Asset-aware environment/character/prop depth application in Remotion
+- [x] Deterministic SVG draw-reveal progress primitive
+- [x] Armor highlight path draw-on wired to beat animation
+- [x] Motion primitive smoke-check command (`npm run check:motion`)
 
 ## In progress
 
 - [ ] Runtime verification against the user's actual FLUX/ComfyUI installation
 - [ ] Runtime verification against the user's actual Chatterbox/deep-Hindi voice setup
 - [ ] Validate semantic audio alignment and mix levels against real generated narration
-- [ ] SVG draw-on animation primitives beyond the current procedural fallback
-- [ ] True layered 2.5D camera/parallax system
-- [ ] Generated-art visual QA and character consistency review
+- [ ] Visual review of the new 2.5D camera language on real generated master assets
+- [ ] Expand SVG draw-on beyond the current armor/highlight primitive
 - [ ] Automated subtitles/captions
 - [ ] Automated visual/technical QA report
 - [ ] End-to-end real Karna render on the user's machine
 
 ## Blockers
 
-No repository-level blocker is preventing further coding. Machine-specific blockers remain: the exact local FLUX/ComfyUI invocation and Chatterbox/deep-Hindi invocation are not verified in this environment. The audio mixer also needs a real narration/music/SFX set to validate perceived loudness, ducking, and artistic balance; the current mix is deterministic but not claimed as mastered for release.
+No repository-level blocker is preventing further coding. Machine-specific blockers remain: the exact local FLUX/ComfyUI invocation and Chatterbox/deep-Hindi invocation are not verified in this environment. The new camera/parallax layer also requires a real generated-art render to tune depth strength and framing; the smoke check verifies deterministic math, not cinematic quality.
 
-## Audio mix contract
+## Motion contract
 
-`src/mix-audio.ts` accepts the manifest narration path, optional music path, and optional per-beat SFX files under the configured SFX directory. Music is looped and attenuated, SFX are delayed to each beat start and attenuated, and all active tracks are mixed to a 48 kHz stereo WAV with a final limiter. The result is `projects/<project_id>/audio/final-mix.wav`. Strict mode is enabled with `REQUIRE_AUDIO_MIX=1`.
+`src/remotion/motion.ts` provides deterministic camera presets, eased progress, depth-weighted parallax offsets, composable layer transforms, and draw-reveal progress. `MythicShort` applies different depth strengths to environment, prop and character layers so camera motion produces controlled 2.5D separation rather than moving every layer identically.
 
 ## Verification boundary
 
@@ -111,6 +117,7 @@ Repository implementation is not the same as runtime verification. M1 cannot be 
 ```bash
 npm install
 npm run validate -- examples/karna-short.json
+npm run check:motion
 npm run inspect -- examples/karna-short.json
 npm run prepare -- examples/karna-short.json
 npm run generate:assets -- examples/karna-short.json
