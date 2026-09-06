@@ -1,6 +1,6 @@
 {
   "name": "mythic-video-studio",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -29,6 +29,7 @@
     "generate:visual-qa": "tsx src/generate-visual-qa.ts",
     "typecheck": "tsc --noEmit",
     "dev": "remotion studio src/remotion/index.ts",
+    "studio": "node studio/server.mjs",
     "render:sample": "remotion render src/remotion/index.ts MythicShort renders/karna-short.mp4",
     "produce": "tsx src/produce.ts"
   },
