@@ -8,7 +8,7 @@ Updated: 2026-09-06
 
 **North star:** one command produces a publishable Hindi mythology video.
 
-**Current engineering focus:** the production path now has an explicit local-runtime preflight so strict runs fail early when FFmpeg, FFprobe, image generation, TTS, or required character-reference prerequisites are unavailable. The next focus is executing the real FLUX/ComfyUI and Chatterbox/deep-Hindi stack and reviewing the resulting MP4.
+**Current engineering focus:** the production path now has local-runtime preflight plus a deterministic pipeline-contract audit. The contract audit catches missing stage files, npm scripts, render stages and strict-gate wiring before a model run. The remaining decisive work is still real FLUX/ComfyUI + Chatterbox/deep-Hindi execution and review of the resulting MP4.
 
 ## Done — implemented and structurally verified in repository
 
@@ -101,6 +101,8 @@ Updated: 2026-09-06
 - [x] Local production preflight command (`npm run preflight`)
 - [x] Preflight report persisted under project logs
 - [x] Strict production invokes preflight before expensive generation when image/TTS gates are enabled
+- [x] Deterministic pipeline-contract audit (`npm run check:pipeline`)
+- [x] Pipeline audit verifies required stage source files, npm scripts, production-stage wiring and strict-gate wiring
 
 ## In progress
 
@@ -115,7 +117,11 @@ Updated: 2026-09-06
 
 ## Blockers
 
-No repository-level blocker is preventing further coding. Machine-specific blockers remain: the exact local FLUX/ComfyUI invocation and Chatterbox/deep-Hindi invocation are not available for execution in this environment. The new preflight can now identify missing local executables/configuration before a strict run, but it cannot validate model quality or a model-specific workflow without executing it. Output and visual QA cannot provide release evidence until a real MP4 exists. The black-frame check is intentionally conservative and must be reviewed against real generated footage so legitimate dark mythic frames are not rejected.
+No repository-level blocker is preventing further coding. Machine-specific blockers remain: the exact local FLUX/ComfyUI invocation and Chatterbox/deep-Hindi invocation are not available for execution in this environment. The preflight and pipeline-contract audit can identify missing prerequisites and wiring, but neither can validate model quality or a model-specific workflow without execution. Output and visual QA cannot provide release evidence until a real MP4 exists. The black-frame check is intentionally conservative and must be reviewed against real generated footage so legitimate dark mythic frames are not rejected.
+
+## Pipeline contract audit
+
+`src/check-pipeline.ts` checks that the manifest exists, all required pipeline source entrypoints exist, expected npm scripts are exposed, all production stages are referenced by `src/produce.ts`, and all strict release gates are wired. It prints a JSON report and exits non-zero on a contract mismatch. This is a structural guard only; it does not execute FLUX, TTS, or Remotion.
 
 ## Runtime preflight contract
 
@@ -125,6 +131,7 @@ No repository-level blocker is preventing further coding. Machine-specific block
 
 ```bash
 npm install
+npm run check:pipeline -- examples/karna-short.json
 npm run preflight -- examples/karna-short.json
 npm run validate -- examples/karna-short.json
 npm run check:motion
