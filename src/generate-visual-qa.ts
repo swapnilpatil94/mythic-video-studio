@@ -1,4 +1,4 @@
-import {mkdir, readFile} from 'node:fs/promises';
+import {mkdir, readFile, writeFile} from 'node:fs/promises';
 import {execFile} from 'node:child_process';
 import {promisify} from 'node:util';
 import type {ProductionManifest} from './pipeline/types';
@@ -17,8 +17,8 @@ const sheet = `${dir}/contact-sheet.jpg`;
 
 await exec('ffmpeg', [
   '-hide_banner', '-y', '-i', output,
-  '-vf', `fps=${sampleFps.toFixed(6)},scale=360:-2:flags=lanczos,drawtext=text='%{pts\\:hms}':x=12:y=12:fontsize=18:box=1:boxborderw=6`,
-  '-frames:v', '9', '-q:v', '3', sheet,
+  '-vf', `fps=${sampleFps.toFixed(6)},scale=360:-2:flags=lanczos,drawtext=text='%{pts\\:hms}':x=12:y=12:fontsize=18:box=1:boxborderw=6,tile=3x3`,
+  '-frames:v', '1', '-q:v', '3', sheet,
 ], {maxBuffer: 2 * 1024 * 1024});
 
 const report = {
@@ -31,5 +31,5 @@ const report = {
   note: 'Automated contact sheet for human visual review; it does not certify cinematic quality.',
   generated_at: new Date().toISOString(),
 };
-await import('node:fs/promises').then(({writeFile}) => writeFile(`${dir}/visual-qa-report.json`, JSON.stringify(report, null, 2), 'utf8'));
+await writeFile(`${dir}/visual-qa-report.json`, JSON.stringify(report, null, 2), 'utf8');
 console.log(`PASS: visual QA contact sheet written to ${sheet}`);
