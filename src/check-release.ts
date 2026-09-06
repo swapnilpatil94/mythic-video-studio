@@ -34,7 +34,8 @@ const evidence = [
   {name: 'contact-sheet', path: `${qaDir}/contact-sheet.jpg`, required: strict},
 ];
 
-const missing = evidence.filter((item) => item.required && !(await exists(item.path))).map((item) => item.path);
+const evidenceStatus = await Promise.all(evidence.map(async (item) => ({...item, exists: await exists(item.path)})));
+const missing = evidenceStatus.filter((item) => item.required && !item.exists).map((item) => item.path);
 const outputExists = await exists(output);
 if (!outputExists) missing.push(output);
 
@@ -70,7 +71,7 @@ const report = {
   manifest: {path: input, sha256: manifestSha256},
   output: {path: output, exists: outputExists, sha256: outputSha256},
   runtime,
-  evidence: Object.fromEntries(evidence.map((item) => [item.name, {path: item.path, required: item.required, exists: exists(item.path)}])),
+  evidence: Object.fromEntries(evidenceStatus.map((item) => [item.name, {path: item.path, required: item.required, exists: item.exists}])),
   failures: [...missing, ...qaFailures],
   status: missing.length || qaFailures.length ? 'FAIL' : 'PASS',
   generated_at: new Date().toISOString(),
