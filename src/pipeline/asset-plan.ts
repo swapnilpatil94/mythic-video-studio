@@ -7,6 +7,7 @@ export type AssetRequest = {
   role: string;
   promptHint: string;
   required: boolean;
+  reference_required: boolean;
 };
 
 export function buildAssetPlan(manifest: ProductionManifest): AssetRequest[] {
@@ -17,5 +18,6 @@ export function buildAssetPlan(manifest: ProductionManifest): AssetRequest[] {
     role: job.prompt.match(/story roles: ([^.]+)/)?.[1] ?? 'story asset',
     promptHint: job.prompt,
     required: job.required,
+    reference_required: job.reference_required,
   }));
 }
