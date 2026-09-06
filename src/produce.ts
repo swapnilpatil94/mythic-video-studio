@@ -18,6 +18,7 @@ if (!existsSync(input)) throw new Error(`Manifest not found: ${input}`);
 const strictRuntime = process.env.REQUIRE_GENERATED_ASSETS === '1' || process.env.REQUIRE_TTS === '1';
 if (strictRuntime) await run('npx', ['tsx', 'src/preflight.ts', input]);
 
+await run('npx', ['tsx', 'src/check-pipeline.ts', input]);
 await run('npx', ['tsx', 'src/cli.ts', 'validate', input]);
 await run('npx', ['tsx', 'src/pipeline/prepare-project.ts', input]);
 await run('npx', ['tsx', 'src/generate-assets.ts', input]);
@@ -40,4 +41,5 @@ await writeFile('src/remotion/runtime-manifest.ts', runtimeSource, 'utf8');
 await run('npx', ['remotion', 'render', 'src/remotion/index.ts', 'MythicShort', output]);
 await run('npx', ['tsx', 'src/generate-visual-qa.ts', input, output]);
 await run('npx', ['tsx', 'src/check-output.ts', input, output]);
+if (process.env.REQUIRE_RELEASE_EVIDENCE === '1') await run('npx', ['tsx', 'src/check-release.ts', input, output]);
 console.log(`DONE: ${output}`);
