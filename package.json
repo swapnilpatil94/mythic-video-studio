@@ -1,6 +1,6 @@
 {
   "name": "mythic-video-studio",
-  "version": "0.11.0",
+  "version": "0.10.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -8,7 +8,6 @@
     "inspect": "tsx src/cli.ts inspect",
     "prepare": "tsx src/pipeline/prepare-project.ts",
     "preflight": "tsx src/preflight.ts",
-    "discover:local": "tsx src/discover-local.ts",
     "check:pipeline": "tsx src/check-pipeline.ts",
     "check:release": "tsx src/check-release.ts",
     "generate:assets": "tsx src/generate-assets.ts",
@@ -17,21 +16,22 @@
     "check:asset-requirements": "tsx src/check-asset-requirements.ts",
     "stage:assets": "tsx src/stage-assets.ts",
     "generate:voice": "tsx src/generate-voice.ts",
-    "tune:narration": "tsx src/tune-narration.ts",
     "inspect:audio": "tsx src/inspect-audio.ts",
     "align:audio": "tsx src/align-audio.ts",
-    "prepare:timing": "tsx src/prepare-timing.ts",
+    "align:whisper": "tsx src/align-whisper.ts",
     "mix:audio": "tsx src/mix-audio.ts",
     "check:motion": "tsx src/check-motion.ts",
-    "check:visual-beats": "tsx src/check-visual-beats.ts",
     "generate:captions": "tsx src/generate-captions.ts",
     "check:output": "tsx src/check-output.ts",
     "generate:visual-qa": "tsx src/generate-visual-qa.ts",
     "typecheck": "tsc --noEmit",
     "dev": "remotion studio src/remotion/index.ts",
-    "studio": "node studio/server.mjs",
     "render:sample": "remotion render src/remotion/index.ts MythicShort renders/karna-short.mp4",
-    "produce": "tsx src/produce.ts"
+    "produce": "tsx src/produce.ts",
+    "studio": "tsx src/studio/dev.ts",
+    "studio:api": "tsx src/studio/server.ts",
+    "studio:web": "vite --config web/vite.config.ts",
+    "studio:build": "vite build --config web/vite.config.ts"
   },
   "dependencies": {
     "@remotion/cli": "^4.0.520",
@@ -45,6 +45,8 @@
     "tsx": "^4.20.0",
     "typescript": "^5.9.0",
     "@types/react": "^19.1.10",
-    "@types/react-dom": "^19.1.7"
+    "@types/react-dom": "^19.1.7",
+    "vite": "^7.0.0",
+    "@vitejs/plugin-react": "^4.3.0"
   }
 }

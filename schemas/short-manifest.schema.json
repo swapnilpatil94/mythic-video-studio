@@ -7,17 +7,8 @@
     "project_id": {"type": "string", "minLength": 1},
     "title": {"type": "string", "minLength": 1},
     "language": {"const": "hi-IN"},
-    "duration_seconds": {"type": "number", "minimum": 45, "maximum": 120},
+    "duration_seconds": {"type": "number", "minimum": 45, "maximum": 1200, "description": "45-120s Short; above 120s is long-form (see src/remotion/format.ts profileFor)."},
     "characters": {"type": "array", "items": {"type": "string"}},
-    "tempo_profile": {"enum": ["short", "medium", "longform"]},
-    "narration_profile": {
-      "type": "object",
-      "properties": {
-        "target_wpm": {"type": "number", "minimum": 100, "maximum": 220},
-        "max_pause_seconds": {"type": "number", "minimum": 0.1, "maximum": 2},
-        "speed_factor": {"type": "number", "minimum": 0.8, "maximum": 1.2}
-      }
-    },
     "beats": {
       "type": "array",
       "minItems": 5,
@@ -33,8 +24,7 @@
           "camera": {"type": "string"},
           "animation": {"type": "string"},
           "text": {"type": "string"},
-          "narration": {"type": "string"},
-          "kinetic_keywords": {"type": "array", "items": {"type": "string"}}
+          "narration": {"type": "string"}
         }
       }
     }

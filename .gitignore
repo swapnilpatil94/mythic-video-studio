@@ -12,3 +12,6 @@ assets/*
 !assets/.gitkeep
 renders/
 logs/
+web/dist/
+public/generated/
+public/audio/

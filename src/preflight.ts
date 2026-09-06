@@ -11,8 +11,10 @@ await ensureProjectPaths(paths);
 
 const checks: Array<{name: string; ok: boolean; detail: string}> = [];
 
+const versionFlagFor = (command: string) => (/(^|\/)(ffmpeg|ffprobe)$/i.test(command) ? '-version' : '--version');
+
 const commandExists = (command: string) => new Promise<boolean>((resolve) => {
-  const child = spawn(command, ['--version'], {stdio: 'ignore'});
+  const child = spawn(command, [versionFlagFor(command)], {stdio: 'ignore'});
   child.on('error', () => resolve(false));
   child.on('exit', (code) => resolve(code === 0));
 });

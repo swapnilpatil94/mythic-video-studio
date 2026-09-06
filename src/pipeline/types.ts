@@ -17,8 +17,6 @@ export type AssetRecord = {
   last_error?: string;
 };
 
-export type TempoProfile = 'short' | 'medium' | 'longform';
-
 export type ProductionBeat = {
   beat_id: string;
   duration_seconds: number;
@@ -30,7 +28,6 @@ export type ProductionBeat = {
   text?: string;
   narration?: string;
   sfx?: string[];
-  kinetic_keywords?: string[];
 };
 
 export type ProductionManifest = {
@@ -39,12 +36,6 @@ export type ProductionManifest = {
   language: 'hi-IN';
   duration_seconds: number;
   characters: string[];
-  tempo_profile?: TempoProfile;
-  narration_profile?: {
-    target_wpm?: number;
-    max_pause_seconds?: number;
-    speed_factor?: number;
-  };
   beats: ProductionBeat[];
   audio?: {
     narration_path?: string;

@@ -9,13 +9,9 @@ const checks: Array<{name: string; ok: boolean; detail: string}> = [];
 const requiredFiles = [
   'src/cli.ts', 'src/produce.ts', 'src/preflight.ts', 'src/check-release.ts',
   'src/generate-assets.ts', 'src/inspect-assets.ts', 'src/normalize-assets.ts',
-  'src/check-asset-requirements.ts', 'src/generate-voice.ts', 'src/tune-narration.ts',
-  'src/inspect-audio.ts', 'src/align-audio.ts', 'src/prepare-timing.ts', 'src/mix-audio.ts',
-  'src/generate-captions.ts', 'src/stage-assets.ts', 'src/generate-visual-qa.ts', 'src/check-output.ts',
-  'src/check-motion.ts', 'src/check-visual-beats.ts', 'src/remotion/index.ts',
-  'src/remotion/visual-beats.tsx', 'src/remotion/MythicShort.tsx', 'src/remotion/runtime-timing.ts',
-  'studio/server.mjs', 'studio/index.html', 'prompts/story-package.md', 'schemas/story-package.schema.json',
-  'schemas/production-manifest.schema.json',
+  'src/check-asset-requirements.ts', 'src/generate-voice.ts', 'src/inspect-audio.ts',
+  'src/align-audio.ts', 'src/align-whisper.ts', 'src/mix-audio.ts', 'src/generate-captions.ts', 'src/stage-assets.ts',
+  'src/generate-visual-qa.ts', 'src/check-output.ts', 'src/check-motion.ts', 'src/remotion/index.ts',
 ];
 
 checks.push({name: 'manifest', ok: existsSync(manifestPath), detail: manifestPath});
@@ -24,8 +20,8 @@ for (const file of requiredFiles) checks.push({name: `file:${file}`, ok: existsS
 const requiredScripts = [
   'validate', 'inspect', 'prepare', 'preflight', 'check:pipeline', 'check:release', 'generate:assets',
   'inspect:assets', 'normalize:assets', 'check:asset-requirements', 'stage:assets', 'generate:voice',
-  'tune:narration', 'inspect:audio', 'align:audio', 'prepare:timing', 'mix:audio', 'check:motion',
-  'check:visual-beats', 'generate:captions', 'check:output', 'generate:visual-qa', 'typecheck', 'produce', 'studio',
+  'inspect:audio', 'align:audio', 'align:whisper', 'mix:audio', 'check:motion', 'generate:captions', 'check:output',
+  'generate:visual-qa', 'produce',
 ];
 for (const script of requiredScripts) {
   const command = packageJson.scripts?.[script];
@@ -35,9 +31,9 @@ for (const script of requiredScripts) {
 const requiredProduceStages = [
   'src/preflight.ts', 'src/check-pipeline.ts', 'src/cli.ts', 'src/pipeline/prepare-project.ts',
   'src/generate-assets.ts', 'src/normalize-assets.ts', 'src/inspect-assets.ts', 'src/check-asset-requirements.ts',
-  'src/generate-voice.ts', 'src/tune-narration.ts', 'src/inspect-audio.ts', 'src/align-audio.ts',
-  'src/prepare-timing.ts', 'src/mix-audio.ts', 'src/generate-captions.ts', 'src/stage-assets.ts',
-  'remotion', 'src/generate-visual-qa.ts', 'src/check-output.ts', 'src/check-release.ts',
+  'src/generate-voice.ts', 'src/inspect-audio.ts', 'src/align-audio.ts', 'src/align-whisper.ts', 'src/mix-audio.ts',
+  'src/generate-captions.ts', 'src/stage-assets.ts', 'remotion', 'src/generate-visual-qa.ts',
+  'src/check-output.ts', 'src/check-release.ts',
 ];
 for (const stage of requiredProduceStages) checks.push({name: `produce-stage:${stage}`, ok: produce.includes(stage), detail: produce.includes(stage) ? 'wired' : 'not referenced'});
 

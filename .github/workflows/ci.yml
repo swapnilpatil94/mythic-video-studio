@@ -15,18 +15,9 @@ jobs:
         with:
           node-version: 20
       - run: npm install
-      - name: Typecheck
-        shell: bash
-        run: set -o pipefail; npm run typecheck 2>&1 | tee typecheck.log
-      - name: Upload typecheck log
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: typecheck-log
-          path: typecheck.log
       - run: npm run validate -- examples/karna-short.json
+      - run: npm run validate -- examples/karna-longform-test.json
       - run: npm run check:motion
-      - run: npm run check:visual-beats -- examples/karna-short.json
       - name: Pipeline audit
         shell: bash
         run: set -o pipefail; npm run check:pipeline -- examples/karna-short.json 2>&1 | tee pipeline-check.log

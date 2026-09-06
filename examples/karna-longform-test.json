@@ -4,8 +4,6 @@
   "language":"hi-IN",
   "duration_seconds":180,
   "characters":["karna"],
-  "tempo_profile":"longform",
-  "narration_profile":{"target_wpm":155,"max_pause_seconds":1.2,"speed_factor":1},
   "beats":[
     {"beat_id":"b01","duration_seconds":18,"visual_role":"hook","asset_refs":["karna"]},
     {"beat_id":"b02","duration_seconds":18,"visual_role":"setup","asset_refs":["karna"]},
