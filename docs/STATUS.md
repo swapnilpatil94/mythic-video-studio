@@ -8,7 +8,7 @@ Updated: 2026-09-06
 
 **North star:** one command produces a publishable Hindi mythology video.
 
-**Current engineering focus:** reusable deterministic cinematic motion primitives are now wired into the Remotion compositor. The next focus is captions and automated technical/visual QA after real-model runtime verification.
+**Current engineering focus:** captions and final-output technical QA are now part of the production path. The next focus is real-model runtime verification and visual QA against generated masters.
 
 ## Done — implemented and structurally verified in repository
 
@@ -88,6 +88,13 @@ Updated: 2026-09-06
 - [x] Deterministic SVG draw-reveal progress primitive
 - [x] Armor highlight path draw-on wired to beat animation
 - [x] Motion primitive smoke-check command (`npm run check:motion`)
+- [x] Manifest-driven SRT/VTT caption generation from beat narration/text
+- [x] Caption generation report persisted under project captions
+- [x] Final MP4 technical QA command using ffprobe/FFmpeg
+- [x] Output QA checks resolution, fps, duration, video/audio presence, black-frame intervals and audio peak
+- [x] Output QA report persisted under project logs
+- [x] Strict output QA mode (`REQUIRE_OUTPUT_QA=1`)
+- [x] Caption generation and output QA integrated into one-command production
 
 ## In progress
 
@@ -96,21 +103,21 @@ Updated: 2026-09-06
 - [ ] Validate semantic audio alignment and mix levels against real generated narration
 - [ ] Visual review of the new 2.5D camera language on real generated master assets
 - [ ] Expand SVG draw-on beyond the current armor/highlight primitive
-- [ ] Automated subtitles/captions
-- [ ] Automated visual/technical QA report
+- [ ] Burn-in/visual styling review of generated captions against real footage
+- [ ] Automated visual QA/contact-sheet generation
 - [ ] End-to-end real Karna render on the user's machine
 
 ## Blockers
 
-No repository-level blocker is preventing further coding. Machine-specific blockers remain: the exact local FLUX/ComfyUI invocation and Chatterbox/deep-Hindi invocation are not verified in this environment. The new camera/parallax layer also requires a real generated-art render to tune depth strength and framing; the smoke check verifies deterministic math, not cinematic quality.
+No repository-level blocker is preventing further coding. Machine-specific blockers remain: the exact local FLUX/ComfyUI invocation and Chatterbox/deep-Hindi invocation are not verified in this environment. Output QA is implemented but cannot pass or fail meaningfully until a real MP4 exists. The black-frame check is intentionally conservative and must be reviewed against real generated footage so legitimate dark mythic frames are not rejected.
 
-## Motion contract
+## Caption + QA contract
 
-`src/remotion/motion.ts` provides deterministic camera presets, eased progress, depth-weighted parallax offsets, composable layer transforms, and draw-reveal progress. `MythicShort` applies different depth strengths to environment, prop and character layers so camera motion produces controlled 2.5D separation rather than moving every layer identically.
+`src/generate-captions.ts` derives deterministic subtitle windows from manifest beat timing and emits SRT/VTT plus a report. `src/check-output.ts` inspects a rendered MP4 with ffprobe/FFmpeg and checks 1080x1920, 30fps, duration tolerance, required audio/video streams, black intervals and audio peak. `REQUIRE_OUTPUT_QA=1` turns output-QA findings into a hard production failure.
 
 ## Verification boundary
 
-Repository implementation is not the same as runtime verification. M1 cannot be marked complete until local dependencies/models are actually executed, real artwork/audio are generated, the final mix is listened to, and a final MP4 is rendered and visually/audibly reviewed on the target machine.
+Repository implementation is not the same as runtime verification. M1 cannot be marked complete until local dependencies/models are actually executed, real artwork/audio are generated, the final mix is listened to, a final MP4 is rendered, and that MP4 passes technical and visual/audible review on the target machine.
 
 ## Exact reproducible commands
 
@@ -128,14 +135,16 @@ npm run generate:voice -- examples/karna-short.json
 npm run inspect:audio -- examples/karna-short.json
 npm run align:audio -- examples/karna-short.json
 npm run mix:audio -- examples/karna-short.json
+npm run generate:captions -- examples/karna-short.json
 npm run stage:assets -- examples/karna-short.json
 bash run.sh examples/karna-short.json
+npm run check:output -- examples/karna-short.json renders/karna-short.mp4
 ```
 
 Strict first real-model run:
 
 ```bash
-REQUIRE_CHARACTER_REFERENCES=1 REQUIRE_GENERATED_ASSETS=1 REQUIRE_ASSET_REQUIREMENTS=1 REQUIRE_TTS=1 REQUIRE_TTS_ALIGNMENT=1 REQUIRE_AUDIO_MIX=1 NORMALIZE_ASSETS=1 IMAGE_GENERATION_MAX_ATTEMPTS=2 bash run.sh examples/karna-short.json
+REQUIRE_CHARACTER_REFERENCES=1 REQUIRE_GENERATED_ASSETS=1 REQUIRE_ASSET_REQUIREMENTS=1 REQUIRE_TTS=1 REQUIRE_TTS_ALIGNMENT=1 REQUIRE_AUDIO_MIX=1 REQUIRE_OUTPUT_QA=1 NORMALIZE_ASSETS=1 IMAGE_GENERATION_MAX_ATTEMPTS=2 bash run.sh examples/karna-short.json
 ```
 
 Audio input layout for the optional mix stage:
