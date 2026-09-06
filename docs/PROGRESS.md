@@ -1,46 +1,45 @@
 # Progress
 
-## 2026-09-06 — Release evidence and post-render integrity
+## 2026-09-06 — Local runtime discovery and integration boundary
 
 ### Completed this iteration
 
-- [x] Added `src/check-release.ts` as the post-render release-evidence boundary.
-- [x] Added `npm run check:release -- <manifest> <mp4>`.
-- [x] Strict mode (`REQUIRE_RELEASE_EVIDENCE=1`) requires the final MP4 and applicable evidence artifacts.
-- [x] Release audit fingerprints the manifest and final MP4 with SHA-256.
-- [x] Release audit records final video/audio stream metadata with `ffprobe`.
-- [x] Release audit checks preflight, audio-duration, audio-alignment, output-QA, visual-QA and contact-sheet evidence when those gates are enabled.
-- [x] Release audit persists `projects/<project_id>/logs/release-evidence-report.json`.
-- [x] Wired the release-evidence gate into `src/produce.ts` after rendering and existing QA stages.
-- [x] Extended `src/check-pipeline.ts` so the structural audit covers the release-evidence source, npm script, production wiring and strict gate.
-- [x] Updated status tracking with the new evidence contract and verification boundary.
+- [x] Added `src/discover-local.ts` to inspect PATH commands and common local project directories.
+- [x] Added `npm run discover:local -- <manifest>`.
+- [x] Discovery records configured image/TTS/Whisper environment variables without silently selecting a provider.
+- [x] Discovery checks for ffmpeg, ffprobe, Python, and possible ComfyUI/Draw Things/Whisper CLI candidates.
+- [x] Discovery persists `projects/<project_id>/logs/local-runtime-discovery.json`.
+- [x] Integrated discovery into `src/produce.ts` before strict preflight.
+- [x] Corrected the new discovery implementation before documenting it; the committed source imports and runtime report generation are now internally consistent.
 
 ### Why this milestone
 
-The pipeline already had many independent quality stages, but there was no final machine-readable artifact tying a specific manifest to a specific rendered MP4 and its QA evidence. The release audit closes that provenance gap without pretending that hashes or automated checks certify artistic quality.
+The repository is structurally ready, but the decisive M1 gap is the user's actual local model stack. The studio must reuse existing FLUX/ComfyUI, Draw Things, Chatterbox and Whisper installations rather than inventing a second stack. Discovery provides machine evidence while deliberately refusing to guess a workflow, model, voice or provider.
 
 ### Verification boundary
 
-The new code is committed and source-reviewed. It has **not** been executed against a real FLUX/ComfyUI + Chatterbox render in this environment. The release audit therefore remains structurally implemented but runtime-unverified. No M1 completion claim is made.
+The implementation is committed and source-reviewed in GitHub. It has **not** been executed against the user's Mac from this environment, so no local candidate is claimed to be working and M1 remains open.
 
 ## Current milestone: M1 — First real Short
 
 ### Immediate next engineering sequence
 
-1. Run `npm install`.
-2. Run `npm run check:pipeline -- examples/karna-short.json`.
-3. Run `npm run preflight -- examples/karna-short.json` and resolve machine-specific failures.
-4. Execute the strict one-command Karna production using the real local FLUX/ComfyUI and Chatterbox/deep-Hindi commands.
-5. Review the generated master assets, narration, mix, captions, MP4, contact sheet and QA reports.
-6. Run/inspect `release-evidence-report.json` and retain its manifest/output hashes.
-7. Record actual model runtimes, retries, asset count, reference use and quality notes.
-8. Tune only from observed footage/audio.
-9. Close M1 only after technical, visual, audio, caption and mythology-respect gates pass.
+1. On the target Mac run `npm install`.
+2. Run `npm run discover:local -- examples/karna-short.json` and inspect `projects/karna-kavacha-demo/logs/local-runtime-discovery.json`.
+3. Map the discovered working ComfyUI/Draw Things/FLUX and Chatterbox/Whisper commands into the existing provider-neutral adapters; do not create parallel stacks.
+4. Run `npm run preflight -- examples/karna-short.json`.
+5. Execute the strict one-command Karna production.
+6. Fix runtime integration failures and rerun.
+7. Review master assets, narration, alignment, mix, captions, MP4, contact sheet and QA reports.
+8. Capture release evidence and hashes.
+9. Tune only from observed footage/audio.
+10. Close M1 only after technical, visual, audio, caption and mythology-respect gates pass.
 
 ## Exact reproducible commands
 
 ```bash
 npm install
+npm run discover:local -- examples/karna-short.json
 npm run check:pipeline -- examples/karna-short.json
 npm run preflight -- examples/karna-short.json
 npm run validate -- examples/karna-short.json
@@ -59,19 +58,10 @@ Post-render evidence check:
 npm run check:release -- examples/karna-short.json renders/karna-short.mp4
 ```
 
-### Expected release evidence
+### Expected new discovery evidence
 
 ```text
-projects/karna-kavacha-demo/logs/
-  preflight-report.json
-  audio-report.json
-  audio-alignment-report.json
-  output-qa-report.json
-  release-evidence-report.json
-
-projects/karna-kavacha-demo/qa/
-  contact-sheet.jpg
-  visual-qa-report.json
+projects/karna-kavacha-demo/logs/local-runtime-discovery.json
 ```
 
 ## Verification policy
