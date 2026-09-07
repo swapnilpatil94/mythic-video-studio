@@ -46,7 +46,7 @@ async function writeJson(path: string, value: unknown): Promise<void> {
 /** A minimal, immediately-valid starter manifest — passes `validateProductionManifest` (>=5 beats,
  * >=1 character, beat durations summing to the target) as soon as a project is created, so a brand
  * new project is real/runnable rather than a placeholder that fails validation until hand-edited. */
-export function starterManifest(projectId: string, name: string, targetDurationSeconds: number): ProductionManifest {
+export function starterManifest(projectId: string, name: string, targetDurationSeconds: number, platform?: string): ProductionManifest {
   const beatCount = 5;
   const each = Math.round((targetDurationSeconds / beatCount) * 100) / 100;
   const beats = Array.from({length: beatCount}).map((_, i) => {
@@ -70,6 +70,7 @@ export function starterManifest(projectId: string, name: string, targetDurationS
     language: 'hi-IN',
     duration_seconds: targetDurationSeconds,
     characters: ['character.master'],
+    platform,
     beats,
   };
 }
@@ -142,7 +143,7 @@ export async function createProject(input: {name: string; format: ProjectFormat;
   const script = ScriptSchema.parse({});
   const characters = CharactersSchema.parse({});
   const metadata = MetadataSchema.parse({});
-  const manifest = starterManifest(projectId, input.name, input.target_duration_seconds);
+  const manifest = starterManifest(projectId, input.name, input.target_duration_seconds, project.platform_profiles[0]);
 
   await Promise.all([
     writeJson(join(dir, 'project.json'), project),

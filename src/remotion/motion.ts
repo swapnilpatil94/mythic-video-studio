@@ -99,7 +99,7 @@ export function entranceExitOpacity(local: number, inEnd = 0.1, outStart = 0.88)
 }
 
 /** Small vertical settle-in / rise-out shift (px) paired with entranceExitOpacity. */
-export function entranceExitShiftY(local: number, inEnd = 0.1, outStart = 0.88, distance = 46): number {
+export function entranceExitShiftY(local: number, inEnd = 0.1, outStart = 0.88, distance = 64): number {
   const t = clamp01(local);
   if (t < inEnd) return distance * (1 - easeInOut(t / inEnd));
   if (t > outStart) return -distance * 0.6 * easeInOut((t - outStart) / Math.max(0.001, 1 - outStart));
