@@ -72,19 +72,40 @@ export function layerTransform(
   return `translate(${camera.translateX + offset.x}px, ${camera.translateY + offset.y}px) scale(${camera.scale}) rotate(${camera.rotate}deg)`;
 }
 
-export function drawRevealProgress(progress: number, hold = 0.18): number {
+/**
+ * Progress for genuine draw-on accents. The first part deliberately stays quiet so the viewer
+ * sees the blank/parchment setup before the stroke starts, then the stroke accelerates and settles.
+ * This is used by existing SVG path draw-ons (underlines, threat marks, etc.).
+ */
+export function drawRevealProgress(progress: number, hold = 0.12): number {
   const t = clamp01(progress);
   if (t <= hold) return 0;
-  return clamp01((t - hold) / Math.max(0.001, 1 - hold));
+  const p = clamp01((t - hold) / Math.max(0.001, 1 - hold));
+  // Smooth cubic ease gives a deliberate pen stroke instead of a linear mechanical wipe.
+  return p * p * (3 - 2 * p);
 }
 
 /**
- * Reveal progress that ramps 0->1 over the first `until` fraction of a beat and then holds at 1,
- * used to drive the ink-outline-to-wash settle on a layer so it resolves early and stays sharp
- * for the rest of the beat instead of the whole beat looking unfinished.
+ * Drawing-stage progress for artwork reveals.
+ *
+ * The previous renderer resolved the ink/wash reveal in ~32% of a beat, which made it read like
+ * "an already-finished image being uncovered". Keep the same API so existing compositions need no
+ * manifest/schema changes, but stretch the construction phase across most of the beat and give the
+ * final wash a shorter settling tail. The consuming `inkRevealStyle` in MythicShort then has time
+ * to show its rough boundary + pen cue before the finished colour settles.
+ *
+ * Stages conceptually read as:
+ *   0.00–0.10  blank / anticipation
+ *   0.10–0.72  ink construction
+ *   0.72–1.00  colour wash + settle
  */
-export function revealProgress(local: number, until = 0.32): number {
-  return clamp01(local / Math.max(0.001, until));
+export function revealProgress(local: number, until = 0.72): number {
+  const t = clamp01(local);
+  if (t <= 0.10) return 0;
+  const construction = clamp01((t - 0.10) / Math.max(0.001, until - 0.10));
+  if (t <= until) return construction * 0.78;
+  const wash = clamp01((t - until) / Math.max(0.001, 1 - until));
+  return 0.78 + (wash * wash * (3 - 2 * wash)) * 0.22;
 }
 
 /**
