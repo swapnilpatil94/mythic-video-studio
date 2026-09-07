@@ -1,5 +1,204 @@
 # Progress
 
+## 2026-09-07 (real shot-grammar pass) — 3 asset-ghosting bugs traced and fixed, real logo wired
+
+Brief: continuation of the cinematic pass below — real shot GRAMMAR (wide/close/detail/two-shot as
+different compositions, not different zoom), off-center staging, environmental depth, stronger
+scale variation, plus wiring in the real KATHAAYA emblem. Same constraints throughout: no second
+renderer, no one-image-per-shot. Process: code → real render → dense-frame grid → inspect → fix →
+rerender, **9 times** this pass, each rerun triggered by a specific real finding.
+
+**Real shot grammar**: new `ShotFrameTreatment` (`MythicShort.tsx`) gives each shot kind an actual
+different compositional device — letterbox bars + foreground silhouette for wide, an edge vignette
+for close, a gold loupe-ring for detail, a soft ink divider for two-shot, medium left plain as the
+baseline. Added curated sub-shot sequences for 5 roles that previously fell to the generic rotation
+(most visibly fixing `T2`/`loyalty` echoing `T1`/`decision`). `MAX_ZOOM` 1.45→1.78.
+
+**A bug found inside my own first fix**: the first version centered "close"/"detail" on the
+sub-shot's own `focusX`/`focusY`, assuming that would land at the same screen position —
+`FramedLayer`'s combined zoom/sway/camera-parallax/idle motion disproved that in a real render (`H1`:
+the vignette hid Karna's whole face in the dark band). Fixed by making both treatments
+frame-relative and generous instead of position-tracking, so the subject can't be hidden regardless
+of exactly where the crop landed.
+
+**Three master assets turned out to be "a scene with an extra figure baked in"** — the same root
+problem `surya_glow` had, recurring twice more once actually inspected under real render:
+1. `ashwa_river` (environment, reused 8 beats): a full boat/rower scene, not a clean backdrop — took
+   two crop attempts (first still let the rower's arm peek in, confirmed via a real frame) before a
+   direct percentage-grid overlay on the source PNG got the crop actually clean.
+2. `indra.png` (Indra's own character master): had a **second, smaller figure baked in** (a woman,
+   bottom-right ~25% of canvas) — `'contain'`-fit shows the whole source when an environment is also
+   present, so both rendered at once. Fixed by clearing that region to transparent directly in the
+   source PNG — an asset patch, not a compositor change or new generation.
+3. A third, narrower translucent double-exposure, isolated to beat `R1` only (confirmed via direct
+   checks that it's not the environment crop and not the indra.png fix, and confirmed absent from
+   every other beat reusing the same two assets: `R2`, `C1`, `C2`, `H2`, `P1`). Root cause not
+   conclusively identified after three real diagnostic attempts — flagged honestly, not claimed
+   fixed.
+
+**Real KATHAAYA emblem wired everywhere, pending one file**: this session can't extract raw bytes
+from a pasted chat image, so the user's supplied logo couldn't be saved directly. Wired
+`BRAND_LOGO_PATH` (`src/shared/brand.ts`) + a new `OpeningLogoSplash` (brief full-screen ident,
+Netflix-style) + the existing `BrandWatermark`/`EndCard` to use it via `staticFile()` the moment it
+exists at `public/brand/kathaaya-logo.png`. `stage-assets.ts` checks for the file at pipeline time
+and writes a `brandLogoAvailable` flag (`runtime-brand.ts`) the compositor branches on — confirmed
+via a real pipeline log line that it falls back to the text wordmark gracefully rather than
+breaking, since all 9 renders this pass ran without the file in place.
+
+**Verified against real renders**: 9 full pipeline runs, each triggered by a specific finding, not
+repeated blindly. Final state unchanged in size/timing from previous pass: 1080×1920, 169.557s,
+`check-output.ts` PASS every run. Dense-frame checks directly confirmed: no face bleed on any
+glow/close-up beat, real letterbox bars (R1's first sub-shot), real loupe-ring (S2), real two-shot
+divider + off-center staging + tournament-ground depth (E4), `ashwa_river` clean on 6/6 checked
+beats. Also re-verified a suspected "wrong character" in T1 against the real `karna.png` master and
+confirmed it was a false read (Karna's own art correctly composited with the battlefield's
+horse/soldiers) — corrected before acting on it.
+
+**Honest limitations**: R1's unexplained translucent artifact (above); the real logo file still not
+on disk; T1/T2 still share a similar wide-battlefield feel since the underlying `kurukshetra_
+battlefield` master art itself is a single fixed illustration (out of scope this pass); the FLUX
+watermark artifact from earlier sessions is unchanged; verified via sparse timestamp sampling, not a
+full real-time watch.
+
+## 2026-09-07 (longform cinematic-quality pass) — 5 real problems found and fixed, re-verified
+
+Brief: "REVIEW AND IMPROVE THE FULL-LENGTH KARNA VIDEO" — no architecture change, no new renderer.
+The longform was technically passing but visually read as "portrait illustrations placed inside a
+vertical video." Required process: real render → dense-frame inspection → find the 5 biggest
+problems → fix → rerender → inspect again → only then write this entry.
+
+**5 problems found from a real 36-frame dense grid + reading `shots.ts`/`MythicShort.tsx` directly**
+(not guessed from the manifest): (1) only 3 of 18 beats actually had a rendered environment layer —
+15 read as flat cream cards, since the glow-detection logic claims `surya_glow` before the
+environment slot ever sees it; (2) `surya_glow`'s raster crop bled an unrelated woman's face into
+frame at ~50% opacity (the master asset is a full illustrated scene, not a clean glow motif); (3)
+`ShotPreset` had no `focusX` field, so every solo shot defaulted to dead-center; (4) zoom range was
+too narrow (~1.0–1.48) for real scale contrast; (5) beat `H2` duplicated `H1`'s `hook` role with
+jitter too weak to tell them apart.
+
+**Fixes, all inside the existing renderer/schema**: replaced `surya_glow`'s raster crop with a
+procedural radial-gradient glow (no master asset, nothing left to mis-crop); added `focusX` to
+`ShotPreset` with rule-of-thirds values, wired into the single-character render branch; widened
+zoom ranges (`MAX_ZOOM` 1.45→1.65) and strengthened variant-jitter; retagged `H2` to `armor_reveal`
+(also more accurate to its content); extended environment coverage 3/18→13/18 beats by reusing
+`ashwa_river` (8 beats total — Karna's river origin and his daily riverside worship are the same
+location) and `kurukshetra_battlefield` (2 beats), plus exactly one new master, `tournament_arena`,
+generated via real FLUX for the 3 tournament/coronation beats that had no matching existing asset.
+
+**Verified against a fresh real render**: reran the full pipeline against
+`projects/karna-full-journey/manifest.json` (the stale `examples/` story-package source failed
+manifest validation when tried first — confirmed it's a different, pre-split shape and correctly
+not used). Real FLUX generated `tournament_arena` (validated 896×1584); `ready=8, generated=1,
+skipped=0, failed=0`. Real render 1080×1920 h264/aac 169.557s (duration unchanged),
+`check-output.ts` PASS, trailing silence 1.767s. Fresh 36-frame dense grid confirmed: no more face
+bleed-through on any `surya_glow` beat; H2 now visibly distinct from H1; E2/E3/E4 show a real
+tournament-ground world including a genuine Karna+Duryodhana two-shot; the R1–P1 river sequence
+reads as one continuous scene with a tight kavach-detail inset (C1/C2) for real scale contrast;
+off-center staging visible on checked single-character frames.
+
+**Honest limitations**: T1/T2 still read as near-identical wide battlefield shots (`T2`'s role has
+no curated sub-shot entry, falls to the generic rotation) — a real remaining case of pose
+repetition, not one of the 5 chased this pass. Several roles in this manifest (`rescue`,
+`rejection`, `elevation`, `abandonment`, `loyalty`) have no curated `SHOT_BY_ROLE`/
+`SUB_SHOTS_BY_ROLE` entry. The FLUX watermark artifact from the previous session is unchanged.
+Verified via sparse per-beat frame sampling (2–3 timestamps), not a full real-time watch.
+
+## 2026-09-07 (first longform session) — karna-full-journey, 2:49, real end to end
+
+Brief: build and test the first real 3-4 min Hindi longform through the existing architecture —
+story-package contract, real FLUX/Chatterbox/Whisper, no second renderer/pipeline, its own
+hook/setup/escalation/turning-point/reveal/climax/payoff arc (not a stretched Short), music+SFX,
+real MP4, dense inspection.
+
+Story: "कर्ण — सूर्यपुत्र की पूरी गाथा" — Karna's full life (Kunti's boon and his birth, being set
+adrift, raised by Adhiratha/Radha, Drona's rejection, Duryodhana crowning him king of Anga,
+Krishna/Kunti's offer before the war declined, Indra's disguised arrival, the kavach-kundal
+sacrifice — the Short's own story now the payoff of a longer arc — the Shakti weapon in return).
+18 beats, real Mahabharata sourcing with fact/interpretation split
+(`examples/karna-longform-full-journey.json`).
+
+**Asset reuse across projects**: 5 of 8 master assets reused from `karna-kavacha-demo` (copied
+into the new project; `generate-assets.ts`'s existing "already exists at expected path"
+auto-detect picked them up, zero code changes) — only kunti, duryodhana, and a new river
+environment needed real FLUX generation.
+
+**Two real, structural bugs found and fixed** (both were "works for karna/indra only" hardcoding
+that a second cast immediately exposed):
+1. `asset-prompts.ts`'s kind/sacred classification was `id.startsWith('karna'/'indra')` — any
+   other character fell through to generic, and got no reverent-treatment prompt clause.
+2. `asset-prompts.ts` never included the story package's own `visual_direction` text in the actual
+   FLUX prompt — confirmed with a real generated image: "kunti" with no direction beyond her id
+   produced a bearded male warrior. `MythicShort.tsx`'s own asset routing had the identical
+   hardcoded pattern, undetected until a third/fourth character existed.
+   Fix: `ProductionManifest` gained `asset_kinds`/`asset_sacred`/`asset_visual_direction` maps,
+   populated by `story-package.ts` from the package's own characters/environments/props lists,
+   consulted before the old heuristic (which still applies unchanged for manifests without them —
+   verified `examples/karna-short.json` unaffected). Regenerated kunti/duryodhana after the fix —
+   Kunti now correctly renders as a woman.
+
+**Music + SFX**: no generation adapter exists for these (only FLUX/Chatterbox); synthesized a real
+ambient drone + 5 beat-cued SFX one-shots using ffmpeg's own audio filters (already a core
+dependency, not a new one) rather than fabricate or download. `mix-audio.ts`'s own log confirms it
+actually mixed them in.
+
+**Retimed from real speech**: 210s authored → 184.4s real TTS → 168.0s after Whisper's real
+gap-tightening. Beat durations recomputed from actual Whisper word boundaries per beat (not
+proportional scaling) — final 169.49s (168.0s speech + deliberate 1.8s end-card hold).
+
+**Verified**: `cli.ts validate` PASS (18 beats/4 characters/8 assets) before and after every fix.
+Real render 1080×1920 h264/aac 169.557s 196.8MB. `check-output.ts` PASS, trailing silence
+independently re-measured at 1.767s (matches the gate, confirmed as the end-card window not dead
+air). `check-release.ts` PASS. Dense frames across all 7 movements confirmed visually — Kunti's
+river scene, the Duryodhana coronation two-shot, the sacrifice's detail-inset reuse of the
+armor-detail prop, the Shakti exchange, the KATHAAYA end card. First real (non-smoke-test) exercise
+of `LONG_PROFILE`'s gentler motion/camera/keyword-hold settings.
+
+**Honest limitations**: a recurring small watermark artifact in a few FLUX-generated images
+(mflux/schnell limitation, not addressed this session, usually outside the actual crop but not
+guaranteed); vertical-only (`Root.tsx`'s composition dimensions are still fixed, not
+manifest-derived — brief explicitly allowed vertical); `visual_manifest`'s rich per-beat fields
+still don't drive the compositor's actual shot/reveal choices (unchanged scope boundary).
+
+## 2026-09-06 (real-MP4 re-inspection session) — two real bugs fixed, three claims re-verified
+
+Brief: "FIX THE CURRENT KARNA SHORT" per real-MP4 inspection — brand, subtitle position/
+configurability, visual variety ("not zooms alone"), audio tail (~3.95s claimed), platform reuse.
+
+Re-measured everything from scratch before changing anything (not trusting memory of earlier
+fixes): audio tail independently measured at 1.921s (matches the already-fixed value, not
+~3.95s — the render being inspected was likely stale); subtitle position independently confirmed
+at Y=1540 via overlaid reference lines (already inside the requested 1500-1580 band); platform
+profiles already reusable/not manifest-hardcoded. None of these needed changes — reported with the
+actual fresh measurement, not asserted from memory.
+
+Two real bugs found via dense-frame inspection and fixed:
+1. A decorative gold accent arc (`isArmor`/`isThreat` SVG overlays in `MythicShort.tsx`) drew
+   directly across the character's face during tight face-crop sub-shots — a fixed-position
+   decoration from before the sub-shot-cut system existed, never adapted. Moved to hug the bottom
+   edge, clear of any crop.
+2. The kinetic keyword flourish sat at 30% down the frame, risking the same face-overlap — a
+   previously-documented known limitation from an earlier session, now actually fixed. Moved to
+   the top margin.
+
+Made the subtitle zone genuinely configurable: `ProductionManifest` gained an optional `platform`
+field referencing `src/shared/platform-profiles.ts`; `MythicShort.tsx` computes the subtitle
+center Y per-manifest via `useMemo` (was a fixed module-level constant); wired through the
+Studio's `starterManifest` so a chosen platform actually reaches the manifest, not just the UI.
+
+Boosted non-zoom motion (`entranceExitShiftY` 46px→64px, character `sway` 1.0/1.6→1.35/2.1
+degrees) as real, non-zoom levers per "do not solve this with zooms alone." Honest limitation:
+flat raster master assets have no separate limb/prop layers, so independent hand/weapon/body
+motion has a real ceiling without violating "no image-per-shot" / "no second renderer."
+
+No Kathaaya logo file exists anywhere in the repo or was attached — flagged, not fabricated.
+
+**Verified**: full strict pipeline rerun, exit 0, `output-qa`/`release-evidence` PASS, sha256
+`52ea783683765a6bc0c5f59b2435b414c2b70f28e656875e8a5ddc23d6034ef1`. Independent manual
+`ffmpeg silencedetect` on this exact file confirms 1.921s (matches the automated gate). Dense
+frames from this real render confirm both bugs are gone. Not re-judged: whether the cumulative
+result now reads as fully "acted" over a full watch-through — a holistic call the dense-frame
+method supports but doesn't fully replace.
+
 ## 2026-09-06 (story-package contract session) — main branch reconciliation + story package contract
 
 Brief: "create pr and merge" the prior session's pending work, then implement the story package

@@ -22,7 +22,14 @@ const roleHint: Record<string, string> = {
   payoff: 'calm emotional resolution and memorable final image',
 };
 
-function inferKind(ref: string): AssetPromptJob['kind'] {
+/**
+ * Falls back to id-substring matching only for manifests with no explicit `asset_kinds` map (i.e.
+ * authored before the story-package contract existed, like examples/karna-short.json) — this
+ * heuristic was tuned around that one manifest's exact naming and never generalized to other
+ * stories/casts, which is exactly the gap `asset_kinds` closes for story-package-derived manifests.
+ */
+function inferKind(ref: string, explicit?: AssetPromptJob['kind']): AssetPromptJob['kind'] {
+  if (explicit) return explicit;
   if (ref.includes('master') && (ref.startsWith('karna') || ref.startsWith('indra'))) return 'character';
   if (ref.includes('battlefield')) return 'environment';
   if (ref.includes('armor')) return 'prop';
@@ -48,15 +55,20 @@ export function buildAssetPromptJobs(manifest: ProductionManifest): AssetPromptJ
   }
 
   return [...refs.entries()].map(([asset_id, meta]) => {
-    const kind = inferKind(asset_id);
+    const kind = inferKind(asset_id, manifest.asset_kinds?.[asset_id]);
     const role = meta.roles.map((r) => roleHint[r] ?? r.replaceAll('_', ' ')).join('; ');
-    const sacred = asset_id.startsWith('karna') || asset_id.startsWith('indra');
+    const sacred = manifest.asset_sacred?.[asset_id] ?? (asset_id.startsWith('karna') || asset_id.startsWith('indra'));
     const reference_required = kind === 'character' && process.env.REQUIRE_CHARACTER_REFERENCES === '1';
+    const visualDirection = manifest.asset_visual_direction?.[asset_id];
     const prompt = [
       'Indian hand-illustrated mythology storytelling artwork',
       'cream parchment background, expressive black ink linework, restrained antique gold and muted red accents',
       'detailed, elegant, cinematic composition designed for vertical 1080x1920 video',
       `asset: ${describe(asset_id)}`,
+      // Specific character/environment/prop direction (who/what this actually is, e.g. gender,
+      // attire, bearing) takes priority over the generic per-beat role hint below — without it,
+      // FLUX has only an id and the shared style boilerplate to go on.
+      ...(visualDirection ? [visualDirection] : []),
       `story roles: ${role}`,
       sacred ? 'reverent and dignified sacred-figure depiction, non-comedic, non-caricatured, culturally respectful' : 'story-specific supporting visual, grounded and believable',
       kind === 'character' ? 'single readable full-body or three-quarter character master, stable facial features, costume and proportions, isolated enough for later compositing' : 'clear subject hierarchy with useful negative space for camera crops and text overlays',

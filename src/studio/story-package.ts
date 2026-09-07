@@ -1,5 +1,5 @@
 import {z} from 'zod';
-import type {ProductionManifest, ProductionBeat} from '../pipeline/types';
+import type {ProductionManifest, ProductionBeat, AssetKind} from '../pipeline/types';
 import {validateProductionManifest} from '../pipeline/validate-manifest';
 import {
   ProjectMetaSchema, StorySchema, ScriptSchema, CharactersSchema, MetadataSchema,
@@ -168,12 +168,25 @@ export function splitStoryPackage(raw: unknown, context: {projectId?: string}): 
 
   if (pkg.characters.length === 0) warnings.push('No characters were listed — asset_refs referencing character ids will have nothing to generate against.');
 
+  const assetKinds: Record<string, AssetKind> = {};
+  for (const c of pkg.characters) assetKinds[c.id] = 'character';
+  for (const e of pkg.environments) assetKinds[e.id] = 'environment';
+  for (const p of pkg.props) assetKinds[p.id] = 'prop';
+  const assetSacred: Record<string, boolean> = {};
+  for (const c of pkg.characters) assetSacred[c.id] = c.sacred_or_respected;
+  const assetVisualDirection: Record<string, string> = {};
+  for (const c of pkg.characters) if (c.visual_direction) assetVisualDirection[c.id] = c.visual_direction;
+  for (const e of pkg.environments) if (e.visual_direction) assetVisualDirection[e.id] = e.visual_direction;
+
   const manifest: ProductionManifest = {
     project_id: projectId,
     title: pkg.story.title,
     language: pkg.project.language as 'hi-IN',
     duration_seconds: pkg.project.target_duration_seconds,
     characters: pkg.characters.map((c) => c.id),
+    asset_kinds: assetKinds,
+    asset_sacred: assetSacred,
+    asset_visual_direction: assetVisualDirection,
     beats,
     audio: {
       voice_style: pkg.audio.voice_style || undefined,

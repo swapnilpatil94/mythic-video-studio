@@ -1,0 +1,743 @@
+{
+  "project": {
+    "project_id": "karna-full-journey",
+    "project_name": "कर्ण — सूर्यपुत्र की पूरी गाथा",
+    "format": "LONGFORM",
+    "language": "hi-IN",
+    "target_duration_seconds": 210
+  },
+  "story": {
+    "title": "कर्ण — सूर्यपुत्र की पूरी गाथा",
+    "hook": "यह कहानी एक ऐसे योद्धा की है, जो जन्म से राजकुमार था, पर जाना गया एक सारथी के पुत्र के नाम से।",
+    "premise": "कुंती को मिले एक दिव्य वरदान से जन्मा कर्ण, समाज के भय के कारण नदी में बहा दिया गया, एक सारथी परिवार में पला-बढ़ा, और जीवन भर अपनी असली पहचान और अपनी वफ़ादारी के बीच के द्वंद्व से जूझता रहा।",
+    "conflict": "जन्मसिद्ध राजसी अधिकार बनाम अर्जित वफ़ादारी — कर्ण को उसकी असली पहचान और दुर्योधन के प्रति उसके ऋण के बीच चुनना पड़ता है, ठीक उस समय जब उसकी सबसे बड़ी सुरक्षा भी खतरे में पड़ जाती है।",
+    "reveal": "युद्ध से ठीक पहले, स्वयं इंद्र एक याचक के वेश में कर्ण की जन्मजात दिव्य सुरक्षा — कवच और कुंडल — माँगने आते हैं, और कर्ण उन्हें पहचान लेता है।",
+    "climax": "कर्ण बिना झिझक अपना कवच और कुंडल स्वयं उतारकर याचक को सौंप देता है, यह जानते हुए भी कि इससे वह युद्ध में असुरक्षित हो जाएगा।",
+    "payoff": "इंद्र प्रभावित होकर बदले में शक्ति अस्त्र देते हैं, पर कर्ण की असली पहचान उस अस्त्र से नहीं — उसके त्याग और उसके धर्म से बनती है।",
+    "emotional_core": "सच्चा दान और सच्ची वफ़ादारी वही है जो सबसे बड़ी कीमत पर भी बिना शर्त निभाई जाए।",
+    "story_arc": "हुक (पहचान का रहस्य) → स्थापना (जन्म और त्याग) → उभार (संघर्ष और स्वीकृति) → मोड़ (चुनाव का क्षण) → रहस्योद्घाटन (याचक की पहचान) → चरम (बिना शर्त त्याग) → परिणाम (धर्म की सच्ची परिभाषा)।",
+    "facts": [
+      "महाभारत के अनुसार कुंती को सूर्यदेव सहित किसी भी देवता का आवाहन करने में सक्षम एक मंत्र का वरदान प्राप्त था।",
+      "कर्ण का जन्म सूर्यदेव से हुआ, और वे जन्म से ही दिव्य कवच और कुंडल के साथ पैदा हुए थे, जो उनके शरीर से जुड़े थे।",
+      "अविवाहित कुंती ने अपने नवजात पुत्र को एक टोकरी में नदी में प्रवाहित कर दिया।",
+      "सारथी अधिरथ और उनकी पत्नी राधा ने कर्ण को अपने पुत्र के रूप में पाला।",
+      "गुरु द्रोणाचार्य ने कर्ण को उसकी जाति के कारण शिक्षा देने से इनकार किया था।",
+      "दुर्योधन ने कर्ण को अंग देश का राजा घोषित किया, जिससे दोनों में गहरी मित्रता बनी।",
+      "युद्ध से पहले कृष्ण और कुंती ने कर्ण को उसकी असली पहचान बताई और पांडवों की ओर से राज्य का प्रस्ताव दिया, जिसे कर्ण ने अस्वीकार कर दिया।",
+      "इंद्र ब्राह्मण का वेश धरकर कर्ण से उसका कवच और कुंडल माँगने आए, और कर्ण ने उन्हें पहचानकर भी दान दे दिया।",
+      "इंद्र ने बदले में कर्ण को एक बार प्रयोग होने वाला शक्ति अस्त्र प्रदान किया।"
+    ],
+    "interpretations": [
+      "कर्ण के आंतरिक द्वंद्व, उसके ठीक-ठीक विचार और संवाद कथा-परंपरा व नाट्य रूपांतरणों में विस्तृत हुए हैं, मूल श्लोकों में शब्दशः नहीं मिलते।",
+      "द्रोणाचार्य और कृपाचार्य के प्रश्नों का सटीक शब्दांकन अलग-अलग परंपराओं और पुनर्कथन में भिन्न है।"
+    ]
+  },
+  "script": {
+    "full_narration": "यह कहानी एक ऐसे योद्धा की है, जो जन्म से राजकुमार था, पर जाना गया एक सारथी के पुत्र के नाम से। और जिस दिन उसकी असली पहचान सामने आई, वह पहले ही अपनी सबसे बड़ी सुरक्षा किसी और को दे चुका था। यह कथा शुरू होती है राजकुमारी कुंती से, जिन्हें एक दिव्य मंत्र का वरदान मिला था — जिससे वे किसी भी देवता का आवाहन कर सकती थीं। बाल्यावस्था की जिज्ञासा में, कुंती ने सूर्यदेव का आवाहन किया। उसी क्षण, सूर्यदेव के आशीर्वाद से एक पुत्र का जन्म हुआ — कवच और कुंडल सहित, उसके शरीर से जुड़े हुए। समाज के भय से, अविवाहित कुंती को अपने नवजात पुत्र को एक टोकरी में नदी में बहा देना पड़ा। वह पुत्र था — कर्ण। अश्व नदी में बहता हुआ वह टोकरी सारथी अधिरथ और उनकी पत्नी राधा को मिली। उन्होंने बिना किसी भेदभाव के, उसे अपने पुत्र की तरह पाला। कर्ण बड़ा होकर एक असाधारण धनुर्धर बना। पर गुरु द्रोणाचार्य ने उसे केवल इसलिए शिक्षा देने से मना कर दिया, क्योंकि वह एक सूत-पुत्र था। एक खुले प्रदर्शन में, कृपाचार्य ने सबके सामने उसके कुल पर प्रश्न उठाया — कि एक सारथी-पुत्र राजकुमारों को चुनौती कैसे दे सकता है। उसी क्षण दुर्योधन आगे आया, और कर्ण को तुरंत अंग देश का राजा घोषित कर दिया — एक मित्रता की शुरुआत, जो कर्ण के जीवन भर निभाई गई। युद्ध से पहले, कृष्ण और स्वयं कुंती ने कर्ण को उसका सच्चा जन्म बताया, और पांडवों की ओर से राज्य का प्रस्ताव दिया। पर कर्ण ने अपना जन्मसिद्ध अधिकार नहीं, बल्कि दुर्योधन के प्रति अपनी वफ़ादारी चुनी — क्योंकि धर्म उसके लिए सिर्फ खून का रिश्ता नहीं था। कुरुक्षेत्र युद्ध निकट था, जब एक ब्राह्मण के वेश में एक याचक कर्ण के द्वार पर आया — वह वास्तव में इंद्र थे, अर्जुन के पिता। कर्ण, जो प्रतिदिन सूर्य की पूजा करते हुए किसी भी याचक को खाली हाथ नहीं भेजता था, तुरंत पहचान गया कि यह याचक कौन था। बिना एक पल गंवाए, कर्ण ने अपना जन्मजात कवच और कुंडल स्वयं उतारा — अपनी सबसे बड़ी सुरक्षा को अपने ही हाथों से त्याग दिया। उसने वह दिव्य कवच याचक को सौंप दिया, यह जानते हुए भी कि अब वह युद्ध में पहले जैसा अजेय नहीं रहेगा। प्रभावित होकर इंद्र ने बदले में कर्ण को एक बार प्रयोग होने वाला शक्ति अस्त्र दिया — एक निश्चित विजय का हथियार। पर कर्ण जानता था, उसने अपनी सबसे बड़ी सुरक्षा दान में दे दी थी — केवल इसलिए, क्योंकि दान माँगने वाले को कभी मना नहीं करना उसका धर्म था। यही थी कर्ण की सच्ची पहचान — एक ऐसा दानवीर, जिसने अपने वचन और अपने धर्म को, अपने ही जीवन से भी ऊपर रखा।",
+    "target_wpm": 155,
+    "beats": [
+      {
+        "id": "H1",
+        "narration": "यह कहानी एक ऐसे योद्धा की है, जो जन्म से राजकुमार था, पर जाना गया एक सारथी के पुत्र के नाम से।",
+        "emotion": "curious",
+        "pace": "measured",
+        "duration_seconds": 10
+      },
+      {
+        "id": "H2",
+        "narration": "और जिस दिन उसकी असली पहचान सामने आई, वह पहले ही अपनी सबसे बड़ी सुरक्षा किसी और को दे चुका था।",
+        "emotion": "foreboding",
+        "pace": "slow",
+        "duration_seconds": 10
+      },
+      {
+        "id": "S1",
+        "narration": "यह कथा शुरू होती है राजकुमारी कुंती से, जिन्हें एक दिव्य मंत्र का वरदान मिला था — जिससे वे किसी भी देवता का आवाहन कर सकती थीं।",
+        "emotion": "reverent",
+        "pace": "measured",
+        "duration_seconds": 14
+      },
+      {
+        "id": "S2",
+        "narration": "बाल्यावस्था की जिज्ञासा में, कुंती ने सूर्यदेव का आवाहन किया। उसी क्षण, सूर्यदेव के आशीर्वाद से एक पुत्र का जन्म हुआ — कवच और कुंडल सहित, उसके शरीर से जुड़े हुए।",
+        "emotion": "awed",
+        "pace": "measured",
+        "duration_seconds": 14
+      },
+      {
+        "id": "S3",
+        "narration": "समाज के भय से, अविवाहित कुंती को अपने नवजात पुत्र को एक टोकरी में नदी में बहा देना पड़ा। वह पुत्र था — कर्ण।",
+        "emotion": "sorrowful",
+        "pace": "slow",
+        "duration_seconds": 14
+      },
+      {
+        "id": "E1",
+        "narration": "अश्व नदी में बहता हुआ वह टोकरी सारथी अधिरथ और उनकी पत्नी राधा को मिली। उन्होंने बिना किसी भेदभाव के, उसे अपने पुत्र की तरह पाला।",
+        "emotion": "warm",
+        "pace": "measured",
+        "duration_seconds": 11
+      },
+      {
+        "id": "E2",
+        "narration": "कर्ण बड़ा होकर एक असाधारण धनुर्धर बना। पर गुरु द्रोणाचार्य ने उसे केवल इसलिए शिक्षा देने से मना कर दिया, क्योंकि वह एक सूत-पुत्र था।",
+        "emotion": "tense",
+        "pace": "measured",
+        "duration_seconds": 11
+      },
+      {
+        "id": "E3",
+        "narration": "एक खुले प्रदर्शन में, कृपाचार्य ने सबके सामने उसके कुल पर प्रश्न उठाया — कि एक सारथी-पुत्र राजकुमारों को चुनौती कैसे दे सकता है।",
+        "emotion": "humiliated",
+        "pace": "quick",
+        "duration_seconds": 11
+      },
+      {
+        "id": "E4",
+        "narration": "उसी क्षण दुर्योधन आगे आया, और कर्ण को तुरंत अंग देश का राजा घोषित कर दिया — एक मित्रता की शुरुआत, जो कर्ण के जीवन भर निभाई गई।",
+        "emotion": "triumphant",
+        "pace": "measured",
+        "duration_seconds": 11
+      },
+      {
+        "id": "T1",
+        "narration": "युद्ध से पहले, कृष्ण और स्वयं कुंती ने कर्ण को उसका सच्चा जन्म बताया, और पांडवों की ओर से राज्य का प्रस्ताव दिया।",
+        "emotion": "solemn",
+        "pace": "measured",
+        "duration_seconds": 13
+      },
+      {
+        "id": "T2",
+        "narration": "पर कर्ण ने अपना जन्मसिद्ध अधिकार नहीं, बल्कि दुर्योधन के प्रति अपनी वफ़ादारी चुनी — क्योंकि धर्म उसके लिए सिर्फ खून का रिश्ता नहीं था।",
+        "emotion": "resolute",
+        "pace": "slow",
+        "duration_seconds": 13
+      },
+      {
+        "id": "R1",
+        "narration": "कुरुक्षेत्र युद्ध निकट था, जब एक ब्राह्मण के वेश में एक याचक कर्ण के द्वार पर आया — वह वास्तव में इंद्र थे, अर्जुन के पिता।",
+        "emotion": "mysterious",
+        "pace": "measured",
+        "duration_seconds": 11
+      },
+      {
+        "id": "R2",
+        "narration": "कर्ण, जो प्रतिदिन सूर्य की पूजा करते हुए किसी भी याचक को खाली हाथ नहीं भेजता था, तुरंत पहचान गया कि यह याचक कौन था।",
+        "emotion": "contemplative",
+        "pace": "slow",
+        "duration_seconds": 11
+      },
+      {
+        "id": "C1",
+        "narration": "बिना एक पल गंवाए, कर्ण ने अपना जन्मजात कवच और कुंडल स्वयं उतारा — अपनी सबसे बड़ी सुरक्षा को अपने ही हाथों से त्याग दिया।",
+        "emotion": "sacrificial",
+        "pace": "slow",
+        "duration_seconds": 10
+      },
+      {
+        "id": "C2",
+        "narration": "उसने वह दिव्य कवच याचक को सौंप दिया, यह जानते हुए भी कि अब वह युद्ध में पहले जैसा अजेय नहीं रहेगा।",
+        "emotion": "resolute",
+        "pace": "slow",
+        "duration_seconds": 10
+      },
+      {
+        "id": "P1",
+        "narration": "प्रभावित होकर इंद्र ने बदले में कर्ण को एक बार प्रयोग होने वाला शक्ति अस्त्र दिया — एक निश्चित विजय का हथियार।",
+        "emotion": "reverent",
+        "pace": "measured",
+        "duration_seconds": 12
+      },
+      {
+        "id": "P2",
+        "narration": "पर कर्ण जानता था, उसने अपनी सबसे बड़ी सुरक्षा दान में दे दी थी — केवल इसलिए, क्योंकि दान माँगने वाले को कभी मना नहीं करना उसका धर्म था।",
+        "emotion": "peaceful",
+        "pace": "measured",
+        "duration_seconds": 12
+      },
+      {
+        "id": "P3",
+        "narration": "यही थी कर्ण की सच्ची पहचान — एक ऐसा दानवीर, जिसने अपने वचन और अपने धर्म को, अपने ही जीवन से भी ऊपर रखा।",
+        "emotion": "triumphant",
+        "pace": "slow",
+        "duration_seconds": 12
+      }
+    ]
+  },
+  "characters": [
+    {
+      "id": "karna",
+      "name": "कर्ण",
+      "role": "protagonist",
+      "importance": "primary",
+      "visual_direction": "Dignified Suryaputra warrior — golden kavach fused to his chest, kundala earrings, regal but weathered bearing. Hand-illustrated Indian mythology style: cream parchment, black ink linework, restrained gold/red accents. Never comedic, never generic.",
+      "required_views": [
+        "three-quarter",
+        "face close-up",
+        "full-body",
+        "hands/armor detail"
+      ],
+      "required_actions": [
+        "standing resolute",
+        "as a child in a basket (implied via environment, not separate art)",
+        "practicing archery",
+        "removing armor",
+        "offering with open hands"
+      ],
+      "sacred_or_respected": true
+    },
+    {
+      "id": "indra",
+      "name": "इंद्र (ब्राह्मण वेश में)",
+      "role": "deity in disguise",
+      "importance": "primary",
+      "visual_direction": "Regal deity concealed as an aged Brahmin mendicant — modest robes but unmistakable dignity and quiet radiance beneath the disguise. Reverent, never a comic beggar caricature.",
+      "required_views": [
+        "three-quarter",
+        "face close-up"
+      ],
+      "required_actions": [
+        "arriving at the door",
+        "asking",
+        "receiving the gift",
+        "granting the Shakti weapon"
+      ],
+      "sacred_or_respected": true
+    },
+    {
+      "id": "kunti",
+      "name": "कुंती",
+      "role": "mother, royal princess",
+      "importance": "secondary",
+      "visual_direction": "Young royal princess in fine but modest attire, expressive anguish and dignity — dignified sorrow, never melodramatic. Hand-illustrated ink style matching the rest of the cast.",
+      "required_views": [
+        "three-quarter",
+        "face close-up"
+      ],
+      "required_actions": [
+        "invoking a deity in prayer",
+        "cradling an infant with sorrow",
+        "setting a basket adrift"
+      ],
+      "sacred_or_respected": true
+    },
+    {
+      "id": "duryodhana",
+      "name": "दुर्योधन",
+      "role": "ally, prince of Hastinapura",
+      "importance": "secondary",
+      "visual_direction": "Proud Kuru prince in regal warrior attire, confident bearing, a genuine warmth toward Karna in his expression despite his more commonly antagonistic role elsewhere in the epic — this is his loyal-friend moment.",
+      "required_views": [
+        "three-quarter",
+        "face close-up"
+      ],
+      "required_actions": [
+        "stepping forward decisively",
+        "placing a crown/declaring kingship",
+        "clasping hands in friendship"
+      ],
+      "sacred_or_respected": false
+    }
+  ],
+  "environments": [
+    {
+      "id": "surya_glow",
+      "name": "Surya's radiance (sun motif)",
+      "visual_direction": "A stylized sun-ring/glow motif representing Surya's divine gift and Karna's radiance — ornamental, not literal scenery.",
+      "important_layers": [
+        "sun-ring glow",
+        "radiating lines"
+      ]
+    },
+    {
+      "id": "kurukshetra_battlefield",
+      "name": "Kurukshetra battlefield, pre-war",
+      "visual_direction": "Vast dust-lit battlefield under a tense sky, distant war tents and banners, restrained ink-wash atmosphere — foreboding, not gory.",
+      "important_layers": [
+        "distant army silhouettes",
+        "sky/light",
+        "foreground dust/ground"
+      ]
+    },
+    {
+      "id": "ashwa_river",
+      "name": "Ashwa river bank, dawn",
+      "visual_direction": "A quiet river at dawn, soft mist, a small basket motif implied through composition — tender and sorrowful, not desolate. Same hand-illustrated ink/gold/red palette as the rest of the cast.",
+      "important_layers": [
+        "river water texture",
+        "dawn mist/light",
+        "reeds/bank foreground"
+      ]
+    }
+  ],
+  "props": [
+    {
+      "id": "kavach_kundal",
+      "name": "दिव्य कवच और कुंडल (armor and earrings)",
+      "required_views": [
+        "worn on body",
+        "close detail",
+        "being removed"
+      ],
+      "required_actions": [
+        "gleaming/highlighted",
+        "being unclasped",
+        "changing hands"
+      ]
+    }
+  ],
+  "visual_manifest": {
+    "beats": [
+      {
+        "id": "H1",
+        "narration": "यह कहानी एक ऐसे योद्धा की है, जो जन्म से राजकुमार था, पर जाना गया एक सारथी के पुत्र के नाम से।",
+        "scene_role": "hook",
+        "pace": "measured",
+        "shot_type": "wide",
+        "composition": "Karna centered, spear raised, sun motif behind",
+        "visual_action": "Karna's entrance settles into frame as the ink reveal draws him in",
+        "characters": [
+          "karna"
+        ],
+        "props": [],
+        "environments": [
+          "surya_glow"
+        ],
+        "camera": "push_in",
+        "reveal": true,
+        "keyword_text": "पहचान",
+        "sfx": [],
+        "transition": "cut"
+      },
+      {
+        "id": "H2",
+        "narration": "और जिस दिन उसकी असली पहचान सामने आई, वह पहले ही अपनी सबसे बड़ी सुरक्षा किसी और को दे चुका था।",
+        "scene_role": "hook",
+        "pace": "slow",
+        "shot_type": "face",
+        "composition": "Tight on Karna's face, contemplative",
+        "visual_action": "Slow settle on Karna's expression, foreshadowing the sacrifice to come",
+        "characters": [
+          "karna"
+        ],
+        "props": [
+          "kavach_kundal"
+        ],
+        "environments": [],
+        "camera": "slow_push",
+        "reveal": false,
+        "keyword_text": "सुरक्षा",
+        "sfx": [],
+        "transition": "ink-wipe"
+      },
+      {
+        "id": "S1",
+        "narration": "यह कथा शुरू होती है राजकुमारी कुंती से, जिन्हें एक दिव्य मंत्र का वरदान मिला था — जिससे वे किसी भी देवता का आवाहन कर सकती थीं।",
+        "scene_role": "setup",
+        "pace": "measured",
+        "shot_type": "face, prayer",
+        "composition": "Kunti in prayer, hands raised, ethereal light",
+        "visual_action": "Kunti invokes the mantra; a faint divine glow builds",
+        "characters": [
+          "kunti"
+        ],
+        "props": [],
+        "environments": [
+          "surya_glow"
+        ],
+        "camera": "tilt_up",
+        "reveal": true,
+        "keyword_text": "वरदान",
+        "sfx": [
+          "soft chime"
+        ],
+        "transition": "cut"
+      },
+      {
+        "id": "S2",
+        "narration": "बाल्यावस्था की जिज्ञासा में, कुंती ने सूर्यदेव का आवाहन किया। उसी क्षण, सूर्यदेव के आशीर्वाद से एक पुत्र का जन्म हुआ — कवच और कुंडल सहित, उसके शरीर से जुड़े हुए।",
+        "scene_role": "setup",
+        "pace": "measured",
+        "shot_type": "two-shot, radiant",
+        "composition": "Kunti and the sun motif, birth implied through light",
+        "visual_action": "Sun-ring pulses brightly at the moment of birth",
+        "characters": [
+          "kunti"
+        ],
+        "props": [],
+        "environments": [
+          "surya_glow"
+        ],
+        "camera": "pull_back",
+        "reveal": false,
+        "keyword_text": "जन्म",
+        "sfx": [
+          "soft chime"
+        ],
+        "transition": "cut"
+      },
+      {
+        "id": "S3",
+        "narration": "समाज के भय से, अविवाहित कुंती को अपने नवजात पुत्र को एक टोकरी में नदी में बहा देना पड़ा। वह पुत्र था — कर्ण।",
+        "scene_role": "abandonment",
+        "pace": "slow",
+        "shot_type": "wide, river",
+        "composition": "Kunti alone at the river bank, sorrowful",
+        "visual_action": "Kunti sets the basket adrift; camera lingers on the water",
+        "characters": [
+          "kunti"
+        ],
+        "props": [],
+        "environments": [
+          "ashwa_river"
+        ],
+        "camera": "pan",
+        "reveal": false,
+        "keyword_text": "त्याग",
+        "sfx": [
+          "water flowing"
+        ],
+        "transition": "ink-wipe"
+      },
+      {
+        "id": "E1",
+        "narration": "अश्व नदी में बहता हुआ वह टोकरी सारथी अधिरथ और उनकी पत्नी राधा को मिली। उन्होंने बिना किसी भेदभाव के, उसे अपने पुत्र की तरह पाला।",
+        "scene_role": "rescue",
+        "pace": "measured",
+        "shot_type": "wide, river",
+        "composition": "The basket arriving at the bank, a new life beginning",
+        "visual_action": "Camera pulls back from the river as the rescue is implied",
+        "characters": [
+          "karna"
+        ],
+        "props": [],
+        "environments": [
+          "ashwa_river"
+        ],
+        "camera": "reveal_from_edge",
+        "reveal": true,
+        "keyword_text": "अधिरथ",
+        "sfx": [],
+        "transition": "cut"
+      },
+      {
+        "id": "E2",
+        "narration": "कर्ण बड़ा होकर एक असाधारण धनुर्धर बना। पर गुरु द्रोणाचार्य ने उसे केवल इसलिए शिक्षा देने से मना कर दिया, क्योंकि वह एक सूत-पुत्र था।",
+        "scene_role": "rejection",
+        "pace": "measured",
+        "shot_type": "face, hand/bow detail",
+        "composition": "Karna practicing archery, focused",
+        "visual_action": "Karna's hands draw a bow; subtle parallax on the weapon",
+        "characters": [
+          "karna"
+        ],
+        "props": [],
+        "environments": [],
+        "camera": "armor_crop",
+        "reveal": false,
+        "keyword_text": "द्रोणाचार्य",
+        "sfx": [],
+        "transition": "cut"
+      },
+      {
+        "id": "E3",
+        "narration": "एक खुले प्रदर्शन में, कृपाचार्य ने सबके सामने उसके कुल पर प्रश्न उठाया — कि एक सारथी-पुत्र राजकुमारों को चुनौती कैसे दे सकता है।",
+        "scene_role": "rejection",
+        "pace": "quick",
+        "shot_type": "face reaction",
+        "composition": "Karna's face reacting to public humiliation",
+        "visual_action": "Quick cut to Karna's controlled but wounded expression",
+        "characters": [
+          "karna"
+        ],
+        "props": [],
+        "environments": [],
+        "camera": "shot_reverse",
+        "reveal": false,
+        "keyword_text": "सूत-पुत्र",
+        "sfx": [],
+        "transition": "cut"
+      },
+      {
+        "id": "E4",
+        "narration": "उसी क्षण दुर्योधन आगे आया, और कर्ण को तुरंत अंग देश का राजा घोषित कर दिया — एक मित्रता की शुरुआत, जो कर्ण के जीवन भर निभाई गई।",
+        "scene_role": "elevation",
+        "pace": "measured",
+        "shot_type": "two-shot",
+        "composition": "Duryodhana stepping toward Karna, both in frame",
+        "visual_action": "Duryodhana's decisive gesture of declaring Karna's kingship",
+        "characters": [
+          "karna",
+          "duryodhana"
+        ],
+        "props": [],
+        "environments": [],
+        "camera": "reverse_push",
+        "reveal": true,
+        "keyword_text": "अंग देश",
+        "sfx": [
+          "crowd murmur"
+        ],
+        "transition": "cut"
+      },
+      {
+        "id": "T1",
+        "narration": "युद्ध से पहले, कृष्ण और स्वयं कुंती ने कर्ण को उसका सच्चा जन्म बताया, और पांडवों की ओर से राज्य का प्रस्ताव दिया।",
+        "scene_role": "decision",
+        "pace": "measured",
+        "shot_type": "two-shot, wide",
+        "composition": "Karna facing an unseen Krishna/Kunti presence, offer implied",
+        "visual_action": "Subtle parallax as the weight of the offer settles over Karna",
+        "characters": [
+          "karna"
+        ],
+        "props": [],
+        "environments": [
+          "kurukshetra_battlefield"
+        ],
+        "camera": "shot_reverse",
+        "reveal": false,
+        "keyword_text": "प्रस्ताव",
+        "sfx": [],
+        "transition": "cut"
+      },
+      {
+        "id": "T2",
+        "narration": "पर कर्ण ने अपना जन्मसिद्ध अधिकार नहीं, बल्कि दुर्योधन के प्रति अपनी वफ़ादारी चुनी — क्योंकि धर्म उसके लिए सिर्फ खून का रिश्ता नहीं था।",
+        "scene_role": "loyalty",
+        "pace": "slow",
+        "shot_type": "face, resolute",
+        "composition": "Close on Karna's resolved expression",
+        "visual_action": "Karna's expression hardens into resolve",
+        "characters": [
+          "karna"
+        ],
+        "props": [],
+        "environments": [],
+        "camera": "slow_push",
+        "reveal": false,
+        "keyword_text": "वफ़ादारी",
+        "sfx": [],
+        "transition": "ink-wipe"
+      },
+      {
+        "id": "R1",
+        "narration": "कुरुक्षेत्र युद्ध निकट था, जब एक ब्राह्मण के वेश में एक याचक कर्ण के द्वार पर आया — वह वास्तव में इंद्र थे, अर्जुन के पिता।",
+        "scene_role": "visitor_reveal",
+        "pace": "measured",
+        "shot_type": "entrance, edge reveal",
+        "composition": "Indra's disguised figure emerging from frame edge",
+        "visual_action": "Indra's figure draws in from the side as he arrives",
+        "characters": [
+          "indra"
+        ],
+        "props": [],
+        "environments": [],
+        "camera": "reveal_from_edge",
+        "reveal": true,
+        "keyword_text": "याचक",
+        "sfx": [
+          "footsteps"
+        ],
+        "transition": "cut"
+      },
+      {
+        "id": "R2",
+        "narration": "कर्ण, जो प्रतिदिन सूर्य की पूजा करते हुए किसी भी याचक को खाली हाथ नहीं भेजता था, तुरंत पहचान गया कि यह याचक कौन था।",
+        "scene_role": "decision",
+        "pace": "slow",
+        "shot_type": "face, eyes",
+        "composition": "Close on Karna's eyes registering recognition",
+        "visual_action": "Karna's expression settles into quiet recognition",
+        "characters": [
+          "karna",
+          "indra"
+        ],
+        "props": [],
+        "environments": [],
+        "camera": "shot_reverse",
+        "reveal": false,
+        "keyword_text": "पहचान",
+        "sfx": [],
+        "transition": "cut"
+      },
+      {
+        "id": "C1",
+        "narration": "बिना एक पल गंवाए, कर्ण ने अपना जन्मजात कवच और कुंडल स्वयं उतारा — अपनी सबसे बड़ी सुरक्षा को अपने ही हाथों से त्याग दिया।",
+        "scene_role": "sacrifice",
+        "pace": "slow",
+        "shot_type": "hand/armor detail",
+        "composition": "Hands unclasping the armor, gold fading from the body",
+        "visual_action": "Karna's hands remove the armor; gold light fades as it leaves him",
+        "characters": [
+          "karna"
+        ],
+        "props": [
+          "kavach_kundal"
+        ],
+        "environments": [],
+        "camera": "armor_crop",
+        "reveal": false,
+        "keyword_text": "त्याग",
+        "sfx": [
+          "soft cloth/metal unclasp"
+        ],
+        "transition": "cut"
+      },
+      {
+        "id": "C2",
+        "narration": "उसने वह दिव्य कवच याचक को सौंप दिया, यह जानते हुए भी कि अब वह युद्ध में पहले जैसा अजेय नहीं रहेगा।",
+        "scene_role": "sacrifice",
+        "pace": "slow",
+        "shot_type": "two-shot",
+        "composition": "The armor changing hands between the two figures",
+        "visual_action": "The kavach passes from Karna's hands to Indra's",
+        "characters": [
+          "karna",
+          "indra"
+        ],
+        "props": [
+          "kavach_kundal"
+        ],
+        "environments": [],
+        "camera": "pull_back",
+        "reveal": false,
+        "keyword_text": "दान",
+        "sfx": [],
+        "transition": "cut"
+      },
+      {
+        "id": "P1",
+        "narration": "प्रभावित होकर इंद्र ने बदले में कर्ण को एक बार प्रयोग होने वाला शक्ति अस्त्र दिया — एक निश्चित विजय का हथियार।",
+        "scene_role": "payoff",
+        "pace": "measured",
+        "shot_type": "two-shot",
+        "composition": "Indra offering the Shakti weapon in return",
+        "visual_action": "A glowing weapon motif passes to Karna",
+        "characters": [
+          "karna",
+          "indra"
+        ],
+        "props": [],
+        "environments": [],
+        "camera": "reverse_push",
+        "reveal": false,
+        "keyword_text": "शक्ति",
+        "sfx": [
+          "soft gold shimmer"
+        ],
+        "transition": "cut"
+      },
+      {
+        "id": "P2",
+        "narration": "पर कर्ण जानता था, उसने अपनी सबसे बड़ी सुरक्षा दान में दे दी थी — केवल इसलिए, क्योंकि दान माँगने वाले को कभी मना नहीं करना उसका धर्म था।",
+        "scene_role": "payoff",
+        "pace": "measured",
+        "shot_type": "face, settling",
+        "composition": "Karna alone, calm reflection",
+        "visual_action": "Slow settle on Karna's peaceful acceptance",
+        "characters": [
+          "karna"
+        ],
+        "props": [],
+        "environments": [
+          "surya_glow"
+        ],
+        "camera": "slow_push",
+        "reveal": false,
+        "keyword_text": "धर्म",
+        "sfx": [],
+        "transition": "cut"
+      },
+      {
+        "id": "P3",
+        "narration": "यही थी कर्ण की सच्ची पहचान — एक ऐसा दानवीर, जिसने अपने वचन और अपने धर्म को, अपने ही जीवन से भी ऊपर रखा।",
+        "scene_role": "payoff",
+        "pace": "slow",
+        "shot_type": "wide, final",
+        "composition": "Karna standing tall, sun motif fully behind him",
+        "visual_action": "Final slow push as the ink settles into the closing image",
+        "characters": [
+          "karna"
+        ],
+        "props": [],
+        "environments": [
+          "surya_glow"
+        ],
+        "camera": "slow_push",
+        "reveal": false,
+        "keyword_text": "सत्य",
+        "sfx": [],
+        "transition": "cut"
+      }
+    ]
+  },
+  "audio": {
+    "voice_style": "Warm, reverent Hindi male storyteller voice — measured and dignified, sustained across a longer narrative arc, not theatrical or rushed.",
+    "target_wpm": 155,
+    "music_direction": "Sparse tanpura/string drone underneath throughout, swelling gently at Duryodhana's coronation, the decision, and the sacrifice — never overpowering the narration; near-silent during the setup/river sequence.",
+    "sfx": [
+      "water flowing (S3-E1)",
+      "crowd murmur (E4)",
+      "soft footsteps (R1)",
+      "soft cloth/metal unclasp (C1)",
+      "soft gold shimmer (P1)"
+    ],
+    "silence_guidance": "No pause longer than 0.5s except a held beat before T2's decision and before C1's sacrifice."
+  },
+  "metadata": {
+    "youtube_title": "कर्ण — सूर्यपुत्र की पूरी गाथा | The Complete Story of Karna | KATHAAYA",
+    "description": "जन्म से मिला अजेय कवच, एक माँ का त्याग, एक मित्रता जिसने राजा बनाया, और अंत में सबसे बड़ा दान — यह है कर्ण की पूरी कहानी, महाभारत के सबसे दुखद और सम्मानित पात्रों में से एक।",
+    "tags": [
+      "Karna",
+      "Mahabharata",
+      "Hindu mythology",
+      "Kunti",
+      "Duryodhana",
+      "Indian mythology longform",
+      "kavach kundal"
+    ],
+    "hashtags": [
+      "#Karna",
+      "#Mahabharata",
+      "#HinduMythology",
+      "#Kathaaya",
+      "#IndianMythology"
+    ],
+    "thumbnail_concept": "Karna in three-quarter profile, golden kavach glinting, sun-ring motif behind him, dramatic ink-linework contrast — the same visual identity as the Short, signaling this is the fuller story.",
+    "seo_keywords": [
+      "karna full story",
+      "karna life story hindi",
+      "karna kunti duryodhana",
+      "mahabharata karna sacrifice longform"
+    ],
+    "social_caption": "एक पूरा जीवन, एक ही धर्म — कर्ण की सच्ची कहानी। 🙏 #Kathaaya"
+  },
+  "sources": [
+    {
+      "source": "Mahabharata, Adi Parva (Kunti's boon and Karna's birth)",
+      "claim_supported": "Kunti received a mantra-boon to invoke any deity; Karna was born of Surya with kavach-kundala fused to his body and set adrift on the river.",
+      "fact_or_interpretation": "fact"
+    },
+    {
+      "source": "Mahabharata, Adi Parva / Karna Parva (upbringing, Drona's rejection, Duryodhana's coronation gift)",
+      "claim_supported": "Karna was raised by Adhiratha and Radha; Dronacharya refused to teach him due to caste; Duryodhana crowned him King of Anga.",
+      "fact_or_interpretation": "fact"
+    },
+    {
+      "source": "Mahabharata, Udyoga Parva (Krishna and Kunti's offer before the war)",
+      "claim_supported": "Krishna and Kunti separately revealed Karna's true parentage and offered him the throne before the war; Karna declined.",
+      "fact_or_interpretation": "fact"
+    },
+    {
+      "source": "Mahabharata, Vana Parva / Karna Parva (Indra's request and the Shakti weapon)",
+      "claim_supported": "Indra, disguised as a Brahmin, requested and received Karna's kavach-kundala before the war, and granted the Shakti weapon in return.",
+      "fact_or_interpretation": "fact"
+    },
+    {
+      "source": "Popular retellings and dramatized adaptations",
+      "claim_supported": "The specific interior dialogue, exact emotional framing, and precise wording of characters' exchanges",
+      "fact_or_interpretation": "interpretation"
+    }
+  ]
+}

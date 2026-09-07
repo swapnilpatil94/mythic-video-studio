@@ -3,6 +3,7 @@ import {AbsoluteFill, Audio, Img, interpolate, staticFile, useCurrentFrame, useV
 import {runtimeAssets} from './runtime-assets';
 import {runtimeAudio} from './runtime-audio';
 import {runtimeCaptions} from './runtime-captions';
+import {brandLogoAvailable} from './runtime-brand';
 import {
   cameraMotion, drawRevealProgress, parallaxOffset, revealProgress, entranceExitOpacity, entranceExitShiftY,
   type MotionFrame,
@@ -10,19 +11,16 @@ import {
 import {shotFor, keywordFor, importantWordFor, subShotSequence, type ShotPreset} from './shots';
 import {profileFor, type FormatProfile} from './format';
 import {platformProfile, resolveSubtitleCenterY} from '../shared/platform-profiles';
-import {BRAND_NAME, BRAND_TAGLINE} from '../shared/brand';
+import {BRAND_NAME, BRAND_TAGLINE, BRAND_LOGO_PATH} from '../shared/brand';
 
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
 
 // Burned-in captions live in the shared lower "storytelling zone" (see src/shared/platform-profiles.ts),
 // not the frame's visual center and not jammed against the very bottom edge to dodge a platform's own
-// caption/progress chrome — collision-checked against both supported platforms at module load, not just
-// assumed. Both currently resolve to the same un-nudged center (no platform's chrome reaches this high),
-// so a single constant is correct without threading a per-project platform choice through render props yet.
-const SUBTITLE_CENTER_Y = Math.min(
-  resolveSubtitleCenterY(platformProfile('youtube_shorts')).centerY,
-  resolveSubtitleCenterY(platformProfile('instagram_reels')).centerY,
-);
+// caption/progress chrome. Configurable per manifest via the optional `platform` field (defaults to
+// youtube_shorts) — collision-checked against that platform's own bottom-UI zone at render time, not
+// a fixed guess, so a different platform profile genuinely moves this rather than only documenting it.
+const DEFAULT_PLATFORM = 'youtube_shorts';
 
 const INK = '#171510';
 const CREAM = '#F4E8CF';
@@ -32,6 +30,11 @@ const RED = '#8E2F24';
 type Manifest = {
   title: string;
   duration_seconds: number;
+  platform?: string;
+  // See src/pipeline/types.ts — populated by the story-package importer from its own
+  // characters/environments/props lists, consulted here before the id-substring regexes below
+  // (which only ever recognized "karna"/"indra" by name and don't generalize to any other cast).
+  asset_kinds?: Record<string, string>;
   beats: Array<{
     beat_id: string;
     duration_seconds: number;
@@ -100,9 +103,9 @@ function Visitor({progress}: {progress: number}) {
 const labelForRole = (role: string) => role.replaceAll('_', ' ').toUpperCase();
 
 /** Real generated character art for this beat, if any (used to suppress the procedural sketch fallback). */
-function realCharacterRefs(beat: Beat): string[] {
+function realCharacterRefs(beat: Beat, assetKinds?: Record<string, string>): string[] {
   const refs = beat.asset_refs.filter((ref) => runtimeAssets[ref]);
-  return refs.filter((ref) => /character|\.master/i.test(ref) || ref.includes('karna') || ref.includes('indra'));
+  return refs.filter((ref) => assetKinds?.[ref] === 'character' || /character|\.master/i.test(ref) || ref.includes('karna') || ref.includes('indra'));
 }
 
 /**
@@ -341,8 +344,11 @@ function KeywordFlourish({text, t, triggerAt, altSide, holdSeconds}: {text: stri
   if (opacity <= 0.001) return null;
   const scale = interpolate(rel, [-0.05, 0.12], [0.72, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
   const underlineProgress = interpolate(rel, [0.15, 0.55], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  // Sits in the top margin (well above where sub-shot face crops typically center a face) rather
+  // than at 30% down the frame, which could land the keyword directly across a face for tight
+  // face/reaction shots — "artwork always has priority" applies to this text too, not just captions.
   return <div style={{
-    position: 'absolute', left: 0, right: 0, top: '30%', display: 'flex',
+    position: 'absolute', left: 0, right: 0, top: '15%', display: 'flex',
     justifyContent: altSide ? 'flex-end' : 'flex-start', padding: '0 64px', pointerEvents: 'none',
   }}>
     <div style={{opacity, transform: `scale(${scale}) rotate(${altSide ? 2 : -2}deg)`, display: 'inline-flex', flexDirection: 'column', alignItems: altSide ? 'flex-end' : 'flex-start'}}>
@@ -363,7 +369,7 @@ type CaptionWord = {word: string; start: number; end: number; score: number};
  * as `t`, not a beat-local guess), then settles to a dimmer cream while later words continue
  * popping in — a building, word-by-word line rather than one static block appearing and vanishing.
  */
-function KineticCaption({words, t, importantWord}: {words: CaptionWord[]; t: number; importantWord?: CaptionWord}) {
+function KineticCaption({words, t, importantWord, centerY}: {words: CaptionWord[]; t: number; importantWord?: CaptionWord; centerY: number}) {
   if (words.length === 0) return null;
   const beatStart = words[0].start;
   const beatEnd = words[words.length - 1].end;
@@ -380,7 +386,7 @@ function KineticCaption({words, t, importantWord}: {words: CaptionWord[]; t: num
   const windowEnd = Math.min(words.length, activeIdx + 3);
   const visible = words.slice(windowStart, windowEnd);
   return <div style={{
-    position: 'absolute', left: 160, right: 160, top: SUBTITLE_CENTER_Y - 70, height: 140,
+    position: 'absolute', left: 160, right: 160, top: centerY - 70, height: 140,
     display: 'flex', flexWrap: 'wrap', justifyContent: 'center', alignContent: 'center',
     gap: '2px 10px', pointerEvents: 'none', opacity: wrapOpacity,
     textShadow: '0 2px 4px rgba(23,21,16,0.8)',
@@ -433,23 +439,64 @@ function EdgeInkWipe({local}: {local: number}) {
 }
 
 /**
- * Minimal persistent brand mark — replaces the old header/footer text entirely. Doubles as the
- * "subtle opening identity": for the first ~1.1s it's larger and still settling in (a brief
- * flourish, not a separate splash element), then holds at a small, low-opacity corner watermark
- * for the rest of the video. Sits in `brandingZone` (top-right, clear of the title-safe top-left,
- * the right-side platform icon rail, and the lower subtitle zone) so it never overlaps story art.
+ * Minimal persistent brand mark — the real KATHAAYA emblem (not redrawn text), clipped to its own
+ * circular seal so a non-transparent square source still reads as a coin/seal mark, not a box.
+ * Sits in `brandingZone` (top-right, clear of the title-safe top-left, the right-side platform icon
+ * rail, and the lower subtitle zone) so it never overlaps story art. The dramatic open lives in
+ * `OpeningLogoSplash` below — this stays a steady, low-profile watermark for the whole runtime,
+ * only fading in once the splash has cleared so the two never double up.
  */
 function BrandWatermark({t}: {t: number}) {
-  const introScale = interpolate(t, [0, 0.5, 1.1], [1.5, 1.5, 1], {extrapolateRight: 'clamp'});
-  const introOpacity = interpolate(t, [0, 0.25], [0, 1], {extrapolateRight: 'clamp'});
-  const steadyOpacity = 0.4;
-  const opacity = t < 1.1 ? Math.min(introOpacity, interpolate(t, [0.85, 1.1], [1, steadyOpacity], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'})) : steadyOpacity;
+  if (!brandLogoAvailable) {
+    // No logo asset staged yet (see stage-assets.ts) — the original text wordmark, unchanged.
+    const introScale = interpolate(t, [0, 0.5, 1.1], [1.5, 1.5, 1], {extrapolateRight: 'clamp'});
+    const introOpacity = interpolate(t, [0, 0.25], [0, 1], {extrapolateRight: 'clamp'});
+    const steadyOpacity = 0.4;
+    const opacity = t < 1.1 ? Math.min(introOpacity, interpolate(t, [0.85, 1.1], [1, steadyOpacity], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'})) : steadyOpacity;
+    return <div style={{
+      position: 'absolute', top: 56, right: 40, textAlign: 'right', opacity,
+      transform: `scale(${introScale})`, transformOrigin: 'top right', pointerEvents: 'none',
+    }}>
+      <div style={{fontSize: 22, fontWeight: 800, letterSpacing: 4, color: INK}}>{BRAND_NAME}</div>
+    </div>;
+  }
+  const opacity = interpolate(t, [1.3, 1.7], [0, 0.5], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
   return <div style={{
-    position: 'absolute', top: 56, right: 40, textAlign: 'right', opacity,
-    transform: `scale(${introScale})`, transformOrigin: 'top right',
-    pointerEvents: 'none',
+    position: 'absolute', top: 48, right: 40, width: 56, height: 56, borderRadius: '50%',
+    overflow: 'hidden', opacity, pointerEvents: 'none',
   }}>
-    <div style={{fontSize: 22, fontWeight: 800, letterSpacing: 4, color: INK}}>{BRAND_NAME}</div>
+    <Img src={staticFile(BRAND_LOGO_PATH)} style={{width: '100%', height: '100%', objectFit: 'cover'}}/>
+  </div>;
+}
+
+/**
+ * Netflix-style opening ident: the real emblem held full-screen on black for a beat, then it
+ * shrinks and slides into the exact top-right spot `BrandWatermark` holds for the rest of the
+ * video (same element reading as one continuous motion, not a cut between two different marks),
+ * while the black backdrop fades out to reveal the first beat's own art starting underneath.
+ * Runs once, over the manifest's first ~2s — no extra runtime, no change to `duration_seconds`.
+ */
+function OpeningLogoSplash({t}: {t: number}) {
+  if (!brandLogoAvailable) return null; // no full-screen ident without the real emblem asset staged
+  const END = 2.0;
+  if (t > END + 0.1) return null;
+  const blackOpacity = interpolate(t, [END - 0.55, END], [1, 0], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const markOpacity = interpolate(t, [0, 0.3, END - 0.35, END], [0, 1, 1, 0], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  // Interpolates size/position from a large centered mark to BrandWatermark's own 56px top-right
+  // spot, so the corner watermark fading in right after reads as the same object settling in place.
+  const size = interpolate(t, [0.3, END], [360, 56], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const top = interpolate(t, [0.3, END], [960 - 180, 48], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const left = interpolate(t, [0.3, END], [540 - 180, 1080 - 40 - size], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  if (markOpacity <= 0.001 && blackOpacity <= 0.001) return null;
+  return <div style={{position: 'absolute', inset: 0, pointerEvents: 'none'}}>
+    <div style={{position: 'absolute', inset: 0, backgroundColor: '#0B0A08', opacity: blackOpacity}}/>
+    <div style={{
+      position: 'absolute', top, left, width: size, height: size, borderRadius: '50%',
+      overflow: 'hidden', opacity: markOpacity,
+      boxShadow: size > 100 ? '0 0 60px rgba(184,135,45,0.35)' : 'none',
+    }}>
+      <Img src={staticFile(BRAND_LOGO_PATH)} style={{width: '100%', height: '100%', objectFit: 'cover'}}/>
+    </div>
   </div>;
 }
 
@@ -469,17 +516,87 @@ function EndCard({t, totalDuration}: {t: number; totalDuration: number}) {
     position: 'absolute', inset: 0, backgroundColor: CREAM, opacity,
     display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 18,
   }}>
-    <div style={{fontSize: 84, fontWeight: 800, letterSpacing: 6, color: INK}}>{BRAND_NAME}</div>
+    {brandLogoAvailable ? <div style={{width: 220, height: 220, borderRadius: '50%', overflow: 'hidden', boxShadow: '0 8px 30px rgba(23,21,16,0.25)'}}>
+      <Img src={staticFile(BRAND_LOGO_PATH)} style={{width: '100%', height: '100%', objectFit: 'cover'}}/>
+    </div> : <div style={{fontSize: 84, fontWeight: 800, letterSpacing: 6, color: INK}}>{BRAND_NAME}</div>}
     <div style={{fontSize: 24, fontWeight: 600, letterSpacing: 3, color: GOLD, textAlign: 'center', maxWidth: 780}}>{BRAND_TAGLINE}</div>
   </div>;
 }
 
-function GeneratedArtwork({beat, progress, beatIndex, format, variant}: {beat: Beat; progress: number; beatIndex: number; format: FormatProfile; variant: number}) {
+/** Classifies a sub-shot's already-descriptive label (see shots.ts) into one of 4 real
+ * compositional grammars — this is what makes "wide" vs "face" vs "hand" vs "chest" read as
+ * different KINDS of shots, not just different zoom numbers cropping the same rectangle. Matched
+ * by prefix (not substring) so a label like `chest-wide` — a looser chest framing, not an
+ * establishing shot — doesn't collide with the true wide/entrance shots. */
+function shotKind(label: string): 'wide' | 'close' | 'detail' | 'medium' {
+  if (label.startsWith('wide') || label.startsWith('entrance')) return 'wide';
+  if (label.startsWith('face') || label.startsWith('eyes')) return 'close';
+  if (label.startsWith('hand') || label.includes('armor-detail')) return 'detail';
+  return 'medium';
+}
+
+/**
+ * The actual compositional device per shot kind — real grammar, not a bigger/smaller crop of the
+ * same picture. "wide" gets cinematic letterbox bars plus a soft foreground silhouette (real
+ * foreground/midground/background depth). "close" gets a soft edge vignette. "detail" gets a
+ * loupe-style iris mask. "medium" (chest/torso) is deliberately undecorated — the plain baseline
+ * the other three read as different FROM.
+ *
+ * "close" and "detail" were originally centered on the sub-shot's own `focusX`/`focusY` (matching
+ * `FramedLayer`'s `object-position`), on the assumption that percentage would land at the same
+ * point on screen. A real render disproved that: `FramedLayer` layers zoom, sway, camera parallax
+ * and idle motion on top of that base position, so the assumed point can drift far enough that a
+ * tight vignette/loupe built around it hid the character's face in the dark band entirely (worse
+ * than no treatment). Both are now frame-relative and generous — large enough that the subject
+ * (which is always staged somewhere in the frame's central ~70%) stays inside the lit/inset area
+ * regardless of exactly where the crop landed, trading a little precision for not risking that.
+ */
+function ShotFrameTreatment({label, opacity}: {label: string; opacity: number}) {
+  const kind = shotKind(label);
+  if (opacity <= 0.001 || kind === 'medium') return null;
+  if (kind === 'wide') {
+    return <div style={{position: 'absolute', inset: 0, pointerEvents: 'none', opacity}}>
+      <div style={{position: 'absolute', top: 0, left: 0, right: 0, height: '5.5%', background: INK, opacity: 0.82}}/>
+      <div style={{position: 'absolute', bottom: 0, left: 0, right: 0, height: '5.5%', background: INK, opacity: 0.82}}/>
+      <svg viewBox="0 0 1080 1920" style={{position: 'absolute', inset: 0, width: '100%', height: '100%'}}>
+        <path d="M0,1920 Q120,1795 260,1845 T520,1815 T820,1855 T1080,1815 L1080,1920 Z" fill={INK} opacity={0.4} style={{filter: 'blur(3px)'}}/>
+      </svg>
+    </div>;
+  }
+  if (kind === 'close') {
+    return <div style={{
+      position: 'absolute', inset: 0, pointerEvents: 'none', opacity,
+      background: `radial-gradient(ellipse 78% 62% at 50% 42%, transparent 58%, ${INK} 100%)`,
+    }}/>;
+  }
+  return <div style={{position: 'absolute', inset: 0, pointerEvents: 'none', opacity}}>
+    <div style={{
+      position: 'absolute', left: '50%', top: '46%', width: 920, height: 920,
+      transform: 'translate(-50%, -50%)', borderRadius: '50%',
+      border: `3px solid ${GOLD}`, boxShadow: '0 0 0 3000px rgba(23,21,16,0.5)',
+    }}/>
+  </div>;
+}
+
+/** Persistent soft ink divider between two characters in a two-shot — real two-shot grammar (a
+ * staged, separated frame), not just two crops placed side by side. */
+function TwoShotDivider({opacity}: {opacity: number}) {
+  if (opacity <= 0.001) return null;
+  return <svg viewBox="0 0 1080 1920" style={{position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', opacity}}>
+    <path d="M540,140 Q565,640 528,1120 T546,1780" fill="none" stroke={INK} strokeWidth="3" opacity={0.22} style={{filter: 'blur(1px)'}}/>
+  </svg>;
+}
+
+function GeneratedArtwork({beat, progress, beatIndex, format, variant, assetKinds}: {beat: Beat; progress: number; beatIndex: number; format: FormatProfile; variant: number; assetKinds?: Record<string, string>}) {
   const refs = beat.asset_refs.filter((ref) => runtimeAssets[ref]);
   if (refs.length === 0) return null;
-  const environment = refs.find((ref) => /environment|background|battlefield|location/i.test(ref));
-  const glow = refs.find((ref) => /sun|symbol|glow/i.test(ref));
-  const characters = refs.filter((ref) => /character|\.master/i.test(ref) || ref.includes('karna') || ref.includes('indra'));
+  const kindOf = (ref: string) => assetKinds?.[ref];
+  // Glow is checked before environment: a story package's `environments` list has no separate
+  // "ambient motif" category, so an id like a sun/glow overlay is still kind:'environment' in
+  // asset_kinds — the id-substring regex is what actually distinguishes it, and must win the tie.
+  const glow = refs.find((ref) => kindOf(ref) === 'overlay' || /sun|symbol|glow/i.test(ref));
+  const environment = refs.find((ref) => ref !== glow && (kindOf(ref) === 'environment' || /environment|background|battlefield|location/i.test(ref)));
+  const characters = refs.filter((ref) => kindOf(ref) === 'character' || /character|\.master/i.test(ref) || ref.includes('karna') || ref.includes('indra'));
   const detail = refs.find((ref) => ref !== environment && ref !== glow && !characters.includes(ref));
 
   const camera = cameraMotion(beat.camera, progress);
@@ -495,26 +612,43 @@ function GeneratedArtwork({beat, progress, beatIndex, format, variant}: {beat: B
   const envReveal = revealProgress(progress, revealF * 1.05);
 
   return <div style={{position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden'}}>
-    {environment ? <FramedLayer key={`${beat.beat_id}-env`}
-      src={staticFile(runtimeAssets[environment])}
-      zoom={Math.max(1.02, shot.zoom * 0.62)} focusY={48}
-      camera={camera} depth={0.16} progress={progress} direction={direction}
-      reveal={envReveal} opacity={envOpacity * 0.92}
-      cameraWeight={cameraWeight} idleScale={format.idleAmpScale}
-      seed={`${beat.beat_id}-env`} showPen={characters.length === 0}
-    /> : null}
+    {environment ? (() => {
+      // `ashwa_river` turned out to be a full illustrated scene (a figure rowing a boat), not a
+      // clean backdrop — the same class of problem `surya_glow` had. At the default near-1.0 zoom
+      // it was fully visible behind every character reusing it as ambience, reading as a confusing
+      // second, unrelated figure (visible directly in a real render: C1/C2/P1 show a ghostly
+      // rower double behind Karna). Cropped tight into its water/rocks foreground band — below
+      // where the boat sits — so it reads as river texture, not a competing character.
+      const isRiver = environment === 'ashwa_river';
+      // First attempt (zoom 2.05, focusY 86) still let the rower's arm/oar peek in at the top of
+      // frame — confirmed via a real rendered frame (C1_b). The boat/figure cluster runs roughly
+      // 48-71% down the source image, so the crop needs to start well past that, not just nudge
+      // toward it.
+      const envZoom = isRiver ? 2.6 : Math.max(1.02, shot.zoom * 0.62);
+      const envFocusY = isRiver ? 92 : 48;
+      return <FramedLayer key={`${beat.beat_id}-env`}
+        src={staticFile(runtimeAssets[environment])}
+        zoom={envZoom} focusY={envFocusY}
+        camera={camera} depth={0.16} progress={progress} direction={direction}
+        reveal={envReveal} opacity={envOpacity * 0.92}
+        cameraWeight={cameraWeight} idleScale={format.idleAmpScale}
+        seed={`${beat.beat_id}-env`} showPen={characters.length === 0}
+      />;
+    })() : null}
 
-    {/* The sun.symbol master asset turned out to be a full illustrated scene, not a clean glow
-        motif — crop tightly into just its sun-ring region (well above the figure lower in the
-        frame) so it reads as an ambient light accent instead of blending in unrelated content. */}
-    {glow ? <FramedLayer key={`${beat.beat_id}-glow`}
-      src={staticFile(runtimeAssets[glow])}
-      zoom={2.6} focusY={26}
-      camera={camera} depth={0.1} progress={progress} direction={direction}
-      opacity={entranceExitOpacity(progress, 0.08, 0.9) * 0.5}
-      blend="multiply"
-      cameraWeight={cameraWeight} idleScale={format.idleAmpScale}
-    /> : null}
+    {/* Both the old sun.symbol and its renamed successor surya_glow turned out to be full
+        illustrated scenes (a woman under a tree), not clean glow motifs — any raster crop kept
+        risking bleeding an unrelated face into frame. A procedural radial glow reads as ambient
+        divine light without needing (or risking) a dedicated master asset at all. */}
+    {glow ? <div key={`${beat.beat_id}-glow`} style={{
+      position: 'absolute', left: '60%', top: '18%', width: 560, height: 560,
+      transform: `translate(-50%, -50%) scale(${1 + Math.sin(progress * Math.PI * 2.4) * 0.05})`,
+      borderRadius: '50%',
+      background: `radial-gradient(circle, ${GOLD}cc 0%, ${GOLD}66 32%, transparent 70%)`,
+      filter: 'blur(34px)',
+      opacity: entranceExitOpacity(progress, 0.08, 0.9) * 0.6,
+      mixBlendMode: 'screen',
+    }}/> : null}
 
     {characters.length >= 2 ? characters.slice(0, 2).map((ref, index) => {
       const staggered = Math.max(0, Math.min(1, progress - index * 0.05));
@@ -540,7 +674,7 @@ function GeneratedArtwork({beat, progress, beatIndex, format, variant}: {beat: B
         reveal={reveal}
         opacity={entranceExitOpacity(staggered) * cutFlashOpacity(segLocal, cutIndex)}
         shiftY={entranceExitShiftY(staggered)}
-        sway={1.0 * format.swayScale} swayX={30} swayY={26}
+        sway={1.35 * format.swayScale} swayX={30} swayY={26}
         cameraWeight={cameraWeight} idleScale={format.idleAmpScale}
         seed={`${beat.beat_id}-${ref}`} showPen={index === 0 && cutIndex === 0}
         box={{
@@ -548,29 +682,36 @@ function GeneratedArtwork({beat, progress, beatIndex, format, variant}: {beat: B
           top: '12%', bottom: '2%',
         }}
       />;
-    }) : characters.slice(0, 1).map((ref) => {
+    }) : null}
+    {characters.length >= 2 ? <TwoShotDivider opacity={entranceExitOpacity(progress) * 0.55}/> : null}
+
+    {characters.length < 2 ? characters.slice(0, 1).map((ref) => {
       const fullBleed = !environment;
       const subShots = subShotSequence(beat.visual_role, variant);
       const {shot: subShot, index: cutIndex, segLocal, segDur} = activeSubShot(subShots, progress);
       const revealCap = Math.min(revealF, segDur * 0.85);
       const reveal = cutIndex === 0 ? revealProgress(progress, revealCap) : 1;
-      return <FramedLayer key={`${beat.beat_id}-${ref}`}
-        src={staticFile(runtimeAssets[ref])}
-        fit={fullBleed ? 'cover' : 'contain'}
-        zoom={subShot.zoom * cutSnapZoom(segLocal)} focusY={subShot.focusY}
-        camera={camera} depth={0.68} progress={progress} direction={direction}
-        reveal={reveal}
-        opacity={entranceExitOpacity(progress) * cutFlashOpacity(segLocal, cutIndex)}
-        shiftY={entranceExitShiftY(progress)}
-        sway={1.6 * format.swayScale} swayX={28} swayY={24}
-        cameraWeight={cameraWeight} idleScale={format.idleAmpScale}
-        seed={`${beat.beat_id}-${ref}`} showPen={cutIndex === 0}
-        box={fullBleed ? undefined : {
-          left: alt ? '2%' : '26%', width: '72%',
-          top: '8%', bottom: '0%',
-        }}
-      />;
-    })}
+      const layerOpacity = entranceExitOpacity(progress) * cutFlashOpacity(segLocal, cutIndex);
+      return <React.Fragment key={`${beat.beat_id}-${ref}-frame`}>
+        <FramedLayer key={`${beat.beat_id}-${ref}`}
+          src={staticFile(runtimeAssets[ref])}
+          fit={fullBleed ? 'cover' : 'contain'}
+          zoom={subShot.zoom * cutSnapZoom(segLocal)} focusY={subShot.focusY} focusX={subShot.focusX}
+          camera={camera} depth={0.68} progress={progress} direction={direction}
+          reveal={reveal}
+          opacity={layerOpacity}
+          shiftY={entranceExitShiftY(progress)}
+          sway={2.1 * format.swayScale} swayX={28} swayY={24}
+          cameraWeight={cameraWeight} idleScale={format.idleAmpScale}
+          seed={`${beat.beat_id}-${ref}`} showPen={cutIndex === 0}
+          box={fullBleed ? undefined : {
+            left: alt ? '2%' : '26%', width: '72%',
+            top: '8%', bottom: '0%',
+          }}
+        />
+        <ShotFrameTreatment label={subShot.label} opacity={layerOpacity}/>
+      </React.Fragment>;
+    }) : null}
 
     {detail ? (() => {
       // The hero character already gets this beat's one real hand-drawn reveal (see the sub-shot
@@ -627,7 +768,8 @@ function cutFlashOpacity(segLocal: number, index: number): number {
 }
 
 const CHARACTER_REF = /character|\.master/i;
-const primaryCharacterRef = (beat: Beat) => beat.asset_refs.find((r) => CHARACTER_REF.test(r) || r.includes('karna') || r.includes('indra'));
+const primaryCharacterRef = (beat: Beat, assetKinds?: Record<string, string>) =>
+  beat.asset_refs.find((r) => assetKinds?.[r] === 'character' || CHARACTER_REF.test(r) || r.includes('karna') || r.includes('indra'));
 
 export const MythicShort: React.FC<{manifest: Manifest}> = ({manifest}) => {
   const frame = useCurrentFrame();
@@ -638,6 +780,7 @@ export const MythicShort: React.FC<{manifest: Manifest}> = ({manifest}) => {
   // a long-form manifest (already authored with longer per-beat durations) gets gentler,
   // less-fatiguing continuous motion instead of the same intensity stretched over many minutes.
   const format = useMemo(() => profileFor(manifest.duration_seconds), [manifest]);
+  const subtitleCenterY = useMemo(() => resolveSubtitleCenterY(platformProfile(manifest.platform ?? DEFAULT_PLATFORM)).centerY, [manifest]);
   const beats = useMemo<Beat[]>(() => {
     let cursor = 0;
     return manifest.beats.map((b) => {
@@ -653,7 +796,7 @@ export const MythicShort: React.FC<{manifest: Manifest}> = ({manifest}) => {
     const counts: Record<string, number> = {};
     const map: Record<string, number> = {};
     for (const b of beats) {
-      const key = primaryCharacterRef(b) ?? b.visual_role;
+      const key = primaryCharacterRef(b, manifest.asset_kinds) ?? b.visual_role;
       const v = counts[key] ?? 0;
       map[b.beat_id] = v;
       counts[key] = v + 1;
@@ -680,12 +823,12 @@ export const MythicShort: React.FC<{manifest: Manifest}> = ({manifest}) => {
   const keywordTriggerAt = importantWord ? importantWord.start : beat.start + beat.duration_seconds * 0.05;
   // Real generated master art replaces the procedural sketch figures for this beat; only draw the
   // hand-coded fallback (KarnaFigure/Visitor) when no real character asset is available.
-  const hasRealCharacterArt = realCharacterRefs(beat).length > 0;
+  const hasRealCharacterArt = realCharacterRefs(beat, manifest.asset_kinds).length > 0;
   const isVisitor = beat.visual_role.includes('visitor') || beat.visual_role === 'decision' || beat.visual_role === 'request' || beat.visual_role === 'sacrifice';
 
   return <AbsoluteFill style={{backgroundColor: CREAM, fontFamily: 'Noto Sans Devanagari, Noto Sans, sans-serif', color: INK}}>
     {runtimeAudio ? <Audio src={staticFile(runtimeAudio)} volume={1}/> : null}
-    <GeneratedArtwork beat={beat} progress={local} beatIndex={beatIndex} format={format} variant={variantByBeatId[beat.beat_id] ?? 0}/>
+    <GeneratedArtwork beat={beat} progress={local} beatIndex={beatIndex} format={format} variant={variantByBeatId[beat.beat_id] ?? 0} assetKinds={manifest.asset_kinds}/>
     <AbsoluteFill style={{transform: `translate(${camera.translateX * 0.18}px, ${camera.translateY * 0.18}px) scale(${camera.scale * 0.985})`, transformOrigin: '50% 50%'}}>
       <svg width="100%" height="100%" viewBox="0 0 1080 1920">
         <rect width="1080" height="1920" fill={CREAM} opacity={runtimeAssets[beat.asset_refs[0]] ? 0.18 : 1}/>
@@ -695,18 +838,22 @@ export const MythicShort: React.FC<{manifest: Manifest}> = ({manifest}) => {
           <KarnaFigure progress={isVisitor ? 1 : draw}/>
           {isVisitor ? <Visitor progress={draw}/> : null}
         </g>}
-        {isThreat ? <path d="M70 1450 Q250 1320 430 1460 T800 1420 T1010 1470" fill="none" stroke={RED} strokeWidth="18" opacity={draw}/> : null}
-        {isArmor ? <g opacity={draw}><path d="M350 980 Q540 820 730 980" fill="none" stroke={GOLD} strokeWidth="26" strokeDasharray="1200" strokeDashoffset={1200 * (1 - draw)}/><circle cx="540" cy="980" r="22" fill={GOLD}/></g> : null}
+        {/* These accents used to arc across the mid-frame (y~820-980 / y~1420-1470) — fine when
+            every beat held one static full-body wide shot, but sub-shot cuts now crop tightly into
+            faces/chests at varying zoom, so a fixed mid-frame position could land across a face.
+            Hugging the very bottom edge (below the subtitle zone) keeps them clear of any crop. */}
+        {isThreat ? <path d="M60 1880 Q250 1855 440 1885 T820 1875 T1020 1888" fill="none" stroke={RED} strokeWidth="10" opacity={draw * 0.7}/> : null}
+        {isArmor ? <path d="M60 1860 Q160 1840 260 1862" fill="none" stroke={GOLD} strokeWidth="14" strokeDasharray="260" strokeDashoffset={260 * (1 - draw)} opacity={0.85}/> : null}
         <EdgeInkWipe local={local}/>
       </svg>
     </AbsoluteFill>
 
     {keywordText ? <KeywordFlourish text={keywordText} t={t} triggerAt={keywordTriggerAt} altSide={beatIndex % 2 === 1} holdSeconds={format.keywordHoldSeconds}/> : null}
 
-    {beatWords.length > 0 ? <KineticCaption words={beatWords} t={t} importantWord={importantWord}/> : null}
+    {beatWords.length > 0 ? <KineticCaption words={beatWords} t={t} importantWord={importantWord} centerY={subtitleCenterY}/> : null}
 
     {showStaticCaption ? <div style={{
-      position: 'absolute', left: 56, right: 56, top: SUBTITLE_CENTER_Y - 90, height: 180,
+      position: 'absolute', left: 56, right: 56, top: subtitleCenterY - 90, height: 180,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       opacity: interpolate(local, [0.1, 0.2, 0.86, 0.96], [0, 1, 1, 0], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'}),
       textAlign: 'center',
@@ -721,5 +868,6 @@ export const MythicShort: React.FC<{manifest: Manifest}> = ({manifest}) => {
 
     <BrandWatermark t={t}/>
     <EndCard t={t} totalDuration={manifest.duration_seconds}/>
+    <OpeningLogoSplash t={t}/>
   </AbsoluteFill>;
 };
