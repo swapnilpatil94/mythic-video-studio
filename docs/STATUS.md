@@ -1,6 +1,6 @@
 # Implementation Status
 
-Updated: 2026-09-07 (real shot-grammar pass + 3 asset-ghosting bugs found and fixed)
+Updated: 2026-09-07 (real logo landed and verified — visual-quality milestone closed)
 
 ## Overall
 
@@ -10,7 +10,61 @@ Updated: 2026-09-07 (real shot-grammar pass + 3 asset-ghosting bugs found and fi
 
 **Current engineering focus:** `bash run.sh examples/karna-short.json` (or, equivalently, a project run from **KATHAAYA Studio**'s Production tab) runs the complete pipeline end-to-end on this machine using real local FLUX image generation, real local Chatterbox Hindi voice cloning, and real local Whisper (whisperx) forced alignment, producing a real, technically-passing MP4. `npm run studio` now gives a local dashboard for managing multiple projects, importing story-package JSON, and driving that same pipeline instead of hand-editing manifest files — see the latest milestone below. The compositor (`src/remotion/MythicShort.tsx`) is **format-aware** (one engine, a Short vs. long-form tempo/motion profile selected purely from the manifest's existing `duration_seconds` — no schema change, no second pipeline), branded as **KATHAAYA** (subtle open, minimal watermark, full end card — no more MYTHIC STORIES header/footer), and its kinetic keyword/caption emphasis is driven by whichever word Whisper actually found emphasized in the real narration, not a fixed per-story vocabulary table. Remaining work is visual/asset-consistency tuning (character distinction, source `sun.symbol` asset content review), a real long-form production to validate the long-form profile beyond a structural smoke test, and human mythology-respect/editorial review — not pipeline wiring.
 
-## Latest milestone — real shot grammar (not just zoom), a real logo, and 3 asset-ghosting bugs traced and fixed
+## Latest milestone — real logo landed and verified, one more real bug caught by an existing QA gate
+
+Brief: close out the visual-quality milestone below — land the real KATHAAYA logo file the code was
+already wired for, do one verification render, document the one remaining residual honestly, then
+stop (explicit direction: no further digging on the `R1` artifact from the previous milestone —
+next milestone is a fresh long-form production test, not further tuning of this project).
+
+### The real logo, verified rendering in all three places
+
+`public/brand/kathaaya-logo.png` (1254×1254, the gold ink-brush "क" emblem in a circular seal, on
+black) is now on disk. Reran the pipeline; `stage-assets.ts` confirmed it via its own log line and
+staged it; `brandLogoAvailable` flipped `true`; a real dense-frame check confirms the actual emblem
+(not the text-wordmark fallback) renders correctly in all three places it's wired: the opening ident
+(centered, glowing, over the first ~1s, `H1`'s art faintly visible underneath), the persistent
+corner watermark (small, settled into its steady-state position), and the end card (with the
+tagline beneath it, matching the design).
+
+### A real regression, caught by an existing QA gate doing its job
+
+The very first render with the logo in place **failed** `check-output.ts`'s existing black-frame
+gate (`blackdetect=d=0.5:pix_th=0.10` — fails if ≥0.5s of a frame is ≥98% below 10% luminance):
+`OpeningLogoSplash`'s black backdrop was clamped to full opacity for the first ~1.45s (only the
+fade-*out* was ever animated, not a fade-in, so it held at opacity 1 the whole time before that) —
+a real, previously-undetected bug in the previous milestone's own logo-wiring work, not something
+introduced by landing the file itself. Fixed by capping the backdrop at 0.68 opacity (never fully
+opaque, so it always blends with the first beat's own bright cream background underneath and never
+composites to something the gate's definition of "black" actually matches) and fading it in as well
+as out. Reran; **PASS**, no black-frame error, confirmed via a fresh render, not just the code
+change. This is a good example of the existing strict-gate infrastructure catching a real defect
+before it shipped, not a false alarm to route around.
+
+### Verified
+
+Real render: 1080×1920, h264/aac, 169.557s (duration still unchanged), `check-output.ts` **PASS**
+(all gates, including the newly-relevant black-frame check). Dense frames pulled directly from this
+exact render at the opening ident, the corner watermark, and the end card all show the real emblem.
+
+### This visual-quality milestone is now closed
+
+Everything from this milestone and the two before it (cinematic pass, shot-grammar pass, this logo
+pass) is verified against real rendered output, not asserted from code. One honestly-flagged,
+narrow residual remains and is **not** being chased further per explicit direction:
+
+- **`R1`'s translucent double-exposure artifact** (full detail in the previous milestone below) —
+  isolated to one beat, root cause not conclusively identified after three real diagnostic attempts,
+  confirmed not present in any of the 5 other beats reusing the same two assets.
+- `T1`/`T2` still share a similar wide-battlefield feel (the underlying `kurukshetra_battlefield`
+  master art is a single fixed illustration — a second asset would be needed to differentiate them
+  further, out of scope here).
+- The FLUX watermark/signature artifact from earlier sessions is unchanged.
+
+**Next milestone**: a fresh long-form production test (a new story, not further tuning of
+`karna-full-journey`) — see `docs/PROGRESS.md` for the running log.
+
+## Previous milestone — real shot grammar (not just zoom), a real logo, and 3 asset-ghosting bugs traced and fixed
 
 Brief: a direct continuation of the cinematic pass below — accepted its 5 findings as real, then pushed
 further per explicit direction: fix `surya_glow` for good, real shot GRAMMAR (wide/close/detail/

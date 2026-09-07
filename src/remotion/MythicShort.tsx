@@ -480,7 +480,13 @@ function OpeningLogoSplash({t}: {t: number}) {
   if (!brandLogoAvailable) return null; // no full-screen ident without the real emblem asset staged
   const END = 2.0;
   if (t > END + 0.1) return null;
-  const blackOpacity = interpolate(t, [END - 0.55, END], [1, 0], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  // Capped well under full opacity — a real render caught this holding pure opaque black for
+  // ~1.45s, which check-output.ts's blackdetect gate (>=0.5s of >=98% sub-10%-luminance pixels)
+  // correctly failed on. Never going fully opaque means this always blends with the first beat's
+  // own (bright cream) background underneath, so the composite never actually reads as "black" to
+  // that gate, while still darkening enough to read as a real ident moment.
+  const MAX_BACKDROP_OPACITY = 0.68;
+  const blackOpacity = interpolate(t, [0, 0.18, END - 0.55, END], [0, MAX_BACKDROP_OPACITY, MAX_BACKDROP_OPACITY, 0], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
   const markOpacity = interpolate(t, [0, 0.3, END - 0.35, END], [0, 1, 1, 0], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
   // Interpolates size/position from a large centered mark to BrandWatermark's own 56px top-right
   // spot, so the corner watermark fading in right after reads as the same object settling in place.

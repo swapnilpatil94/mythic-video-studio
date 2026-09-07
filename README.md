@@ -18,6 +18,14 @@ That command will install Node dependencies when needed, validate the manifest, 
 
 During M1 the image/TTS adapters are intentionally being wired separately; the current renderer already proves the animation/compositing layer with procedural fallback artwork.
 
+**New to this repo?** See [`docs/RUNNING_LOCALLY.md`](docs/RUNNING_LOCALLY.md) for what needs to be
+installed (Node, ffmpeg, and the three local adapters — mflux/Chatterbox/whisperx), first-time
+`.env` setup, `npm run preflight` to verify it before a real run, and a full walkthrough of running
+a production both from the terminal and from KATHAAYA Studio's UI (creating a project, importing a
+Story Package, the Production tab's strict-gate checkboxes, where the rendered MP4 lands) — plus
+notes on what actually costs time and how to avoid re-paying it (asset/TTS caching, iterating in
+Remotion Studio instead of full renders).
+
 ## KATHAAYA Studio — local project manager
 
 A local control panel for managing multiple story projects and driving this same pipeline, instead of hand-editing manifest JSON. It is a thin UI layer only: it reads/writes project files under `projects/<id>/` and calls the existing `run.sh`/`preflight.ts` — it does not add a second renderer or duplicate any pipeline logic.

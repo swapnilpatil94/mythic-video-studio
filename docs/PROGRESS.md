@@ -1,5 +1,37 @@
 # Progress
 
+## 2026-09-07 (logo landed) — visual-quality milestone closed, one more real bug caught by QA
+
+Brief: close out the visual milestone — land the real KATHAAYA logo, one verification render,
+document the residual honestly, stop (explicit direction: no further R1 digging; next milestone is
+a fresh long-form production test). Also added `docs/RUNNING_LOCALLY.md`, a full setup/usage guide.
+
+**Real logo verified in all three places**: `public/brand/kathaaya-logo.png` landed on disk; a real
+render confirms the actual emblem (not the text fallback) in the opening ident, the corner
+watermark, and the end card.
+
+**A real regression caught by an existing QA gate**: the first render with the logo in place
+**failed** `check-output.ts`'s black-frame gate — `OpeningLogoSplash`'s backdrop was only ever fading
+*out*, never in, so it held fully opaque black for ~1.45s (over the 0.5s threshold). This was a real
+bug in the previous session's logo-wiring, exposed only once the real (non-fallback) asset existed
+to render. Fixed by capping the backdrop at 0.68 opacity (never fully opaque, always blends with the
+bright cream beat underneath) and fading it in as well as out. Re-ran; PASS, confirmed via a fresh
+render.
+
+**Verified**: 1080×1920, 169.557s, `check-output.ts` PASS including the black-frame check. Dense
+frames from this exact render confirm the real emblem at all three brand touchpoints.
+
+**Docs**: added `docs/RUNNING_LOCALLY.md` — what needs to be installed (Node/ffmpeg/mflux/
+Chatterbox/whisperx), first-time `.env` setup, `npm run preflight`, running via `run.sh` vs. the
+Studio UI (project creation, story-package import, the Production tab's gates, where output lands),
+and what actually costs time (asset/TTS caching, iterating in Remotion Studio vs. full renders).
+
+**This visual-quality milestone is closed.** Honest residuals not chased further: R1's unexplained
+translucent artifact (isolated, three real diagnostic attempts, see the previous entry); T1/T2's
+similar wide-battlefield feel (single fixed environment asset, would need a second asset to
+differentiate further); the FLUX watermark artifact from earlier sessions. Next: a fresh long-form
+production test on a new story, not further tuning of this project.
+
 ## 2026-09-07 (real shot-grammar pass) — 3 asset-ghosting bugs traced and fixed, real logo wired
 
 Brief: continuation of the cinematic pass below — real shot GRAMMAR (wide/close/detail/two-shot as

@@ -15,3 +15,4 @@ logs/
 web/dist/
 public/generated/
 public/audio/
+.claude/
