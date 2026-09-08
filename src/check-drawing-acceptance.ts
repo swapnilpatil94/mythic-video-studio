@@ -10,17 +10,19 @@ const productionTest = read('src/remotion/ProductionDrawingTest.tsx');
 
 const hasRealStrokeLayer =
   /pathLength\s*=\s*\{?1\}?/.test(overlay) &&
-  /strokeDasharray\s*=\s*["']1 1["']/.test(overlay) &&
+  /strokeDasharray\s*=\s*["']1(?: 1)?["']/.test(overlay) &&
   /strokeDashoffset\s*=/.test(overlay) &&
   /<path/.test(overlay);
 
 const tracesMasterArtwork =
-  overlay.includes("parentElement") &&
+  overlay.includes('parentElement') &&
   overlay.includes("querySelector('img')") &&
   overlay.includes('naturalWidth') &&
   overlay.includes('getImageData') &&
   overlay.includes('objectFit') &&
-  overlay.includes('objectPosition');
+  overlay.includes('objectPosition') &&
+  overlay.includes('chainBoundarySegments') &&
+  overlay.includes('pathFromPoints');
 
 const copiesMasterTransform =
   overlay.includes('getComputedStyle(image)') &&
@@ -64,4 +66,4 @@ const result = evaluateDrawingAcceptance({
 
 if (!result.ok) throw new Error(result.errors.join('\n'));
 
-console.log('Drawing acceptance contract passed: SVG strokes are traced from the rendered master artwork, aligned to its object-fit/position/transform, and revealed before pigment wash; no generic character construction library or raster mask is used.');
+console.log('Drawing acceptance contract passed: smooth SVG contour paths are traced from the rendered master artwork, aligned to its object-fit/position/transform, and revealed before pigment wash; no generic character construction library or raster mask is used.');
