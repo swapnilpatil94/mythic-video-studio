@@ -6,6 +6,7 @@ import {runtimeCaptions} from './runtime-captions';
 import {brandLogoAvailable} from './runtime-brand';
 import {InkConstructionOverlay} from './InkConstructionOverlay';
 import {subjectRelativeConstruction, type ConstructionRegion} from './artwork-construction';
+import {KathayaCinematic} from './KathayaCinematic';
 import {
   cameraMotion, drawRevealProgress, parallaxOffset, revealProgress, entranceExitOpacity, entranceExitShiftY,
   type MotionFrame,
@@ -870,7 +871,8 @@ export const MythicShort: React.FC<{manifest: Manifest}> = ({manifest}) => {
       </div>
     </div> : null}
 
-    <BrandWatermark t={t}/>
+    <KathayaCinematic progress={local} tension={beat.psychology?.tension_level ?? 5} emotional={beat.psychology?.emotional_level ?? 5} patternInterrupt={Boolean(beat.psychology?.pattern_interrupt)} />
+        <BrandWatermark t={t}/>
     <EndCard t={t} totalDuration={manifest.duration_seconds}/>
     <OpeningLogoSplash t={t}/>
   </AbsoluteFill>;
