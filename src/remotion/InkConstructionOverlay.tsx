@@ -7,6 +7,7 @@ const GOLD = '#B8872D';
 const RED = '#8E2F24';
 const TRACE_WIDTH = 180;
 const MAX_SEGMENTS = 1200;
+const MAX_WAIT_MS = 5000;
 
 const clamp01 = (value: number) => Math.max(0, Math.min(1, value));
 
@@ -179,38 +180,56 @@ export function InkConstructionOverlay({
 
   useEffect(() => {
     let cancelled = false;
+    let frameHandle: number | null = null;
+    let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
+    const startedAt = Date.now();
     const parent = svgRef.current?.parentElement;
-    const image = parent?.querySelector('img');
-    if (!image) {
-      cancelRender(new Error('InkConstructionOverlay requires the master artwork <img> as a sibling'));
-      return () => undefined;
-    }
 
-    const finish = (next: () => void) => {
+    const fail = (error: Error) => {
       if (cancelled) return;
-      try {
-        next();
-        continueRender(handle);
-      } catch (error) {
-        cancelRender(error);
-      }
+      cancelRender(error);
     };
 
-    const onReady = () => finish(() => {
-      setPaths(traceArtwork(image));
-      const style = getComputedStyle(image);
-      setGeometry({
-        transform: style.transform === 'none' ? 'none' : style.transform,
-        transformOrigin: style.transformOrigin || '50% 50%',
-      });
-    });
+    const traceWhenReady = () => {
+      if (cancelled) return;
+      const image = parent?.querySelector('img');
+      if (!image) {
+        if (Date.now() - startedAt > MAX_WAIT_MS) {
+          fail(new Error('InkConstructionOverlay could not find the master artwork <img>'));
+          return;
+        }
+        frameHandle = requestAnimationFrame(traceWhenReady);
+        return;
+      }
 
-    if (image.complete && image.naturalWidth > 0) onReady();
-    else image.addEventListener('load', onReady, {once: true});
+      const finish = () => {
+        if (cancelled) return;
+        try {
+          setPaths(traceArtwork(image));
+          const style = getComputedStyle(image);
+          setGeometry({
+            transform: style.transform === 'none' ? 'none' : style.transform,
+            transformOrigin: style.transformOrigin || '50% 50%',
+          });
+          continueRender(handle);
+        } catch (error) {
+          cancelRender(error);
+        }
+      };
+
+      if (image.complete && image.naturalWidth > 0) finish();
+      else image.addEventListener('load', finish, {once: true});
+      timeoutHandle = setTimeout(() => {
+        if (!image.complete || image.naturalWidth === 0) fail(new Error('Master artwork did not finish loading for contour tracing'));
+      }, MAX_WAIT_MS);
+    };
+
+    traceWhenReady();
 
     return () => {
       cancelled = true;
-      image.removeEventListener('load', onReady);
+      if (frameHandle !== null) cancelAnimationFrame(frameHandle);
+      if (timeoutHandle !== null) clearTimeout(timeoutHandle);
       continueRender(handle);
     };
   }, [cancelRender, continueRender, handle]);
