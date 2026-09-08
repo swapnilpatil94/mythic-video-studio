@@ -10,6 +10,7 @@
     "preflight": "tsx src/preflight.ts",
     "check:pipeline": "tsx src/check-pipeline.ts",
     "check:release": "tsx src/check-release.ts",
+    "check:psychology": "tsx src/check-psychology.ts",
     "generate:assets": "tsx src/generate-assets.ts",
     "inspect:assets": "tsx src/inspect-assets.ts",
     "normalize:assets": "tsx src/normalize-assets.ts",
