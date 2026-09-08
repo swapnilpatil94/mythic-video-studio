@@ -6,6 +6,7 @@ const read = (relativePath: string) => fs.readFileSync(path.resolve(process.cwd(
 const overlay = read('src/remotion/InkConstructionOverlay.tsx');
 const construction = read('src/remotion/artwork-construction.tsx');
 const drawingTest = read('src/remotion/DrawingStageTest.tsx');
+const productionTest = read('src/remotion/ProductionDrawingTest.tsx');
 
 const hasRealStrokeLayer =
   /pathLength\s*=\s*\{?1\}?/.test(overlay) &&
@@ -13,38 +14,54 @@ const hasRealStrokeLayer =
   /strokeDashoffset\s*=/.test(overlay) &&
   /<path/.test(overlay);
 
-const hasSemanticConstruction = [
-  'structural-silhouette',
-  'head-face',
-  'hair-crown',
-  'shoulder-left',
-  'shoulder-right',
-  'arm-hand-weapon',
-  'torso-armor',
-  'sash-costume',
-  'drapery-left',
-  'drapery-right',
-  'fine-ink-detail',
-].every((stage) => overlay.includes(`"${stage}"`));
+const tracesMasterArtwork =
+  overlay.includes("parentElement") &&
+  overlay.includes("querySelector('img')") &&
+  overlay.includes('naturalWidth') &&
+  overlay.includes('getImageData') &&
+  overlay.includes('objectFit') &&
+  overlay.includes('objectPosition');
+
+const copiesMasterTransform =
+  overlay.includes('getComputedStyle(image)') &&
+  overlay.includes('transformOrigin') &&
+  overlay.includes('style.transform');
+
+const noGenericCharacterLibrary =
+  !overlay.includes('structural-silhouette') &&
+  !overlay.includes('head-face') &&
+  !overlay.includes('torso-armor') &&
+  !overlay.includes('drapery-left');
 
 const masterIsIndependentFromMask =
   !construction.includes('WebkitMaskImage') &&
   !construction.includes('maskImage') &&
   /opacity:\s*pigment/.test(construction);
 
-const drawingTestHasExplicitConstruction =
-  drawingTest.includes('function ConstructionDrawing') &&
-  drawingTest.includes('strokeDasharray="1 1"') &&
-  !drawingTest.includes('<InkConstructionOverlay');
+const drawingTestUsesProductionLayer =
+  drawingTest.includes('<InkConstructionOverlay') &&
+  drawingTest.includes('MASTER CONTOURS') &&
+  !drawingTest.includes('function ConstructionDrawing');
+
+const productionTestUsesProductionLayer =
+  productionTest.includes('<InkConstructionOverlay') &&
+  productionTest.includes('ProductionDrawingTest');
 
 const result = evaluateDrawingAcceptance({
   initialFrameHasMasterArt: false,
   initialFrameHasInk: false,
   inkAppearsBeforePigment: true,
   finishedMasterAppearsOnlyAfterWash: true,
-  hasRealStrokeLayer: hasRealStrokeLayer && hasSemanticConstruction && masterIsIndependentFromMask && drawingTestHasExplicitConstruction,
+  hasRealStrokeLayer:
+    hasRealStrokeLayer &&
+    tracesMasterArtwork &&
+    copiesMasterTransform &&
+    noGenericCharacterLibrary &&
+    masterIsIndependentFromMask &&
+    drawingTestUsesProductionLayer &&
+    productionTestUsesProductionLayer,
 });
 
 if (!result.ok) throw new Error(result.errors.join('\n'));
 
-console.log('Drawing acceptance contract passed: independent semantic SVG strokes precede master pigment; no raster-mask drawing stage detected.');
+console.log('Drawing acceptance contract passed: SVG strokes are traced from the rendered master artwork, aligned to its object-fit/position/transform, and revealed before pigment wash; no generic character construction library or raster mask is used.');
