@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, feature/neuromarketing-drawing-stage]
   pull_request:
     branches: [main]
 
