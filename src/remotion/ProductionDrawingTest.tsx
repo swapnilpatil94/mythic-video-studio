@@ -32,7 +32,7 @@ export const ProductionDrawingTest: React.FC = () => {
   const regions = useMemo(() => subjectRelativeConstruction({focusX: shot.focusX, focusY: shot.focusY}), [shot.focusX, shot.focusY]);
   const ink = interpolate(local, [0.02, 0.66], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
   const wash = interpolate(local, [0.34, 0.94], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
-  const settle = interpolate(local, [0.82, 1], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const settle = interpolate(local, [0.82, 1], [0, 1]);
   const scale = interpolate(settle, [0, 1], [1, 1.035]);
 
   if (!characterRef) return <AbsoluteFill style={{background: CREAM}}/>;
@@ -58,11 +58,11 @@ export const ProductionDrawingTest: React.FC = () => {
 
     <div style={{position: 'absolute', left: 58, right: 58, bottom: 90, display: 'flex', justifyContent: 'space-between', alignItems: 'end', zIndex: 5, fontFamily: 'Arial, sans-serif'}}>
       <div>
-        <div style={{fontSize: 16, letterSpacing: 2, opacity: 0.55}}>ASSET</div>
+        <div style={{fontSize: 16, letterSpacing: 2, opacity: 0.55}}>MASTER ARTWORK</div>
         <div style={{fontSize: 24, fontWeight: 700}}>{characterRef}</div>
       </div>
       <div style={{textAlign: 'right'}}>
-        <div style={{fontSize: 16, letterSpacing: 2, color: GOLD}}>SEMANTIC CONSTRUCTION</div>
+        <div style={{fontSize: 16, letterSpacing: 2, color: GOLD}}>ACTUAL CONTOUR TRACE</div>
         <div style={{fontSize: 14, opacity: 0.55}}>{beat.beat_id} · {beat.visual_role}</div>
       </div>
     </div>
