@@ -102,12 +102,12 @@ function subjectBounds(regions: ConstructionRegion[]) {
   };
 }
 
-function Stroke({path, progress, width = 1.6, color = INK, opacity = 1}: StagePath & {progress: number}) {
+function Stroke({d, progress, width = 1.6, color = INK, opacity = 1}: StagePath & {progress: number}) {
   const p = clamp01(progress);
   if (p <= 0.001) return null;
   return (
     <path
-      d={path.d}
+      d={d}
       fill="none"
       stroke={color}
       strokeWidth={width}
@@ -186,11 +186,8 @@ export function InkConstructionOverlay({
               {paths.map((path, index) => (
                 <Stroke
                   key={`${region.id}-${index}`}
-                  path={path}
+                  {...path}
                   progress={localProgress}
-                  width={path.width}
-                  color={path.color}
-                  opacity={path.opacity}
                 />
               ))}
             </g>
