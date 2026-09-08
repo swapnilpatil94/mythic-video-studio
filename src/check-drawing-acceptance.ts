@@ -40,6 +40,12 @@ const masterIsIndependentFromMask =
   !construction.includes('maskImage') &&
   /opacity:\s*pigment/.test(construction);
 
+const drawingTimingIsSeparated =
+  drawingTest.includes('phase(frame, fps, 0.65, 10.8)') &&
+  drawingTest.includes('phase(frame, fps, 10.4, 13.2)') &&
+  productionTest.includes('interpolate(local, [0.03, 0.78], [0, 1]') &&
+  productionTest.includes('interpolate(local, [0.8, 1], [0, 1]');
+
 const drawingTestUsesProductionLayer =
   drawingTest.includes('<InkConstructionOverlay') &&
   drawingTest.includes('MASTER CONTOURS') &&
@@ -60,10 +66,11 @@ const result = evaluateDrawingAcceptance({
     copiesMasterTransform &&
     noGenericCharacterLibrary &&
     masterIsIndependentFromMask &&
+    drawingTimingIsSeparated &&
     drawingTestUsesProductionLayer &&
     productionTestUsesProductionLayer,
 });
 
 if (!result.ok) throw new Error(result.errors.join('\n'));
 
-console.log('Drawing acceptance contract passed: smooth SVG contour paths are traced from the rendered master artwork, aligned to its object-fit/position/transform, and revealed before pigment wash; no generic character construction library or raster mask is used.');
+console.log('Drawing acceptance contract passed: smooth SVG contour paths are traced from the rendered master artwork, aligned to its object-fit/position/transform, and fully revealed before pigment wash; no generic character construction library or raster mask is used.');
