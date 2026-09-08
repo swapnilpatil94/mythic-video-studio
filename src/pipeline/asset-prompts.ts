@@ -1,8 +1,8 @@
-import type {ProductionManifest} from './types';
+import type {AssetKind, ProductionManifest} from './types';
 
 export type AssetPromptJob = {
   asset_id: string;
-  kind: 'character' | 'environment' | 'prop' | 'background' | 'overlay';
+  kind: Exclude<AssetKind, 'audio'>;
   prompt: string;
   references: string[];
   required: boolean;
@@ -28,8 +28,11 @@ const roleHint: Record<string, string> = {
  * heuristic was tuned around that one manifest's exact naming and never generalized to other
  * stories/casts, which is exactly the gap `asset_kinds` closes for story-package-derived manifests.
  */
-function inferKind(ref: string, explicit?: AssetPromptJob['kind']): AssetPromptJob['kind'] {
-  if (explicit) return explicit;
+function inferKind(ref: string, explicit?: AssetKind): Exclude<AssetKind, 'audio'> {
+  // Audio can legally exist in ProductionManifest.asset_kinds, but it is never an image-generation
+  // job. Treat an accidental audio ref as a background-safe fallback rather than leaking the
+  // broader manifest AssetKind union into AssetPromptJob.kind.
+  if (explicit && explicit !== 'audio') return explicit;
   if (ref.includes('master') && (ref.startsWith('karna') || ref.startsWith('indra'))) return 'character';
   if (ref.includes('battlefield')) return 'environment';
   if (ref.includes('armor')) return 'prop';
@@ -65,9 +68,6 @@ export function buildAssetPromptJobs(manifest: ProductionManifest): AssetPromptJ
       'cream parchment background, expressive black ink linework, restrained antique gold and muted red accents',
       'detailed, elegant, cinematic composition designed for vertical 1080x1920 video',
       `asset: ${describe(asset_id)}`,
-      // Specific character/environment/prop direction (who/what this actually is, e.g. gender,
-      // attire, bearing) takes priority over the generic per-beat role hint below — without it,
-      // FLUX has only an id and the shared style boilerplate to go on.
       ...(visualDirection ? [visualDirection] : []),
       `story roles: ${role}`,
       sacred ? 'reverent and dignified sacred-figure depiction, non-comedic, non-caricatured, culturally respectful' : 'story-specific supporting visual, grounded and believable',
