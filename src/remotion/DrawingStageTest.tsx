@@ -22,9 +22,9 @@ export const DrawingStageTest: React.FC = () => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const t = frame / fps;
-  const ink = phase(frame, fps, 0.65, 7.6);
-  const wash = phase(frame, fps, 5.0, 10.6);
-  const settle = phase(frame, fps, 11.2, 15);
+  const ink = phase(frame, fps, 0.65, 10.8);
+  const wash = phase(frame, fps, 10.4, 13.2);
+  const settle = phase(frame, fps, 12.6, 15);
   const scale = interpolate(settle, [0, 1], [1, 1.055]);
   const regions = subjectRelativeConstruction({focusX: 50, focusY: 42});
 
