@@ -27,6 +27,7 @@
     "typecheck": "tsc --noEmit",
     "dev": "remotion studio src/remotion/index.ts",
     "render:sample": "remotion render src/remotion/index.ts MythicShort renders/karna-short.mp4",
+    "render:drawing-test": "remotion render src/remotion/index.ts DrawingStageTest renders/drawing-stage-test.mp4",
     "produce": "tsx src/produce.ts",
     "studio": "tsx src/studio/dev.ts",
     "studio:api": "tsx src/studio/server.ts",
