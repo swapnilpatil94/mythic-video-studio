@@ -9,7 +9,6 @@ import {subShotSequence} from './shots';
 const CREAM = '#F4E8CF';
 const INK = '#171510';
 const GOLD = '#B8872D';
-
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
 
 const revealBeats = runtimeManifest.beats.filter((beat) => beat.reveal && beat.asset_refs.some((ref) => runtimeAssets[ref]));
@@ -34,6 +33,7 @@ export const ProductionDrawingTest: React.FC = () => {
   // The master stays completely hidden while the contour drawing resolves. Pigment begins only
   // after the ink stage has completed, so the viewer never mistakes a fade-in for drawing.
   const ink = interpolate(local, [0.03, 0.78], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const contourProgress = clamp01(ink * 1.28);
   const wash = interpolate(local, [0.8, 1], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
   const settle = interpolate(local, [0.82, 1], [0, 1]);
   const scale = interpolate(settle, [0, 1], [1, 1.035]);
@@ -55,7 +55,7 @@ export const ProductionDrawingTest: React.FC = () => {
           regions={regions}
           style={{objectFit: 'contain', objectPosition: `${shot.focusX}% ${shot.focusY}%`}}
         />
-        <InkConstructionOverlay regions={regions} progress={ink} showGuide={ink < 0.82} />
+        <InkConstructionOverlay regions={regions} progress={contourProgress} showGuide={contourProgress < 0.84} />
       </div>
     </div>
 
