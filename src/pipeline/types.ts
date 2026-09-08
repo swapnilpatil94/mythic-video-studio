@@ -1,5 +1,20 @@
 export type AssetKind = 'character' | 'environment' | 'prop' | 'background' | 'overlay' | 'audio';
 
+export type WorldBible = {
+  period: string;
+  architecture: string;
+  clothing: string;
+  weapons: string;
+  armor: string;
+  jewelry: string;
+  vehicles: string;
+  materials: string;
+  environment: string;
+  lighting: string;
+  atmosphere?: string;
+  forbidden_modern_elements?: string[];
+};
+
 export type AssetRecord = {
   id: string;
   kind: AssetKind;
@@ -48,7 +63,6 @@ export type ProductionBeat = {
   reveal?: boolean;
   keyword_text?: string;
   transition?: string;
-  /** Shared psychology intent. The renderer can use this without knowing whether the story is a Short or Longform. */
   psychology?: BeatPsychology;
 };
 
@@ -59,10 +73,10 @@ export type ProductionManifest = {
   duration_seconds: number;
   characters: string[];
   platform?: string;
+  world?: WorldBible;
   asset_kinds?: Record<string, AssetKind>;
   asset_sacred?: Record<string, boolean>;
   asset_visual_direction?: Record<string, string>;
-  /** Format-level attention plan carried from the Story Package. */
   psychology?: {
     mode: 'high_density' | 'sustained' | 'cinematic';
     curiosity: number;
