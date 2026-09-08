@@ -34,7 +34,8 @@
     "studio": "tsx src/studio/dev.ts",
     "studio:api": "tsx src/studio/server.ts",
     "studio:web": "vite --config web/vite.config.ts",
-    "studio:build": "vite build --config web/vite.config.ts"
+    "studio:build": "vite build --config web/vite.config.ts",
+    "check:drawing-acceptance": "tsx src/check-drawing-acceptance.ts"
   },
   "dependencies": {
     "@remotion/cli": "^4.0.520",
