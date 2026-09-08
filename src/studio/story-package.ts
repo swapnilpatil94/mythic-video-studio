@@ -4,7 +4,7 @@ import {validateProductionManifest} from '../pipeline/validate-manifest';
 import {ProjectMetaSchema, StorySchema, ScriptSchema, CharactersSchema, MetadataSchema, CharacterSchema, PropSchema, FORMAT_VALUES, type ProjectMeta, type Story, type Script, type Characters, type Metadata} from './schemas';
 
 export type StoryPackageFiles = {project: ProjectMeta; story: Story; script: Script; manifest: ProductionManifest; characters: Characters; metadata: Metadata};
-export type SplitResult = | {ok: true; files: StoryPackageFiles; warnings: string[]} | {ok: false; errors: string[]};
+export type SplitResult = {ok: true; files: StoryPackageFiles; warnings: string[]} | {ok: false; errors: string[]};
 
 export const WorldBibleSchema = z.object({
   period: z.string().min(1), architecture: z.string().min(1), clothing: z.string().min(1), weapons: z.string().min(1), armor: z.string().min(1),
@@ -35,43 +35,104 @@ export const StoryPackageSchema = z.object({
   sources: z.array(z.object({source: z.string().min(1), claim_supported: z.string().default(''), fact_or_interpretation: z.enum(['fact', 'interpretation'])}).strict()).default([]),
 }).strict();
 export type StoryPackage = z.infer<typeof StoryPackageSchema>;
-function zodErrors(issues: z.ZodIssue[]): string[] { return issues.map((i) => `${i.path.join('.') || '(root)'}: ${i.message}`); }
+const zodErrors = (issues: z.ZodIssue[]): string[] => issues.map((i) => `${i.path.join('.') || '(root)'}: ${i.message}`);
+
+/** Validate the generated project files independently and apply production-manifest rules. */
+export function validateStoryPackageFiles(files: StoryPackageFiles): Record<string, string[]> {
+  const errors: Record<string, string[]> = {};
+  const checks: Array<[keyof StoryPackageFiles, z.ZodTypeAny]> = [
+    ['project', ProjectMetaSchema], ['story', StorySchema], ['script', ScriptSchema], ['characters', CharactersSchema], ['metadata', MetadataSchema],
+  ];
+  for (const [name, schema] of checks) {
+    const result = schema.safeParse(files[name]);
+    if (!result.success) errors[name] = zodErrors(result.error.issues);
+  }
+  const manifestErrors = validateProductionManifest(files.manifest);
+  if (manifestErrors.length) errors.manifest = manifestErrors;
+  return errors;
+}
 
 export function splitStoryPackage(raw: unknown, context: {projectId?: string}): SplitResult {
   const parsed = StoryPackageSchema.safeParse(raw);
-  if (!parsed.success) { const flat = splitFlatManifest(raw, context); if (flat) return flat; return {ok: false, errors: zodErrors(parsed.error.issues)}; }
-  const pkg = parsed.data; const projectId = context.projectId ?? pkg.project.project_id; const warnings: string[] = [];
-  const scriptById = new Map(pkg.script.beats.map((b) => [b.id, b])); const beats: ProductionBeat[] = []; const beatErrors: string[] = [];
+  if (!parsed.success) {
+    const flat = splitFlatManifest(raw, context);
+    if (flat) return flat;
+    return {ok: false, errors: zodErrors(parsed.error.issues)};
+  }
+  const pkg = parsed.data;
+  const projectId = context.projectId ?? pkg.project.project_id;
+  const warnings: string[] = [];
+  const scriptById = new Map(pkg.script.beats.map((b) => [b.id, b]));
+  const beats: ProductionBeat[] = [];
+  const beatErrors: string[] = [];
   for (const vb of pkg.visual_manifest.beats) {
     const sb = scriptById.get(vb.id);
-    if (!sb) { beatErrors.push(`visual_manifest beat "${vb.id}" has no matching script.beats entry (joined by id) — cannot resolve its duration/narration.`); continue; }
+    if (!sb) {
+      beatErrors.push(`visual_manifest beat "${vb.id}" has no matching script.beats entry (joined by id) — cannot resolve its duration/narration.`);
+      continue;
+    }
     const assetRefs = Array.from(new Set([...vb.characters, ...vb.props, ...vb.environments]));
-    beats.push({beat_id: vb.id, duration_seconds: sb.duration_seconds, visual_role: vb.scene_role, asset_refs: assetRefs, camera: vb.camera, animation: vb.animation || undefined, text: vb.keyword_text || undefined, narration: sb.narration || vb.narration || undefined, sfx: vb.sfx.length ? vb.sfx : undefined, pace: vb.pace || undefined, shot_type: vb.shot_type || undefined, composition: vb.composition || undefined, visual_action: vb.visual_action || undefined, reveal: vb.reveal, keyword_text: vb.keyword_text || undefined, transition: vb.transition || undefined});
+    beats.push({
+      beat_id: vb.id, duration_seconds: sb.duration_seconds, visual_role: vb.scene_role, asset_refs: assetRefs,
+      camera: vb.camera, animation: vb.animation || undefined, text: vb.keyword_text || undefined,
+      narration: sb.narration || vb.narration || undefined, sfx: vb.sfx.length ? vb.sfx : undefined,
+      pace: vb.pace || undefined, shot_type: vb.shot_type || undefined, composition: vb.composition || undefined,
+      visual_action: vb.visual_action || undefined, reveal: vb.reveal, keyword_text: vb.keyword_text || undefined,
+      transition: vb.transition || undefined,
+    });
   }
   if (beatErrors.length) return {ok: false, errors: beatErrors};
   const scriptOnlyIds = pkg.script.beats.filter((b) => !pkg.visual_manifest.beats.some((vb) => vb.id === b.id)).map((b) => b.id);
   if (scriptOnlyIds.length) warnings.push(`script.beats has entries with no matching visual_manifest beat (ignored): ${scriptOnlyIds.join(', ')}`);
   if (pkg.characters.length === 0) warnings.push('No characters were listed — asset_refs referencing character ids will have nothing to generate against.');
-  const assetKinds: Record<string, AssetKind> = {}; for (const c of pkg.characters) assetKinds[c.id] = 'character'; for (const e of pkg.environments) assetKinds[e.id] = 'environment'; for (const p of pkg.props) assetKinds[p.id] = 'prop';
-  const assetSacred: Record<string, boolean> = {}; for (const c of pkg.characters) assetSacred[c.id] = c.sacred_or_respected;
-  const assetVisualDirection: Record<string, string> = {}; for (const c of pkg.characters) if (c.visual_direction) assetVisualDirection[c.id] = c.visual_direction; for (const e of pkg.environments) if (e.visual_direction) assetVisualDirection[e.id] = e.visual_direction;
-  const manifest: ProductionManifest = {project_id: projectId, title: pkg.story.title, language: pkg.project.language as 'hi-IN', duration_seconds: pkg.project.target_duration_seconds, characters: pkg.characters.map((c) => c.id), world: pkg.world as WorldBible | undefined, asset_kinds: assetKinds, asset_sacred: assetSacred, asset_visual_direction: assetVisualDirection, beats, audio: {voice_style: pkg.audio.voice_style || undefined, target_wpm: pkg.audio.target_wpm ?? pkg.script.target_wpm, music_direction: pkg.audio.music_direction || undefined, silence_guidance: pkg.audio.silence_guidance || undefined}};
-  const manifestErrors = validateProductionManifest(manifest); if (manifestErrors.length) return {ok: false, errors: manifestErrors.map((e) => `manifest: ${e}`)};
+
+  const assetKinds: Record<string, AssetKind> = {};
+  for (const c of pkg.characters) assetKinds[c.id] = 'character';
+  for (const e of pkg.environments) assetKinds[e.id] = 'environment';
+  for (const p of pkg.props) assetKinds[p.id] = 'prop';
+  const assetSacred: Record<string, boolean> = {};
+  for (const c of pkg.characters) assetSacred[c.id] = c.sacred_or_respected;
+  const assetVisualDirection: Record<string, string> = {};
+  for (const c of pkg.characters) if (c.visual_direction) assetVisualDirection[c.id] = c.visual_direction;
+  for (const e of pkg.environments) if (e.visual_direction) assetVisualDirection[e.id] = e.visual_direction;
+
+  const manifest: ProductionManifest = {
+    project_id: projectId, title: pkg.story.title, language: pkg.project.language as 'hi-IN',
+    duration_seconds: pkg.project.target_duration_seconds, characters: pkg.characters.map((c) => c.id),
+    world: pkg.world as WorldBible | undefined, asset_kinds: assetKinds, asset_sacred: assetSacred,
+    asset_visual_direction: assetVisualDirection, beats,
+    audio: {voice_style: pkg.audio.voice_style || undefined, target_wpm: pkg.audio.target_wpm ?? pkg.script.target_wpm, music_direction: pkg.audio.music_direction || undefined, silence_guidance: pkg.audio.silence_guidance || undefined},
+  };
+  const manifestErrors = validateProductionManifest(manifest);
+  if (manifestErrors.length) return {ok: false, errors: manifestErrors.map((e) => `manifest: ${e}`)};
+
   const now = new Date().toISOString();
   const project = ProjectMetaSchema.parse({project_id: projectId, name: pkg.project.project_name, format: pkg.project.format, language: pkg.project.language, target_duration_seconds: pkg.project.target_duration_seconds, status: 'draft', created_at: now, updated_at: now});
-  const story = StorySchema.parse({...pkg.story, sources: pkg.sources}); const script = ScriptSchema.parse({full_narration: pkg.script.full_narration, target_wpm: pkg.script.target_wpm, beats: pkg.script.beats});
+  const story = StorySchema.parse({...pkg.story, sources: pkg.sources});
+  const script = ScriptSchema.parse({full_narration: pkg.script.full_narration, target_wpm: pkg.script.target_wpm, beats: pkg.script.beats});
   const legacyEnvironments = pkg.environments.map(({id, name, visual_direction, important_layers}) => ({id, name, visual_direction, important_layers}));
   const characters = CharactersSchema.parse({characters: pkg.characters, environments: legacyEnvironments, props: pkg.props});
   const metadata = MetadataSchema.parse({youtube_shorts: {title: pkg.metadata.youtube_title, description: pkg.metadata.description, tags: pkg.metadata.tags}, instagram_reels: {caption: pkg.metadata.social_caption, hashtags: pkg.metadata.hashtags}, thumbnail_concept: pkg.metadata.thumbnail_concept, seo_keywords: pkg.metadata.seo_keywords});
   return {ok: true, warnings, files: {project, story, script, manifest, characters, metadata}};
 }
 
-function isManifestShaped(value: unknown): value is ProductionManifest { if (typeof value !== 'object' || value === null) return false; const v = value as Record<string, unknown>; return Array.isArray(v.beats) && typeof v.duration_seconds === 'number' && typeof v.project_id === 'string'; }
+function isManifestShaped(value: unknown): value is ProductionManifest {
+  if (typeof value !== 'object' || value === null) return false;
+  const v = value as Record<string, unknown>;
+  return Array.isArray(v.beats) && typeof v.duration_seconds === 'number' && typeof v.project_id === 'string';
+}
+
 function splitFlatManifest(raw: unknown, context: {projectId?: string}): SplitResult | undefined {
-  if (!isManifestShaped(raw)) return undefined; const manifestErrors = validateProductionManifest(raw); if (manifestErrors.length) return {ok: false, errors: manifestErrors.map((e) => `manifest: ${e}`)};
-  const projectId = context.projectId ?? raw.project_id; const manifest: ProductionManifest = {...raw, project_id: projectId}; const now = new Date().toISOString();
+  if (!isManifestShaped(raw)) return undefined;
+  const manifestErrors = validateProductionManifest(raw);
+  if (manifestErrors.length) return {ok: false, errors: manifestErrors.map((e) => `manifest: ${e}`)};
+  const projectId = context.projectId ?? raw.project_id;
+  const manifest: ProductionManifest = {...raw, project_id: projectId};
+  const now = new Date().toISOString();
   const project = ProjectMetaSchema.parse({project_id: projectId, name: manifest.title, format: manifest.duration_seconds > 120 ? 'LONGFORM' : 'SHORT', language: manifest.language, target_duration_seconds: manifest.duration_seconds, status: 'draft', created_at: now, updated_at: now});
-  const story = StorySchema.parse({title: manifest.title, hook: manifest.beats[0]?.text || manifest.beats[0]?.narration || ''}); const script = ScriptSchema.parse({full_narration: manifest.beats.map((b) => b.narration).filter(Boolean).join(' '), beats: manifest.beats.map((b) => ({id: b.beat_id, narration: b.narration ?? '', duration_seconds: b.duration_seconds}))});
-  const characters = CharactersSchema.parse({characters: manifest.characters.map((id) => ({id, name: id, sacred_or_respected: false}))}); const metadata = MetadataSchema.parse({});
+  const story = StorySchema.parse({title: manifest.title, hook: manifest.beats[0]?.text || manifest.beats[0]?.narration || ''});
+  const script = ScriptSchema.parse({full_narration: manifest.beats.map((b) => b.narration).filter(Boolean).join(' '), beats: manifest.beats.map((b) => ({id: b.beat_id, narration: b.narration ?? '', duration_seconds: b.duration_seconds}))});
+  const characters = CharactersSchema.parse({characters: manifest.characters.map((id) => ({id, name: id, sacred_or_respected: false}))});
+  const metadata = MetadataSchema.parse({});
   return {ok: true, warnings: [], files: {project, story, script, manifest, characters, metadata}};
 }
