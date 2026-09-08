@@ -9,12 +9,16 @@ on:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: npm
       - run: npm install
+      - run: npm run typecheck
+      - run: npm run check:psychology
       - run: npm run validate -- examples/karna-short.json
       - run: npm run validate -- examples/karna-longform-test.json
       - run: npm run check:motion
