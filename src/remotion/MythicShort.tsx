@@ -4,6 +4,8 @@ import {runtimeAssets} from './runtime-assets';
 import {runtimeAudio} from './runtime-audio';
 import {runtimeCaptions} from './runtime-captions';
 import {brandLogoAvailable} from './runtime-brand';
+import {InkConstructionOverlay} from './InkConstructionOverlay';
+import {subjectRelativeConstruction, type ConstructionRegion} from './artwork-construction';
 import {
   cameraMotion, drawRevealProgress, parallaxOffset, revealProgress, entranceExitOpacity, entranceExitShiftY,
   type MotionFrame,
@@ -276,6 +278,7 @@ function FramedLayer({
   /** Show the tracing ink-pen accent for this layer's reveal (only the "hero" layer per beat
    * should show one — showing it on every layer at once would be visual clutter). */
   showPen?: boolean;
+  constructionRegions?: ConstructionRegion[];
 }) {
   const revealStyle = reveal === undefined ? {} : inkRevealStyle(reveal, seed);
   const offset = parallaxOffset(depth, progress, direction);
@@ -633,7 +636,8 @@ function GeneratedArtwork({beat, progress, beatIndex, format, variant, assetKind
         reveal={envReveal} opacity={envOpacity * 0.92}
         cameraWeight={cameraWeight} idleScale={format.idleAmpScale}
         seed={`${beat.beat_id}-env`} showPen={characters.length === 0}
-      />;
+      />
+      {reveal !== undefined && constructionRegions?.length ? <InkConstructionOverlay regions={constructionRegions} progress={reveal} seed={seed} opacity={1} showGuide={reveal < 0.82} /> : null};
     })() : null}
 
     {/* Both the old sun.symbol and its renamed successor surya_glow turned out to be full
@@ -676,7 +680,7 @@ function GeneratedArtwork({beat, progress, beatIndex, format, variant, assetKind
         shiftY={entranceExitShiftY(staggered)}
         sway={1.35 * format.swayScale} swayX={30} swayY={26}
         cameraWeight={cameraWeight} idleScale={format.idleAmpScale}
-        seed={`${beat.beat_id}-${ref}`} showPen={index === 0 && cutIndex === 0}
+        seed={`${beat.beat_id}-${ref}`} showPen={index === 0 && cutIndex === 0} constructionRegions={cutIndex === 0 ? subjectRelativeConstruction({focusX:subShot.focusX, focusY:subShot.focusY}) : undefined}
         box={{
           left: leftSide ? '-8%' : '38%', width: '70%',
           top: '12%', bottom: '2%',
@@ -703,7 +707,7 @@ function GeneratedArtwork({beat, progress, beatIndex, format, variant, assetKind
           shiftY={entranceExitShiftY(progress)}
           sway={2.1 * format.swayScale} swayX={28} swayY={24}
           cameraWeight={cameraWeight} idleScale={format.idleAmpScale}
-          seed={`${beat.beat_id}-${ref}`} showPen={cutIndex === 0}
+          seed={`${beat.beat_id}-${ref}`} showPen={cutIndex === 0} constructionRegions={cutIndex === 0 ? subjectRelativeConstruction({focusX:subShot.focusX, focusY:subShot.focusY}) : undefined}
           box={fullBleed ? undefined : {
             left: alt ? '2%' : '26%', width: '72%',
             top: '8%', bottom: '0%',
