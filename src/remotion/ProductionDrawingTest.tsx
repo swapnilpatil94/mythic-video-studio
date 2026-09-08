@@ -30,8 +30,11 @@ export const ProductionDrawingTest: React.FC = () => {
   const characterRef = beat.asset_refs.find((ref) => runtimeManifest.asset_kinds?.[ref] === 'character' && runtimeAssets[ref])
     ?? beat.asset_refs.find((ref) => runtimeAssets[ref]);
   const regions = useMemo(() => subjectRelativeConstruction({focusX: shot.focusX, focusY: shot.focusY}), [shot.focusX, shot.focusY]);
-  const ink = interpolate(local, [0.02, 0.66], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
-  const wash = interpolate(local, [0.34, 0.94], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+
+  // Keep the reveal deliberately separated: the audience sees construction/ink first, then
+  // pigment resolves. This prevents the master image from reading as an early opacity fade.
+  const ink = interpolate(local, [0.03, 0.78], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const wash = interpolate(local, [0.76, 1], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
   const settle = interpolate(local, [0.82, 1], [0, 1]);
   const scale = interpolate(settle, [0, 1], [1, 1.035]);
 
@@ -52,7 +55,7 @@ export const ProductionDrawingTest: React.FC = () => {
           regions={regions}
           style={{objectFit: 'contain', objectPosition: `${shot.focusX}% ${shot.focusY}%`}}
         />
-        <InkConstructionOverlay regions={regions} progress={ink} showGuide={ink < 0.84} />
+        <InkConstructionOverlay regions={regions} progress={ink} showGuide={ink < 0.82} />
       </div>
     </div>
 
