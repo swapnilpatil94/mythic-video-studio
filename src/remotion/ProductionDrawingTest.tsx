@@ -31,10 +31,10 @@ export const ProductionDrawingTest: React.FC = () => {
     ?? beat.asset_refs.find((ref) => runtimeAssets[ref]);
   const regions = useMemo(() => subjectRelativeConstruction({focusX: shot.focusX, focusY: shot.focusY}), [shot.focusX, shot.focusY]);
 
-  // Keep the reveal deliberately separated: the audience sees construction/ink first, then
-  // pigment resolves. This prevents the master image from reading as an early opacity fade.
+  // The master stays completely hidden while the contour drawing resolves. Pigment begins only
+  // after the ink stage has completed, so the viewer never mistakes a fade-in for drawing.
   const ink = interpolate(local, [0.03, 0.78], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
-  const wash = interpolate(local, [0.76, 1], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const wash = interpolate(local, [0.8, 1], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
   const settle = interpolate(local, [0.82, 1], [0, 1]);
   const scale = interpolate(settle, [0, 1], [1, 1.035]);
 
