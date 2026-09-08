@@ -1,7 +1,6 @@
 import React from 'react';
 import {AbsoluteFill, interpolate, staticFile, useCurrentFrame, useVideoConfig} from 'remotion';
 import {ProgressiveArtwork, subjectRelativeConstruction} from './artwork-construction';
-import {InkConstructionOverlay} from './InkConstructionOverlay';
 
 const CREAM = '#F4E8CF';
 const INK = '#171510';
@@ -27,8 +26,6 @@ function ConstructionDrawing({frame, fps}: {frame: number; fps: number}) {
   const detail = phase(frame, fps, 4.1, 7.15);
   const hatch = phase(frame, fps, 5.4, 8.0);
   const wash = phase(frame, fps, 7.0, 10.0);
-  // Once the source-derived ink has enough visual authority, the guide recedes like a real
-  // underdrawing rather than sitting on top of the completed illustration.
   const fade = 1 - phase(frame, fps, 7.5, 10.0);
   const hatches = Array.from({length: 16}, (_, i) => ({x: 424 + (i % 4) * 44, y: 1025 + Math.floor(i / 4) * 88}));
   return <svg viewBox="0 0 1080 1920" width="100%" height="100%" style={{position: 'absolute', inset: 0, opacity: fade}}>
@@ -87,8 +84,7 @@ export const DrawingStageTest: React.FC = () => {
     <div style={{position: 'absolute', top: 52, left: 62, right: 62, height: 2, background: `linear-gradient(90deg, transparent, ${GOLD}88 18%, ${GOLD}88 82%, transparent)`, opacity: .65}}/>
     <div style={{position: 'absolute', top: 72, right: 70, fontFamily: 'Arial, sans-serif', fontSize: 20, letterSpacing: 5, fontWeight: 700, opacity: .52}}>KATHAAYA</div>
     <div style={{position: 'absolute', inset: 0, transform: `translate(${interpolate(camera, [0, 1], [0, -16])}px, ${interpolate(camera, [0, 1], [0, -8])}px) scale(${scale})`, transformOrigin: '50% 54%'}}>
-      <ProgressiveArtwork src={staticFile('/generated/karna-full-journey/karna-karna.png')} inkProgress={ink} washProgress={colour} seed="drawing-test-karna" regions={subjectRelativeConstruction({focusX:50,focusY:42})}/>
-      <InkConstructionOverlay regions={subjectRelativeConstruction({focusX:50,focusY:42})} progress={ink} seed="drawing-test-karna" showGuide={ink < 0.84} />
+      <ProgressiveArtwork src={staticFile('/generated/karna-full-journey/karna-karna.png')} inkProgress={ink} washProgress={colour} regions={subjectRelativeConstruction({focusX:50,focusY:42})}/>
       <ConstructionDrawing frame={frame} fps={fps}/>
     </div>
     <div style={{position: 'absolute', left: 70, right: 70, bottom: 170, textAlign: 'center', fontFamily: 'Arial, sans-serif', fontSize: 21, letterSpacing: 2, opacity: interpolate(colour, [.2, .7, 1], [0, .55, .35], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'})}}>SEMANTIC INK  →  PIGMENT BLOOMS  →  HAND-PAINTED WASH</div>
