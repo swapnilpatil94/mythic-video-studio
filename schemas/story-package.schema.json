@@ -1,182 +1,125 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "KATHAAYA Story Package",
-  "description": "One JSON object a Story Architect (ChatGPT/Claude) generates for Mythic Video Studio to import directly. See prompts/story-package.md. Mirrored exactly by src/studio/story-package.ts's StoryPackageSchema (zod) — that is the enforced runtime contract; this file is the published/external-facing copy of the same rules.",
+  "description": "KATHAAYA story package with an explicit world/era bible so characters, environments, props, lighting and motion belong to one cinematic world.",
   "type": "object",
   "additionalProperties": false,
   "required": ["project", "story", "script", "characters", "environments", "props", "visual_manifest", "audio", "metadata", "sources"],
   "properties": {
     "project": {
-      "type": "object",
-      "additionalProperties": false,
+      "type": "object", "additionalProperties": false,
       "required": ["project_id", "project_name", "format", "target_duration_seconds"],
       "properties": {
-        "project_id": {"type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$", "description": "lowercase kebab-case, e.g. karna-kavacha"},
+        "project_id": {"type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"},
         "project_name": {"type": "string", "minLength": 1},
         "format": {"enum": ["SHORT", "LONGFORM"]},
         "language": {"type": "string", "minLength": 2, "default": "hi-IN"},
-        "target_duration_seconds": {"type": "number", "exclusiveMinimum": 0, "description": "SHORT: 60-90s. LONGFORM: 480-900s+ (8-15+ min)."}
+        "target_duration_seconds": {"type": "number", "exclusiveMinimum": 0}
       }
     },
     "story": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["title", "hook"],
+      "type": "object", "additionalProperties": false, "required": ["title", "hook"],
       "properties": {
-        "title": {"type": "string", "minLength": 1},
-        "hook": {"type": "string", "minLength": 1, "description": "The curiosity/tension opener — what makes someone stop scrolling."},
-        "premise": {"type": "string"},
-        "conflict": {"type": "string"},
-        "reveal": {"type": "string"},
-        "climax": {"type": "string"},
-        "payoff": {"type": "string"},
-        "emotional_core": {"type": "string", "description": "The one feeling this story should leave the viewer with."},
-        "story_arc": {"type": "string", "description": "A short description of the tension -> reveal -> payoff shape used."},
-        "facts": {"type": "array", "items": {"type": "string"}, "description": "Claims directly supported by a listed source — see `sources`."},
-        "interpretations": {"type": "array", "items": {"type": "string"}, "description": "Traditional or artistic interpretation, explicitly NOT presented as established fact."}
+        "title": {"type": "string", "minLength": 1}, "hook": {"type": "string", "minLength": 1},
+        "premise": {"type": "string"}, "conflict": {"type": "string"}, "reveal": {"type": "string"},
+        "climax": {"type": "string"}, "payoff": {"type": "string"}, "emotional_core": {"type": "string"},
+        "story_arc": {"type": "string"}, "facts": {"type": "array", "items": {"type": "string"}},
+        "interpretations": {"type": "array", "items": {"type": "string"}}
       }
     },
     "script": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["full_narration", "beats"],
+      "type": "object", "additionalProperties": false, "required": ["full_narration", "beats"],
       "properties": {
-        "full_narration": {"type": "string", "minLength": 1, "description": "The complete Hindi narration, concatenated."},
-        "target_wpm": {"type": "number", "exclusiveMinimum": 0, "description": "Target words-per-minute for narration pacing (typically 140-170 for natural conversational Hindi)."},
-        "beats": {
-          "type": "array",
-          "minItems": 1,
-          "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": ["id", "narration", "duration_seconds"],
-            "properties": {
-              "id": {"type": "string", "minLength": 1, "description": "Joins to the matching visual_manifest beat by id."},
-              "narration": {"type": "string", "minLength": 1, "description": "The Hindi narration spoken during this beat."},
-              "emotion": {"type": "string", "description": "e.g. reverent, tense, triumphant, sorrowful."},
-              "pace": {"type": "string", "description": "e.g. slow, measured, quick."},
-              "duration_seconds": {"type": "number", "exclusiveMinimum": 0, "description": "Approximate timing for this beat."}
-            }
-          }
-        }
+        "full_narration": {"type": "string", "minLength": 1}, "target_wpm": {"type": "number", "exclusiveMinimum": 0},
+        "beats": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/script_beat"}}
       }
     },
-    "characters": {"type": "array", "items": {"$ref": "#/$defs/character"}, "description": "Only characters required by the story."},
-    "environments": {"type": "array", "items": {"$ref": "#/$defs/environment"}, "description": "Only environments required by the story."},
-    "props": {"type": "array", "items": {"$ref": "#/$defs/prop"}, "description": "Only story-relevant props."},
+    "world": {"$ref": "#/$defs/world_bible"},
+    "characters": {"type": "array", "items": {"$ref": "#/$defs/character"}},
+    "environments": {"type": "array", "items": {"$ref": "#/$defs/environment"}},
+    "props": {"type": "array", "items": {"$ref": "#/$defs/prop"}},
     "visual_manifest": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["beats"],
-      "properties": {
-        "beats": {
-          "type": "array",
-          "minItems": 1,
-          "items": {"$ref": "#/$defs/visual_beat"}
-        }
-      },
-      "description": "Describes visual EVENTS, not image counts. Does NOT require one AI image per beat — reuse master artwork through crops, details, layers, parallax, movement, draw-on/ink reveal and wash; generate a new master asset only when genuinely required."
+      "type": "object", "additionalProperties": false, "required": ["beats"],
+      "properties": {"beats": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/visual_beat"}}}
     },
     "audio": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["voice_style"],
+      "type": "object", "additionalProperties": false, "required": ["voice_style"],
       "properties": {
-        "voice_style": {"type": "string", "minLength": 1},
-        "target_wpm": {"type": "number", "exclusiveMinimum": 0},
-        "music_direction": {"type": "string"},
-        "sfx": {"type": "array", "items": {"type": "string"}, "description": "Global/ambient SFX direction, distinct from a beat's own visual_manifest.sfx."},
-        "silence_guidance": {"type": "string", "description": "How to handle pauses/dead air — e.g. 'no pause longer than 0.4s except before a reveal'."}
+        "voice_style": {"type": "string", "minLength": 1}, "target_wpm": {"type": "number", "exclusiveMinimum": 0},
+        "music_direction": {"type": "string"}, "sfx": {"type": "array", "items": {"type": "string"}},
+        "silence_guidance": {"type": "string"}
       }
     },
     "metadata": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["youtube_title", "description"],
+      "type": "object", "additionalProperties": false, "required": ["youtube_title", "description"],
       "properties": {
-        "youtube_title": {"type": "string", "minLength": 1},
-        "description": {"type": "string", "minLength": 1},
-        "tags": {"type": "array", "items": {"type": "string"}},
-        "hashtags": {"type": "array", "items": {"type": "string"}},
-        "thumbnail_concept": {"type": "string"},
-        "seo_keywords": {"type": "array", "items": {"type": "string"}},
-        "social_caption": {"type": "string"}
+        "youtube_title": {"type": "string", "minLength": 1}, "description": {"type": "string", "minLength": 1},
+        "tags": {"type": "array", "items": {"type": "string"}}, "hashtags": {"type": "array", "items": {"type": "string"}},
+        "thumbnail_concept": {"type": "string"}, "seo_keywords": {"type": "array", "items": {"type": "string"}}, "social_caption": {"type": "string"}
       }
     },
-    "sources": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": ["source", "fact_or_interpretation"],
-        "properties": {
-          "source": {"type": "string", "minLength": 1},
-          "claim_supported": {"type": "string"},
-          "fact_or_interpretation": {"enum": ["fact", "interpretation"]}
-        }
-      },
-      "description": "Reliable references. Every entry in story.facts should trace to at least one 'fact' source here."
-    }
+    "sources": {"type": "array", "items": {"$ref": "#/$defs/source"}}
   },
   "$defs": {
-    "character": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["id", "name"],
+    "world_bible": {
+      "type": "object", "additionalProperties": false,
+      "required": ["period", "architecture", "clothing", "weapons", "armor", "jewelry", "vehicles", "materials", "environment", "lighting"],
       "properties": {
-        "id": {"type": "string", "minLength": 1},
-        "name": {"type": "string", "minLength": 1},
-        "role": {"type": "string", "description": "e.g. protagonist, antagonist, mentor, deity, supporting."},
-        "importance": {"enum": ["primary", "secondary", "minor"]},
-        "visual_direction": {"type": "string"},
-        "required_views": {"type": "array", "items": {"type": "string"}, "description": "e.g. face, three-quarter, full-body, hands, profile."},
-        "required_actions": {"type": "array", "items": {"type": "string"}, "description": "e.g. raising a weapon, kneeling, reacting."},
-        "sacred_or_respected": {"type": "boolean", "description": "Mythology rule: if true, this figure must be dignified and non-comedic — never a generic cartoon character."}
+        "period": {"type": "string", "minLength": 1}, "architecture": {"type": "string", "minLength": 1},
+        "clothing": {"type": "string", "minLength": 1}, "weapons": {"type": "string", "minLength": 1},
+        "armor": {"type": "string", "minLength": 1}, "jewelry": {"type": "string", "minLength": 1},
+        "vehicles": {"type": "string", "minLength": 1}, "materials": {"type": "string", "minLength": 1},
+        "environment": {"type": "string", "minLength": 1}, "lighting": {"type": "string", "minLength": 1},
+        "atmosphere": {"type": "string"}, "forbidden_modern_elements": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "script_beat": {
+      "type": "object", "additionalProperties": false, "required": ["id", "narration", "duration_seconds"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1}, "narration": {"type": "string", "minLength": 1},
+        "emotion": {"type": "string"}, "pace": {"type": "string"}, "duration_seconds": {"type": "number", "exclusiveMinimum": 0}
+      }
+    },
+    "character": {
+      "type": "object", "additionalProperties": false, "required": ["id", "name"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1}, "name": {"type": "string", "minLength": 1}, "role": {"type": "string"},
+        "importance": {"enum": ["primary", "secondary", "minor"]}, "visual_direction": {"type": "string"},
+        "required_views": {"type": "array", "items": {"type": "string"}}, "required_actions": {"type": "array", "items": {"type": "string"}},
+        "sacred_or_respected": {"type": "boolean"}
       }
     },
     "environment": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["id", "name"],
+      "type": "object", "additionalProperties": false, "required": ["id", "name"],
       "properties": {
-        "id": {"type": "string", "minLength": 1},
-        "name": {"type": "string", "minLength": 1},
-        "visual_direction": {"type": "string"},
-        "important_layers": {"type": "array", "items": {"type": "string"}, "description": "e.g. foreground crowd, sky/light, background architecture — what a compositor needs to isolate for parallax/crops."}
+        "id": {"type": "string", "minLength": 1}, "name": {"type": "string", "minLength": 1},
+        "visual_direction": {"type": "string"}, "important_layers": {"type": "array", "items": {"type": "string"}},
+        "depth_layers": {"type": "array", "items": {"type": "string"}},
+        "ambient_motion": {"type": "array", "items": {"type": "string"}},
+        "era_constraints": {"type": "array", "items": {"type": "string"}}
       }
     },
     "prop": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["id", "name"],
+      "type": "object", "additionalProperties": false, "required": ["id", "name"],
       "properties": {
-        "id": {"type": "string", "minLength": 1},
-        "name": {"type": "string", "minLength": 1},
-        "required_views": {"type": "array", "items": {"type": "string"}},
-        "required_actions": {"type": "array", "items": {"type": "string"}, "description": "e.g. being raised, glowing, changing hands."}
+        "id": {"type": "string", "minLength": 1}, "name": {"type": "string", "minLength": 1},
+        "required_views": {"type": "array", "items": {"type": "string"}}, "required_actions": {"type": "array", "items": {"type": "string"}}
       }
     },
     "visual_beat": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["id", "scene_role", "camera"],
+      "type": "object", "additionalProperties": false, "required": ["id", "scene_role", "camera"],
       "properties": {
-        "id": {"type": "string", "minLength": 1, "description": "Joins to the matching script.beats entry by id."},
-        "narration": {"type": "string", "description": "Denormalized copy of this beat's narration for self-contained context; script.beats[id].narration is authoritative."},
-        "scene_role": {"type": "string", "minLength": 1, "description": "e.g. hook, stakes, threat, decision, sacrifice, reveal, payoff."},
-        "pace": {"type": "string"},
-        "shot_type": {"type": "string", "description": "e.g. wide, face, eyes/reaction, hand, weapon, detail, OTS, two-shot."},
-        "composition": {"type": "string"},
-        "visual_action": {"type": "string", "description": "What actually moves/happens — entrance, reaction, object/weapon movement, layered interaction. Avoid repetitive static full-body shots."},
-        "characters": {"type": "array", "items": {"type": "string"}, "description": "character ids present in this beat."},
-        "props": {"type": "array", "items": {"type": "string"}, "description": "prop ids present in this beat."},
-        "environments": {"type": "array", "items": {"type": "string"}, "description": "environment ids providing this beat's backdrop, if any."},
-        "camera": {"type": "string", "minLength": 1, "description": "e.g. push_in, pan, tilt_up, reveal_from_edge, reverse_push, shot_reverse, armor_crop, slow_push, pull_back."},
-        "reveal": {"type": "boolean", "description": "Whether this beat uses the hand-drawn ink-reveal."},
-        "keyword_text": {"type": "string", "description": "The on-screen kinetic keyword/emphasis text for this beat."},
-        "sfx": {"type": "array", "items": {"type": "string"}},
-        "transition": {"type": "string", "description": "e.g. cut, ink-wipe, push."}
+        "id": {"type": "string", "minLength": 1}, "narration": {"type": "string"}, "scene_role": {"type": "string", "minLength": 1},
+        "pace": {"type": "string"}, "shot_type": {"type": "string"}, "composition": {"type": "string"},
+        "visual_action": {"type": "string"}, "animation": {"type": "string", "description": "Character action plus secondary environmental motion; should respect the era/world bible."},
+        "characters": {"type": "array", "items": {"type": "string"}}, "props": {"type": "array", "items": {"type": "string"}},
+        "environments": {"type": "array", "items": {"type": "string"}}, "camera": {"type": "string", "minLength": 1},
+        "reveal": {"type": "boolean"}, "keyword_text": {"type": "string"}, "sfx": {"type": "array", "items": {"type": "string"}}, "transition": {"type": "string"}
       }
+    },
+    "source": {
+      "type": "object", "additionalProperties": false, "required": ["source", "fact_or_interpretation"],
+      "properties": {"source": {"type": "string", "minLength": 1}, "claim_supported": {"type": "string"}, "fact_or_interpretation": {"enum": ["fact", "interpretation"]}}
     }
   }
 }
