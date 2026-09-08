@@ -18,13 +18,23 @@ type ContourPath = {
   opacity: number;
 };
 
+type Geometry = {
+  transform: string;
+  transformOrigin: string;
+};
+
+function parseObjectPosition(value: string) {
+  const matches = value.match(/-?\d+(?:\.\d+)?%/g) ?? [];
+  return {
+    x: matches[0] ? Number.parseFloat(matches[0]) / 100 : 0.5,
+    y: matches[1] ? Number.parseFloat(matches[1]) / 100 : 0.5,
+  };
+}
+
 /**
- * Production drawing source: the actual master artwork rendered by the sibling <Img>.
- * We trace high-contrast artwork contours into deterministic SVG line segments, so the
- * construction layer and the pigment layer share the same source geometry.
- *
- * This intentionally contains no character-specific fallback geometry. If an artwork cannot
- * be decoded, the render is delayed and fails rather than silently drawing a different subject.
+ * Trace the actual master artwork and map its source pixels into the exact rendered <img>
+ * content box. The overlay also copies the image transform/origin, keeping camera movement,
+ * zoom and focal positioning identical between construction strokes and pigment.
  */
 function traceArtwork(image: HTMLImageElement): ContourPath[] {
   const naturalWidth = image.naturalWidth;
@@ -40,11 +50,11 @@ function traceArtwork(image: HTMLImageElement): ContourPath[] {
   if (!ctx) throw new Error('Unable to create contour tracing canvas');
   ctx.drawImage(image, 0, 0, width, height);
   const pixels = ctx.getImageData(0, 0, width, height).data;
-
   const sample = (x: number, y: number) => {
     const i = (y * width + x) * 4;
     return {r: pixels[i], g: pixels[i + 1], b: pixels[i + 2], a: pixels[i + 3]};
   };
+
   const corners = [sample(0, 0), sample(width - 1, 0), sample(0, height - 1), sample(width - 1, height - 1)];
   const bg = corners.reduce((acc, c) => ({r: acc.r + c.r, g: acc.g + c.g, b: acc.b + c.b}), {r: 0, g: 0, b: 0});
   bg.r /= corners.length;
@@ -79,26 +89,42 @@ function traceArtwork(image: HTMLImageElement): ContourPath[] {
       if (!ink[(y + 1) * width + x]) raw.push({x, y, dx: 0, dy: 1});
     }
   }
-
   if (raw.length === 0) throw new Error('Master artwork produced no drawable contours');
+
   const stride = Math.max(1, Math.ceil(raw.length / MAX_SEGMENTS));
   const selected = raw.filter((_, index) => index % stride === 0).slice(0, MAX_SEGMENTS);
-
-  const subjectRows = selected.map((segment) => segment.y);
-  const minY = Math.min(...subjectRows);
-  const maxY = Math.max(...subjectRows);
+  const minY = Math.min(...selected.map((segment) => segment.y));
+  const maxY = Math.max(...selected.map((segment) => segment.y));
   const spanY = Math.max(1, maxY - minY);
+
+  const style = getComputedStyle(image);
+  const fit = style.objectFit || 'fill';
+  const position = parseObjectPosition(style.objectPosition || '50% 50%');
+  const boxWidth = Math.max(1, image.clientWidth);
+  const boxHeight = Math.max(1, image.clientHeight);
+  const scale = fit === 'cover'
+    ? Math.max(boxWidth / naturalWidth, boxHeight / naturalHeight)
+    : fit === 'contain'
+      ? Math.min(boxWidth / naturalWidth, boxHeight / naturalHeight)
+      : 1;
+  const contentWidth = naturalWidth * scale;
+  const contentHeight = naturalHeight * scale;
+  const offsetX = (boxWidth - contentWidth) * position.x;
+  const offsetY = (boxHeight - contentHeight) * position.y;
+
+  const mapPoint = (x: number, y: number) => ({
+    x: ((x * naturalWidth * scale + offsetX) / boxWidth) * 100,
+    y: ((y * naturalHeight * scale + offsetY) / boxHeight) * 100,
+  });
 
   return selected
     .map((segment) => {
+      const a = mapPoint(segment.x / width, segment.y / height);
+      const b = mapPoint((segment.x + segment.dx) / width, (segment.y + segment.dy) / height);
       const yNorm = (segment.y - minY) / spanY;
       const stage = Math.min(4, Math.floor(yNorm * 5));
-      const x1 = (segment.x / width) * 100;
-      const y1 = (segment.y / height) * 100;
-      const x2 = ((segment.x + segment.dx) / width) * 100;
-      const y2 = ((segment.y + segment.dy) / height) * 100;
       return {
-        d: `M${x1.toFixed(2)} ${y1.toFixed(2)} L${x2.toFixed(2)} ${y2.toFixed(2)}`,
+        d: `M${a.x.toFixed(2)} ${a.y.toFixed(2)} L${b.x.toFixed(2)} ${b.y.toFixed(2)}`,
         stage,
         color: stage === 0 ? INK : stage === 3 ? RED : stage === 4 ? GOLD : INK,
         width: stage >= 4 ? 0.55 : 0.72,
@@ -147,6 +173,7 @@ export function InkConstructionOverlay({
 }) {
   const svgRef = useRef<SVGSVGElement | null>(null);
   const [paths, setPaths] = useState<ContourPath[] | null>(null);
+  const [geometry, setGeometry] = useState<Geometry>({transform: 'none', transformOrigin: '50% 50%'});
   const {delayRender, continueRender, cancelRender} = useDelayRender();
   const [handle] = useState(() => delayRender('Tracing master artwork contours', {retries: 2}));
 
@@ -169,7 +196,15 @@ export function InkConstructionOverlay({
       }
     };
 
-    const onReady = () => finish(() => setPaths(traceArtwork(image)));
+    const onReady = () => finish(() => {
+      setPaths(traceArtwork(image));
+      const style = getComputedStyle(image);
+      setGeometry({
+        transform: style.transform === 'none' ? 'none' : style.transform,
+        transformOrigin: style.transformOrigin || '50% 50%',
+      });
+    });
+
     if (image.complete && image.naturalWidth > 0) onReady();
     else image.addEventListener('load', onReady, {once: true});
 
@@ -189,10 +224,10 @@ export function InkConstructionOverlay({
     <svg
       ref={svgRef}
       viewBox="0 0 100 100"
-      preserveAspectRatio="xMidYMid meet"
+      preserveAspectRatio="none"
       width="100%"
       height="100%"
-      style={{position: 'absolute', inset: 0, pointerEvents: 'none', opacity}}
+      style={{position: 'absolute', inset: 0, pointerEvents: 'none', opacity, transform: geometry.transform, transformOrigin: geometry.transformOrigin}}
       aria-hidden
     >
       {showGuide ? (
