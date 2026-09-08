@@ -46,10 +46,11 @@ export function subjectRelativeConstruction({
     radius: Math.max(3, Math.min(w, h) * r),
     start,
     end,
+    
   });
 
-  // These are semantic drawing stages, not image-mask regions. The renderer consumes the IDs
-  // as a deterministic construction order and draws actual vector contours for each stage.
+  // Semantic stage metadata remains available to the renderer; it is not used as a character
+  // geometry library or raster mask.
   return [
     at(0.5, 0.39, 0.23, 0, 0.18, "structural-silhouette"),
     at(0.51, 0.13, 0.17, 0.04, 0.23, "head-face"),
@@ -86,10 +87,10 @@ export function ProgressiveArtwork({
   regions?: ConstructionRegion[];
   style?: React.CSSProperties;
 }) {
-  // The master is deliberately absent until the ink stage has started. The vector construction
-  // layer is therefore the first visual representation of the subject, and the master is only
-  // allowed to resolve through the independent wash/pigment phase.
-  if (!regions?.length || inkProgress <= 0.001) return null;
+  // Keep the master <Img> mounted even before the drawing starts. Its opacity is zero until the
+  // independent pigment wash, allowing InkConstructionOverlay to read the real source pixels at
+  // frame 0 without exposing those pixels to the viewer.
+  if (!regions?.length) return null;
 
   const common: React.CSSProperties = {
     position: "absolute",
@@ -102,7 +103,7 @@ export function ProgressiveArtwork({
   const pigment = clamp01(washProgress);
 
   return (
-    <div style={{position: "absolute", inset: 0, opacity: pigment}}>
+    <div style={{position: "absolute", inset: 0, opacity: pigment, pointerEvents: "none"}}>
       <Img src={src} style={{...common, filter: "saturate(.92) contrast(1.03)"}} />
     </div>
   );
