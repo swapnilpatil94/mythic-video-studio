@@ -42,7 +42,7 @@ const masterIsIndependentFromMask =
 
 const drawingTimingIsSeparated =
   drawingTest.includes('phase(frame, fps, 0.65, 10.8)') &&
-  drawingTest.includes('phase(frame, fps, 10.4, 13.2)') &&
+  drawingTest.includes('phase(frame, fps, 10.85, 13.2)') &&
   productionTest.includes('interpolate(local, [0.03, 0.78], [0, 1]') &&
   productionTest.includes('interpolate(local, [0.8, 1], [0, 1]');
 
