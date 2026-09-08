@@ -1,6 +1,7 @@
 import React, {useMemo} from 'react';
 import {AbsoluteFill, Img, interpolate, staticFile, useCurrentFrame, useVideoConfig} from 'remotion';
 import {ProgressiveArtwork, subjectRelativeConstruction} from './artwork-construction';
+import {InkConstructionOverlay} from './InkConstructionOverlay';
 import {runtimeAssets} from './runtime-assets';
 import {runtimeManifest} from './runtime-manifest';
 import {subShotSequence} from './shots';
@@ -52,6 +53,7 @@ export const ProductionDrawingTest: React.FC = () => {
           regions={regions}
           style={{objectFit: 'contain', objectPosition: `${shot.focusX}% ${shot.focusY}%`}}
         />
+        <InkConstructionOverlay regions={regions} progress={ink} seed={`production-ink-${beat.beat_id}`} showGuide={ink < 0.84} />
       </div>
     </div>
 
