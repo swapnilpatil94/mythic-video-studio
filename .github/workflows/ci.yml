@@ -19,6 +19,7 @@ jobs:
       - run: npm install
       - run: npm run typecheck
       - run: npm run check:psychology
+      - run: npm run check:drawing-acceptance
       - run: npm run validate -- examples/karna-short.json
       - run: npm run validate -- examples/karna-longform-test.json
       - run: npm run check:motion
