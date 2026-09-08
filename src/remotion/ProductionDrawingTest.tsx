@@ -1,5 +1,5 @@
 import React, {useMemo} from 'react';
-import {AbsoluteFill, Img, interpolate, staticFile, useCurrentFrame, useVideoConfig} from 'remotion';
+import {AbsoluteFill, interpolate, staticFile, useCurrentFrame, useVideoConfig} from 'remotion';
 import {ProgressiveArtwork, subjectRelativeConstruction} from './artwork-construction';
 import {InkConstructionOverlay} from './InkConstructionOverlay';
 import {runtimeAssets} from './runtime-assets';
@@ -49,11 +49,10 @@ export const ProductionDrawingTest: React.FC = () => {
           src={staticFile(runtimeAssets[characterRef])}
           inkProgress={ink}
           washProgress={wash}
-          seed={`production-${beat.beat_id}-${characterRef}`}
           regions={regions}
           style={{objectFit: 'contain', objectPosition: `${shot.focusX}% ${shot.focusY}%`}}
         />
-        <InkConstructionOverlay regions={regions} progress={ink} seed={`production-ink-${beat.beat_id}`} showGuide={ink < 0.84} />
+        <InkConstructionOverlay regions={regions} progress={ink} showGuide={ink < 0.84} />
       </div>
     </div>
 
