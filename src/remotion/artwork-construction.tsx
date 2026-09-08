@@ -34,23 +34,25 @@ const smooth = (value: number) => {
  * the active shot focus/bounds.
  */
 export const defaultPortraitConstruction: ConstructionRegion[] = [
-  {id: 'face', x: 53, y: 31, radius: 15, start: 0.00, end: 0.24},
-  {id: 'crown', x: 50, y: 21, radius: 16, start: 0.04, end: 0.30},
-  {id: 'hair', x: 37, y: 37, radius: 20, start: 0.10, end: 0.44},
-  {id: 'shoulder', x: 41, y: 43, radius: 19, start: 0.16, end: 0.48},
-  {id: 'weapon-hand', x: 29, y: 42, radius: 17, start: 0.22, end: 0.52},
-  {id: 'armor', x: 52, y: 48, radius: 20, start: 0.28, end: 0.58},
-  {id: 'ornaments', x: 58, y: 48, radius: 15, start: 0.34, end: 0.64},
-  {id: 'sash', x: 51, y: 59, radius: 23, start: 0.38, end: 0.70},
-  {id: 'drapery-left', x: 39, y: 70, radius: 25, start: 0.46, end: 0.78},
-  {id: 'drapery-right', x: 60, y: 73, radius: 26, start: 0.52, end: 0.84},
-  {id: 'feet', x: 48, y: 88, radius: 23, start: 0.64, end: 0.94},
+  {id: 'silhouette', x: 52, y: 42, radius: 20, start: 0.00, end: 0.22},
+  {id: 'face', x: 53, y: 31, radius: 13, start: 0.06, end: 0.26},
+  {id: 'hair', x: 40, y: 34, radius: 17, start: 0.12, end: 0.34},
+  {id: 'crown', x: 50, y: 21, radius: 14, start: 0.16, end: 0.38},
+  {id: 'shoulder-left', x: 40, y: 43, radius: 17, start: 0.24, end: 0.44},
+  {id: 'shoulder-right', x: 63, y: 45, radius: 17, start: 0.27, end: 0.48},
+  {id: 'weapon-hand', x: 30, y: 43, radius: 14, start: 0.34, end: 0.54},
+  {id: 'armor', x: 52, y: 48, radius: 18, start: 0.38, end: 0.58},
+  {id: 'ornaments', x: 60, y: 48, radius: 13, start: 0.44, end: 0.64},
+  {id: 'sash', x: 51, y: 59, radius: 20, start: 0.50, end: 0.70},
+  {id: 'drapery-left', x: 40, y: 70, radius: 21, start: 0.58, end: 0.78},
+  {id: 'drapery-right', x: 62, y: 72, radius: 22, start: 0.62, end: 0.82},
+  {id: 'feet', x: 49, y: 88, radius: 19, start: 0.70, end: 0.92},
 ];
 
 /**
  * Builds a semantic map around the subject rather than assuming the subject lives at the center
- * of the source image. This is the key production-safe primitive: changing focusX/focusY moves
- * the entire construction with the shot, so an off-center character does not create blank frames.
+ * of the source image. The order is intentionally an artist-like construction sequence: establish
+ * silhouette and head first, then major anatomy, clothing/props, and finally fine detail.
  */
 export function subjectRelativeConstruction({focusX, focusY, bounds}: Omit<ConstructionSubject, 'regions'>): ConstructionRegion[] {
   const b = bounds ?? {
@@ -65,22 +67,29 @@ export function subjectRelativeConstruction({focusX, focusY, bounds}: Omit<Const
     id,
     x: clampPct(b.left + width * x),
     y: clampPct(b.top + height * y),
-    radius: Math.max(4, Math.min(width, height) * radius),
+    radius: Math.max(3, Math.min(width, height) * radius),
     start,
     end,
   });
   return [
-    at(0.52, 0.12, 0.20, 0.00, 0.22, 'face'),
-    at(0.50, 0.02, 0.20, 0.04, 0.28, 'crown'),
-    at(0.34, 0.18, 0.24, 0.10, 0.40, 'hair'),
-    at(0.32, 0.31, 0.24, 0.16, 0.46, 'shoulder-left'),
-    at(0.70, 0.32, 0.22, 0.20, 0.50, 'weapon-hand'),
-    at(0.52, 0.42, 0.27, 0.26, 0.58, 'armor'),
-    at(0.66, 0.45, 0.20, 0.32, 0.64, 'ornaments'),
-    at(0.50, 0.58, 0.30, 0.38, 0.72, 'sash'),
-    at(0.34, 0.73, 0.32, 0.46, 0.80, 'drapery-left'),
-    at(0.66, 0.76, 0.32, 0.52, 0.86, 'drapery-right'),
-    at(0.50, 0.94, 0.28, 0.64, 0.96, 'feet'),
+    // 1–3: recognizable structural scaffold.
+    at(0.50, 0.39, 0.23, 0.00, 0.20, 'structural-silhouette'),
+    at(0.51, 0.13, 0.17, 0.04, 0.24, 'head-face'),
+    at(0.34, 0.19, 0.21, 0.10, 0.31, 'hair-crown'),
+    // 4–6: major anatomy and action-bearing limbs.
+    at(0.31, 0.34, 0.22, 0.20, 0.40, 'shoulder-left'),
+    at(0.68, 0.34, 0.22, 0.23, 0.43, 'shoulder-right'),
+    at(0.70, 0.40, 0.20, 0.30, 0.50, 'arm-hand-weapon'),
+    // 7–9: clothing, armor and identity details.
+    at(0.51, 0.44, 0.25, 0.35, 0.56, 'torso-armor'),
+    at(0.65, 0.48, 0.18, 0.41, 0.62, 'jewelry-ornaments'),
+    at(0.50, 0.59, 0.28, 0.48, 0.69, 'sash-costume'),
+    // 10–12: lower form and silhouette completion.
+    at(0.34, 0.72, 0.29, 0.56, 0.77, 'drapery-left'),
+    at(0.66, 0.75, 0.30, 0.61, 0.82, 'drapery-right'),
+    at(0.50, 0.92, 0.25, 0.69, 0.90, 'lower-garment-feet'),
+    // 13: fine ink arrives after the structure is already readable.
+    at(0.51, 0.54, 0.34, 0.76, 0.98, 'fine-ink-detail'),
   ];
 }
 
@@ -102,7 +111,7 @@ function splatPath(region: ConstructionRegion, progress: number, seed: string, i
   if (amount <= 0) return '';
   const points: Array<{x: number; y: number}> = [];
   const count = 15;
-  const radius = region.radius * (0.18 + amount * 0.94);
+  const radius = region.radius * (0.16 + amount * 0.84);
   for (let i = 0; i < count; i++) {
     const angle = (Math.PI * 2 * i) / count;
     const wobble = 0.68 + seedNumber(seed, index * 29 + i) * 0.58;
@@ -113,19 +122,19 @@ function splatPath(region: ConstructionRegion, progress: number, seed: string, i
   return `M${points.map((point, i) => `${i === 0 ? '' : 'L'}${point.x.toFixed(2)},${point.y.toFixed(2)}`).join(' ')}Z`;
 }
 
-/** Extra small pools complete an image organically without a last rectangular "finish" mask. */
+/** Extra small pools complete an image organically, but only after the semantic structure is established. */
 function finishingPools(progress: number, seed: string, bounds?: ConstructionRegion): string[] {
   const pools: string[] = [];
   const left = bounds ? bounds.x - bounds.radius * 1.7 : 14;
   const right = bounds ? bounds.x + bounds.radius * 1.7 : 87;
   const top = bounds ? bounds.y - bounds.radius * 1.7 : 12;
   const bottom = bounds ? bounds.y + bounds.radius * 2.4 : 93;
-  for (let i = 0; i < 24; i++) {
+  for (let i = 0; i < 18; i++) {
     const x = left + ((i * 37) % 73) / 73 * (right - left);
     const y = top + ((i * 53) % 81) / 81 * (bottom - top);
     const region: ConstructionRegion = {
-      id: `paper-${i}`, x: clampPct(x), y: clampPct(y), radius: 12 + (i % 4) * 2,
-      start: 0.56 + (i % 6) * 0.045, end: 0.82 + (i % 5) * 0.035,
+      id: `paper-${i}`, x: clampPct(x), y: clampPct(y), radius: 8 + (i % 4) * 1.8,
+      start: 0.74 + (i % 5) * 0.035, end: 0.90 + (i % 4) * 0.025,
     };
     const local = smooth((progress - region.start) / Math.max(0.01, region.end - region.start));
     const path = splatPath(region, local, `${seed}-finish`, i + 100);
