@@ -2,6 +2,7 @@ import React, {useMemo} from 'react';
 import {AbsoluteFill, interpolate, staticFile, useCurrentFrame, useVideoConfig} from 'remotion';
 import {ProgressiveArtwork, subjectRelativeConstruction} from './artwork-construction';
 import {InkConstructionOverlay} from './InkConstructionOverlay';
+import {FrictionBattlefield} from './FrictionBattlefield';
 import {runtimeAssets} from './runtime-assets';
 import {runtimeManifest} from './runtime-manifest';
 import {subShotSequence} from './shots';
@@ -30,20 +31,25 @@ export const ProductionDrawingTest: React.FC = () => {
     ?? beat.asset_refs.find((ref) => runtimeAssets[ref]);
   const regions = useMemo(() => subjectRelativeConstruction({focusX: shot.focusX, focusY: shot.focusY}), [shot.focusX, shot.focusY]);
 
-  // The master stays completely hidden while the contour drawing resolves. Pigment begins only
-  // after the ink stage has completed, so the viewer never mistakes a fade-in for drawing.
+  // Ink remains the dominant authored event. The environment animates independently so the shot
+  // reads as 2D film rather than a static portrait on a card.
   const ink = interpolate(local, [0.03, 0.78], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
   const contourProgress = clamp01(ink * 1.28);
   const wash = interpolate(local, [0.8, 1], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
   const settle = interpolate(local, [0.82, 1], [0, 1]);
   const scale = interpolate(settle, [0, 1], [1, 1.035]);
+  const sceneProgress = clamp01(contourProgress * 0.9 + wash * 0.35);
 
   if (!characterRef) return <AbsoluteFill style={{background: CREAM}}/>;
 
   return <AbsoluteFill style={{background: CREAM, color: INK, overflow: 'hidden'}}>
-    <div style={{position: 'absolute', top: 48, left: 58, right: 58, display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 5}}>
-      <div style={{fontFamily: 'Arial, sans-serif', fontSize: 20, letterSpacing: 4, fontWeight: 700}}>KATHAAYA</div>
-      <div style={{fontFamily: 'Arial, sans-serif', fontSize: 16, letterSpacing: 2, opacity: 0.55}}>PRODUCTION DRAWING TEST</div>
+    <FrictionBattlefield progress={sceneProgress} scene={segment} intensity={1.15} />
+
+    <div style={{position: 'absolute', inset: 0, pointerEvents: 'none'}}>
+      <div style={{position: 'absolute', top: 58, left: 62, right: 62, display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 5, opacity: 0.22}}>
+        <div style={{fontFamily: 'Georgia, serif', fontSize: 18, letterSpacing: 5, fontWeight: 700}}>KATHAAYA</div>
+        <div style={{fontFamily: 'Arial, sans-serif', fontSize: 11, letterSpacing: 3}}>2D MOTION STUDY</div>
+      </div>
     </div>
 
     <div style={{position: 'absolute', inset: 0, transform: `scale(${scale})`, transformOrigin: '50% 52%'}}>
@@ -59,15 +65,9 @@ export const ProductionDrawingTest: React.FC = () => {
       </div>
     </div>
 
-    <div style={{position: 'absolute', left: 58, right: 58, bottom: 90, display: 'flex', justifyContent: 'space-between', alignItems: 'end', zIndex: 5, fontFamily: 'Arial, sans-serif'}}>
-      <div>
-        <div style={{fontSize: 16, letterSpacing: 2, opacity: 0.55}}>MASTER ARTWORK</div>
-        <div style={{fontSize: 24, fontWeight: 700}}>{characterRef}</div>
-      </div>
-      <div style={{textAlign: 'right'}}>
-        <div style={{fontSize: 16, letterSpacing: 2, color: GOLD}}>ACTUAL CONTOUR TRACE</div>
-        <div style={{fontSize: 14, opacity: 0.55}}>{beat.beat_id} · {beat.visual_role}</div>
-      </div>
+    <div style={{position: 'absolute', left: 58, right: 58, bottom: 48, display: 'flex', justifyContent: 'space-between', alignItems: 'end', zIndex: 5, fontFamily: 'Arial, sans-serif', opacity: interpolate(wash, [0, 0.5, 1], [0, 0.18, 0.12])}}>
+      <div style={{fontSize: 10, letterSpacing: 2}}>FRICTION 2D LAYERS</div>
+      <div style={{textAlign: 'right', color: GOLD, fontSize: 10, letterSpacing: 2}}>INK → WASH → MOTION</div>
     </div>
   </AbsoluteFill>;
 };
