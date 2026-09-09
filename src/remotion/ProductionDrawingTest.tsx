@@ -19,10 +19,10 @@ function beatForIndex(index: number) {
 }
 
 export type ProductionDrawingTestProps = {
-  masterSrcOverride?: string;
+  masterPathOverride?: string;
 };
 
-export const ProductionDrawingTest: React.FC<ProductionDrawingTestProps> = ({masterSrcOverride}) => {
+export const ProductionDrawingTest: React.FC<ProductionDrawingTestProps> = ({masterPathOverride}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const seconds = frame / fps;
@@ -42,7 +42,9 @@ export const ProductionDrawingTest: React.FC<ProductionDrawingTestProps> = ({mas
   const settle = interpolate(local, [0.82, 1], [0, 1]);
   const scale = interpolate(settle, [0, 1], [1, 1.035]);
   const sceneProgress = clamp01(contourProgress * 0.9 + wash * 0.35);
-  const characterSrc = masterSrcOverride ?? staticFile(runtimeAssets[characterRef]);
+  const characterSrc = masterPathOverride
+    ? staticFile(masterPathOverride.replace(/^\/+/, ''))
+    : staticFile(runtimeAssets[characterRef].replace(/^\/+/, ''));
 
   return <AbsoluteFill style={{background: CREAM, color: INK, overflow: 'hidden'}}>
     <FrictionBattlefield progress={sceneProgress} scene={segment} intensity={1.15} />
