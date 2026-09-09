@@ -4,17 +4,25 @@ import {ConstructionRegion} from './artwork-construction';
 
 const INK = '#171510';
 const GOLD = '#B8872D';
-const RED = '#8E2F24';
 const TRACE_WIDTH = 360;
 const MAX_TRACE_HEIGHT = 680;
 const MAX_STROKES = 220;
 const MAX_WAIT_MS = 5000;
 const MIN_STROKE_LENGTH = 7;
+const SUBJECT_REVEAL_END = 0.62;
+const FULL_REVEAL_END = 0.94;
 
 const clamp01 = (value: number) => Math.max(0, Math.min(1, value));
 
 type Point = {x: number; y: number};
-type SkeletonStroke = {points: Point[]; length: number; centerX: number; centerY: number; width: number; height: number};
+type SkeletonStroke = {
+  points: Point[];
+  length: number;
+  centerX: number;
+  centerY: number;
+  width: number;
+  height: number;
+};
 
 type ContourPath = {
   d: string;
@@ -203,10 +211,7 @@ function removeTinyComponents(mask: Uint8Array, width: number, height: number, m
   return output;
 }
 
-/**
- * Follow centerline pixels into smooth stroke paths. Branches are deliberately split into separate
- * strokes so the reveal can feel like a hand moving from one meaningful line to the next.
- */
+/** Follow centerline pixels into smooth SVG paths; branches remain independent pen strokes. */
 function traceSkeletonStrokes(skeleton: Uint8Array, width: number, height: number): SkeletonStroke[] {
   const points = new Set<string>();
   for (let y = 1; y < height - 1; y += 1) for (let x = 1; x < width - 1; x += 1) {
@@ -280,7 +285,33 @@ function traceSkeletonStrokes(skeleton: Uint8Array, width: number, height: numbe
   return strokes;
 }
 
-function traceArtwork(image: HTMLImageElement): ContourPath[] {
+function regionAffinity(stroke: SkeletonStroke, regions: ConstructionRegion[], width: number, height: number) {
+  if (!regions.length) return 0;
+  const x = (stroke.centerX / width) * 100;
+  const y = (stroke.centerY / height) * 100;
+  let best = 0;
+  for (const region of regions) {
+    // Region metadata is only a semantic priority map. Geometry still comes from the master pixels.
+    const radius = Math.max(4, region.radius * 1.9);
+    const d = Math.hypot(x - region.x, y - region.y);
+    const proximity = clamp01(1 - d / radius);
+    const stageWeight = clamp01(1.05 - region.start * 0.55);
+    best = Math.max(best, proximity * stageWeight);
+  }
+  return best;
+}
+
+function isLikelyEnvironmentStroke(stroke: SkeletonStroke, width: number, height: number) {
+  const x = stroke.centerX / width;
+  const y = stroke.centerY / height;
+  const horizontal = stroke.width > Math.max(22, stroke.height * 4.5);
+  // Long horizontal battlefield lines are visually useful, but must never steal the first reveal
+  // from the protagonist. This heuristic only suppresses broad mid-frame lines; the actual master
+  // geometry remains the only source of visible ink.
+  return horizontal && y > 0.34 && y < 0.78 && x > 0.03 && x < 0.97 && stroke.length > 30;
+}
+
+function traceArtwork(image: HTMLImageElement, regions: ConstructionRegion[]): ContourPath[] {
   const naturalWidth = image.naturalWidth;
   const naturalHeight = image.naturalHeight;
   if (!naturalWidth || !naturalHeight) throw new Error('Master artwork has no intrinsic dimensions');
@@ -301,10 +332,6 @@ function traceArtwork(image: HTMLImageElement): ContourPath[] {
     return {r: pixels[i], g: pixels[i + 1], b: pixels[i + 2], a: pixels[i + 3]};
   };
 
-  // Do not use the four corners as the background estimate. Transparent PNG corners become
-  // black in RGB while alpha=0, which made the previous threshold reject every dark stroke.
-  // Instead, estimate the parchment/reference luminance from the bright end of the actual
-  // rendered pixels. This works for opaque parchment and transparent artwork equally well.
   const luminances: number[] = [];
   for (let y = 2; y < height - 2; y += 3) {
     for (let x = 2; x < width - 2; x += 3) {
@@ -319,8 +346,7 @@ function traceArtwork(image: HTMLImageElement): ContourPath[] {
     : 220;
   const inkMask = new Uint8Array(width * height);
 
-  // Favor actual dark/neutral ink and reject red/gold pigment. The thresholds are deliberately
-  // adaptive to the master instead of assuming a particular parchment RGB value.
+  // Detect neutral/dark source ink while rejecting most red/gold pigment.
   for (let y = 1; y < height - 1; y += 1) {
     for (let x = 1; x < width - 1; x += 1) {
       const p = sample(x, y);
@@ -351,12 +377,6 @@ function traceArtwork(image: HTMLImageElement): ContourPath[] {
     throw new Error(`Master artwork produced no centerline strokes (reference luminance ${referenceLum.toFixed(1)})`);
   }
 
-  const minY = Math.min(...strokes.map((stroke) => stroke.centerY));
-  const maxY = Math.max(...strokes.map((stroke) => stroke.centerY));
-  const minX = Math.min(...strokes.map((stroke) => stroke.centerX));
-  const maxX = Math.max(...strokes.map((stroke) => stroke.centerX));
-  const spanY = Math.max(1, maxY - minY);
-  const spanX = Math.max(1, maxX - minX);
   const style = getComputedStyle(image);
   const fit = style.objectFit || 'fill';
   const position = parseObjectPosition(style.objectPosition || '50% 50%');
@@ -372,37 +392,50 @@ function traceArtwork(image: HTMLImageElement): ContourPath[] {
   const offsetX = (boxWidth - contentWidth) * position.x;
   const offsetY = (boxHeight - contentHeight) * position.y;
 
-  // Recognition-first ordering: long silhouette strokes and upper-body/weapon strokes lead;
-  // secondary drapery and micro-detail arrive later.
-  const ordered = [...strokes].sort((a, b) => {
-    const score = (stroke: SkeletonStroke) => {
-      const y = clamp01((stroke.centerY - minY) / spanY);
-      const x = clamp01((stroke.centerX - minX) / spanX);
-      const recognitionZone = y < 0.62 ? 1.35 : 0.82;
-      const silhouetteBonus = stroke.length > 28 ? 1.25 : 1;
-      const upperStructure = y < 0.38 ? 1.18 : 1;
-      const centerBonus = x > 0.28 && x < 0.82 ? 1.08 : 1;
-      return stroke.length * recognitionZone * silhouetteBonus * upperStructure * centerBonus;
-    };
-    return score(b) - score(a);
-  });
+  const enriched = strokes.map((stroke) => ({
+    stroke,
+    affinity: regionAffinity(stroke, regions, width, height),
+    environment: isLikelyEnvironmentStroke(stroke, width, height),
+  }));
+  const subject = enriched.filter((entry) => entry.affinity >= 0.12 && !entry.environment);
+  const support = enriched.filter((entry) => !subject.includes(entry));
 
-  const revealWindow = 0.93;
-  const totalWeight = ordered.reduce((sum, stroke) => sum + Math.sqrt(stroke.length), 0);
-  let cursor = 0;
+  // The semantic regions do not draw anything. They only decide when master-derived paths arrive.
+  // Core protagonist paths occupy the first reveal window; environment/detail paths follow them.
+  const ordered = [
+    ...subject.sort((a, b) => b.affinity - a.affinity || b.stroke.length - a.stroke.length),
+    ...support.sort((a, b) => b.affinity - a.affinity || b.stroke.length - a.stroke.length),
+  ];
+  const subjectCount = Math.max(1, subject.length);
+  const subjectWeight = subject.reduce((sum, entry) => sum + Math.sqrt(entry.stroke.length), 0);
+  const supportWeight = support.reduce((sum, entry) => sum + Math.sqrt(entry.stroke.length), 0);
+  let subjectCursor = 0;
+  let supportCursor = 0;
 
-  return ordered.map((stroke, index) => {
-    const weight = Math.sqrt(stroke.length) / Math.max(0.001, totalWeight);
-    const duration = Math.max(0.018, Math.min(0.13, weight * ordered.length * 0.9));
-    const start = Math.min(revealWindow - 0.02, cursor * revealWindow);
-    const end = Math.min(1, start + duration + (index < 12 ? 0.045 : 0.018));
-    cursor += weight;
-    const y = clamp01((stroke.centerY - minY) / spanY);
+  return ordered.map((entry, index) => {
+    const {stroke} = entry;
+    const isSubject = index < subjectCount;
+    const weight = Math.sqrt(stroke.length);
+    let start: number;
+    let end: number;
+    if (isSubject) {
+      const normalized = weight / Math.max(0.001, subjectWeight);
+      start = subjectCursor * SUBJECT_REVEAL_END;
+      end = Math.min(SUBJECT_REVEAL_END + 0.025, start + Math.max(0.025, normalized * subjectCount * 0.8));
+      subjectCursor += normalized;
+    } else {
+      const normalized = weight / Math.max(0.001, supportWeight);
+      start = SUBJECT_REVEAL_END + supportCursor * (FULL_REVEAL_END - SUBJECT_REVEAL_END);
+      end = Math.min(1, start + Math.max(0.018, normalized * support.length * 0.75));
+      supportCursor += normalized;
+    }
+
     const mapped = stroke.points.map((point) => ({
       x: (((point.x / width) * naturalWidth * scale + offsetX) / boxWidth) * 100,
       y: (((point.y / height) * naturalHeight * scale + offsetY) / boxHeight) * 100,
     }));
     const path = pathFromPoints(mapped);
+    const y = stroke.centerY / height;
     return {
       d: path,
       start,
@@ -419,7 +452,7 @@ function Stroke({path, progress}: {path: ContourPath; progress: number}) {
   if (local <= 0.001) return null;
   return (
     <>
-      <path d={path.d} fill="none" stroke={path.color} strokeWidth={path.width + 0.38} strokeLinecap="round" strokeLinejoin="round" pathLength={1} strokeDasharray="1" strokeDashoffset={1 - local} opacity={path.opacity * 0.11} filter="blur(0.4px)" vectorEffect="non-scaling-stroke" />
+      <path d={path.d} fill="none" stroke={path.color} strokeWidth={path.width + 0.38} strokeLinecap="round" strokeLinejoin="round" pathLength={1} strokeDasharray="1" strokeDashoffset={1 - local} opacity={path.opacity * 0.11} filter="blur(0.4px" vectorEffect="non-scaling-stroke" />
       <path d={path.d} fill="none" stroke={path.color} strokeWidth={path.width} strokeLinecap="round" strokeLinejoin="round" pathLength={1} strokeDasharray="1" strokeDashoffset={1 - local} opacity={path.opacity} vectorEffect="non-scaling-stroke" />
     </>
   );
@@ -466,7 +499,7 @@ export function InkConstructionOverlay({
       const finish = () => {
         if (cancelled) return;
         try {
-          setPaths(traceArtwork(image));
+          setPaths(traceArtwork(image, regions));
           const style = getComputedStyle(image);
           setGeometry({
             transform: style.transform === 'none' ? 'none' : style.transform,
@@ -490,7 +523,7 @@ export function InkConstructionOverlay({
       if (timeoutHandle !== null) clearTimeout(timeoutHandle);
       continueRender(handle);
     };
-  }, [cancelRender, continueRender, handle]);
+  }, [cancelRender, continueRender, handle, regions]);
 
   if (regions.length === 0) return null;
   const progressValue = clamp01(progress);
