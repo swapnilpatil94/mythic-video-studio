@@ -48,8 +48,8 @@ jobs:
         run: npx remotion browser ensure
       - name: Render drawing acceptance videos
         run: |
-          npm run render:drawing-test
-          npm run render:production-drawing-test
+          npm run render:drawing-test -- --props='{"masterSrc":"/test-assets/kathaya-master-fallback.svg"}'
+          npm run render:production-drawing-test -- --props='{"masterSrcOverride":"/test-assets/kathaya-master-fallback.svg"}'
       - name: Upload drawing acceptance videos
         uses: actions/upload-artifact@v4
         with:
