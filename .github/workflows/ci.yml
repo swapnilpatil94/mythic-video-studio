@@ -2,19 +2,24 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, feature/neuromarketing-drawing-stage]
   pull_request:
     branches: [main]
 
 jobs:
   verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: npm
       - run: npm install
+      - run: npm run typecheck
+      - run: npm run check:psychology
+      - run: npm run check:drawing-acceptance
       - run: npm run validate -- examples/karna-short.json
       - run: npm run validate -- examples/karna-longform-test.json
       - run: npm run check:motion
@@ -27,3 +32,29 @@ jobs:
         with:
           name: pipeline-check-log
           path: pipeline-check.log
+
+  visual-drawing:
+    if: github.ref == 'refs/heads/feature/neuromarketing-drawing-stage'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm install
+      - name: Ensure Remotion browser
+        run: npx remotion browser ensure
+      - name: Render drawing acceptance videos
+        run: |
+          npm run render:drawing-test -- --props='{"masterPath":"test-assets/kathaya-master-fallback.svg"}'
+          npm run render:production-drawing-test -- --props='{"masterPathOverride":"test-assets/kathaya-master-fallback.svg"}'
+      - name: Upload drawing acceptance videos
+        uses: actions/upload-artifact@v4
+        with:
+          name: drawing-acceptance-videos
+          path: |
+            renders/drawing-stage-test.mp4
+            renders/production-drawing-test.mp4
+          if-no-files-found: error

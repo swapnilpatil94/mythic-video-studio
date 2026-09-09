@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "sceneId": "karna-battlefield-reveal",
+  "title": "Karna — Battlefield Reveal",
+  "width": 1920,
+  "height": 1080,
+  "fps": 30,
+  "startFrame": 0,
+  "endFrame": 300,
+  "background": "#EEE3C9",
+  "layers": [
+    {
+      "id": "background",
+      "kind": "image",
+      "asset": "assets/karna/background.svg",
+      "z": 0,
+      "motionIntent": "ambient",
+      "keyframes": {
+        "position": [
+          { "frame": 0, "value": [0, 0], "easing": "ease-out" },
+          { "frame": 300, "value": [-18, 0], "easing": "ease-in-out" }
+        ]
+      }
+    },
+    {
+      "id": "karna-ink",
+      "kind": "path",
+      "asset": "assets/karna/karna-contours.svg",
+      "z": 20,
+      "pathEffect": "trim",
+      "motionIntent": "ink-draw"
+    },
+    {
+      "id": "karna-body",
+      "kind": "svg",
+      "asset": "assets/karna/karna-body.svg",
+      "z": 30,
+      "motionIntent": "breathing",
+      "keyframes": {
+        "scale": [
+          { "frame": 90, "value": [1, 1] },
+          { "frame": 150, "value": [1.006, 1.006], "easing": "ease-in-out" },
+          { "frame": 210, "value": [1, 1], "easing": "ease-in-out" }
+        ]
+      }
+    },
+    {
+      "id": "karna-head",
+      "kind": "svg",
+      "asset": "assets/karna/karna-head.svg",
+      "z": 40,
+      "motionIntent": "head-turn",
+      "keyframes": {
+        "rotation": [
+          { "frame": 155, "value": 0 },
+          { "frame": 210, "value": -2.5, "easing": "ease-out" },
+          { "frame": 255, "value": -1, "easing": "ease-in-out" }
+        ]
+      }
+    },
+    {
+      "id": "camera",
+      "kind": "group",
+      "z": 100,
+      "motionIntent": "camera",
+      "keyframes": {
+        "scale": [
+          { "frame": 0, "value": [1, 1] },
+          { "frame": 300, "value": [1.08, 1.08], "easing": "ease-in-out" }
+        ],
+        "position": [
+          { "frame": 0, "value": [0, 0] },
+          { "frame": 300, "value": [-24, -10], "easing": "ease-in-out" }
+        ]
+      }
+    }
+  ]
+}

@@ -1,5 +1,20 @@
 export type AssetKind = 'character' | 'environment' | 'prop' | 'background' | 'overlay' | 'audio';
 
+export type WorldBible = {
+  period: string;
+  architecture: string;
+  clothing: string;
+  weapons: string;
+  armor: string;
+  jewelry: string;
+  vehicles: string;
+  materials: string;
+  environment: string;
+  lighting: string;
+  atmosphere?: string;
+  forbidden_modern_elements?: string[];
+};
+
 export type AssetRecord = {
   id: string;
   kind: AssetKind;
@@ -17,6 +32,19 @@ export type AssetRecord = {
   last_error?: string;
 };
 
+export type BeatPsychology = {
+  attention_goal?: string;
+  tension_level?: number;
+  curiosity_level?: number;
+  emotional_level?: number;
+  open_loop?: string;
+  withheld_elements?: string[];
+  micro_payoff?: string;
+  payoff_target?: string;
+  pattern_interrupt?: boolean;
+  visual_strategy?: string;
+};
+
 export type ProductionBeat = {
   beat_id: string;
   duration_seconds: number;
@@ -28,10 +56,6 @@ export type ProductionBeat = {
   text?: string;
   narration?: string;
   sfx?: string[];
-  // Optional, additive: carried through from a story package's visual_manifest (see
-  // src/studio/story-package.ts) for traceability and future compositor use. The renderer does
-  // not currently branch on these — capturing them losslessly on import is the scope of the story
-  // package contract; wiring them into MythicShort.tsx's actual shot/reveal decisions is not.
   pace?: string;
   shot_type?: string;
   composition?: string;
@@ -39,6 +63,7 @@ export type ProductionBeat = {
   reveal?: boolean;
   keyword_text?: string;
   transition?: string;
+  psychology?: BeatPsychology;
 };
 
 export type ProductionManifest = {
@@ -47,35 +72,28 @@ export type ProductionManifest = {
   language: 'hi-IN';
   duration_seconds: number;
   characters: string[];
-  // Optional: which platform's safe-zone profile (src/shared/platform-profiles.ts) the compositor
-  // should position captions/branding against — a reference to the reusable, shared profile data,
-  // not the UI geometry itself, so platform layout stays defined in one place, not per-manifest.
-  // Defaults to 'youtube_shorts' when absent.
   platform?: string;
-  // Optional: explicit per-asset-id kind/reverence, populated by src/studio/story-package.ts from
-  // the story package's own characters/environments/props lists (which already know this — a
-  // character is a character because it's IN the characters array, not because its id happens to
-  // start with a hardcoded name). src/pipeline/asset-prompts.ts consults this before falling back
-  // to its old id-substring heuristic, so classification generalizes to any story/cast, not just
-  // the original karna/indra naming. Absent for manifests authored before this field existed —
-  // the heuristic fallback keeps those working unchanged.
+  world?: WorldBible;
   asset_kinds?: Record<string, AssetKind>;
   asset_sacred?: Record<string, boolean>;
-  // Optional: per-asset-id visual direction text, populated from the story package's
-  // characters/environments/props `visual_direction` fields. src/pipeline/asset-prompts.ts folds
-  // this into the actual generation prompt — without it, a new character (anyone who isn't karna/
-  // indra, which the old template's generic role-only prompt happens to already suit) gets no
-  // information about who they are beyond an id, and FLUX has nothing to go on but the shared
-  // style boilerplate (confirmed: this produced a bearded male figure for "kunti" before this field
-  // existed, since the prompt never said she was a woman).
   asset_visual_direction?: Record<string, string>;
+  psychology?: {
+    mode: 'high_density' | 'sustained' | 'cinematic';
+    curiosity: number;
+    tension: number;
+    emotional_investment: number;
+    information_density: number;
+    interruption_density: number;
+    breathing_room: number;
+    micro_payoff_interval_seconds: number;
+    scene_payoff_interval_seconds: number;
+    maximum_open_loops: number;
+  };
   beats: ProductionBeat[];
   audio?: {
     narration_path?: string;
     music_path?: string;
     sfx_dir?: string;
-    // Optional, additive production-direction fields carried from a story package's `audio`
-    // section. Not currently consumed by tools/chatterbox_tts.py — captured for fidelity/future use.
     voice_style?: string;
     target_wpm?: number;
     music_direction?: string;
