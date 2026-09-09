@@ -32,3 +32,29 @@ jobs:
         with:
           name: pipeline-check-log
           path: pipeline-check.log
+
+  visual-drawing:
+    if: github.ref == 'refs/heads/feature/neuromarketing-drawing-stage'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm install
+      - name: Ensure Remotion browser
+        run: npx remotion browser ensure
+      - name: Render drawing acceptance videos
+        run: |
+          npm run render:drawing-test
+          npm run render:production-drawing-test
+      - name: Upload drawing acceptance videos
+        uses: actions/upload-artifact@v4
+        with:
+          name: drawing-acceptance-videos
+          path: |
+            renders/drawing-stage-test.mp4
+            renders/production-drawing-test.mp4
+          if-no-files-found: error
