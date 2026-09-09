@@ -23,6 +23,17 @@
 - [ ] segmentation/layer preparation
 - [ ] pose variants
 
+## M2.5 — 2D animation bridge
+- [x] Friction scene contract
+- [x] Friction handoff generator
+- [x] motion-intent metadata for character/environment layers
+- [x] handoff validation CLI
+- [ ] automated SVG/vector layer extraction from master artwork
+- [ ] reusable character rig conventions
+- [ ] Friction-authored motion library (breathing, head turn, eye shift, cloth, hair, camera)
+- [ ] import validated Friction output into Remotion shot renderer
+- [ ] visual regression renders for animated shots
+
 ## M3 — Audio
 - [ ] Hindi TTS adapter
 - [ ] music adapter
