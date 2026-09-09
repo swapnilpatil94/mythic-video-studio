@@ -5,8 +5,8 @@ import {ConstructionRegion} from './artwork-construction';
 const INK = '#171510';
 const GOLD = '#B8872D';
 const RED = '#8E2F24';
-const TRACE_WIDTH = 280;
-const MAX_TRACE_HEIGHT = 520;
+const TRACE_WIDTH = 360;
+const MAX_TRACE_HEIGHT = 680;
 const MAX_STROKES = 220;
 const MAX_WAIT_MS = 5000;
 const MIN_STROKE_LENGTH = 7;
@@ -301,16 +301,26 @@ function traceArtwork(image: HTMLImageElement): ContourPath[] {
     return {r: pixels[i], g: pixels[i + 1], b: pixels[i + 2], a: pixels[i + 3]};
   };
 
-  const corners = [sample(0, 0), sample(width - 1, 0), sample(0, height - 1), sample(width - 1, height - 1)];
-  const bg = corners.reduce((acc, color) => ({r: acc.r + color.r, g: acc.g + color.g, b: acc.b + color.b}), {r: 0, g: 0, b: 0});
-  bg.r /= corners.length;
-  bg.g /= corners.length;
-  bg.b /= corners.length;
-  const bgLum = 0.2126 * bg.r + 0.7152 * bg.g + 0.0722 * bg.b;
+  // Do not use the four corners as the background estimate. Transparent PNG corners become
+  // black in RGB while alpha=0, which made the previous threshold reject every dark stroke.
+  // Instead, estimate the parchment/reference luminance from the bright end of the actual
+  // rendered pixels. This works for opaque parchment and transparent artwork equally well.
+  const luminances: number[] = [];
+  for (let y = 2; y < height - 2; y += 3) {
+    for (let x = 2; x < width - 2; x += 3) {
+      const p = sample(x, y);
+      if (p.a < 32) continue;
+      luminances.push(0.2126 * p.r + 0.7152 * p.g + 0.0722 * p.b);
+    }
+  }
+  luminances.sort((a, b) => a - b);
+  const referenceLum = luminances.length
+    ? luminances[Math.floor((luminances.length - 1) * 0.9)]
+    : 220;
   const inkMask = new Uint8Array(width * height);
 
-  // Favor neutral/dark linework and reject colored pigment fills. This makes the drawing layer
-  // follow the artist's ink rather than the boundaries of the red/gold wash.
+  // Favor actual dark/neutral ink and reject red/gold pigment. The thresholds are deliberately
+  // adaptive to the master instead of assuming a particular parchment RGB value.
   for (let y = 1; y < height - 1; y += 1) {
     for (let x = 1; x < width - 1; x += 1) {
       const p = sample(x, y);
@@ -325,18 +335,21 @@ function traceArtwork(image: HTMLImageElement): ContourPath[] {
         Math.hypot(left.r - right.r, left.g - right.g, left.b - right.b),
         Math.hypot(up.r - down.r, up.g - down.g, up.b - down.b),
       );
-      if ((lum < bgLum - 38 && chroma < 82) || (gradient > 52 && lum < bgLum - 18 && chroma < 72)) {
-        inkMask[y * width + x] = 1;
-      }
+      const darkNeutral = lum < referenceLum - 30 && chroma < 105;
+      const deepNeutral = lum < 112 && chroma < 120;
+      const darkEdge = gradient > 32 && lum < referenceLum - 12 && chroma < 92;
+      if (darkNeutral || deepNeutral || darkEdge) inkMask[y * width + x] = 1;
     }
   }
 
-  const cleaned = removeTinyComponents(inkMask, width, height, 8);
+  const cleaned = removeTinyComponents(inkMask, width, height, 6);
   const skeleton = skeletonize(cleaned, width, height);
   const strokes = traceSkeletonStrokes(skeleton, width, height)
     .sort((a, b) => b.length - a.length)
     .slice(0, MAX_STROKES);
-  if (!strokes.length) throw new Error('Master artwork produced no centerline strokes');
+  if (!strokes.length) {
+    throw new Error(`Master artwork produced no centerline strokes (reference luminance ${referenceLum.toFixed(1)})`);
+  }
 
   const minY = Math.min(...strokes.map((stroke) => stroke.centerY));
   const maxY = Math.max(...strokes.map((stroke) => stroke.centerY));
