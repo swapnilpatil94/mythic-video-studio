@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mythic-video-studio.local/schemas/friction-scene.schema.json",
+  "title": "KATHAAYA Friction Scene",
+  "type": "object",
+  "required": ["schemaVersion", "sceneId", "title", "width", "height", "fps", "startFrame", "endFrame", "layers"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "sceneId": { "type": "string", "minLength": 1 },
+    "title": { "type": "string", "minLength": 1 },
+    "width": { "type": "integer", "minimum": 1 },
+    "height": { "type": "integer", "minimum": 1 },
+    "fps": { "type": "integer", "minimum": 24, "maximum": 60 },
+    "startFrame": { "type": "integer", "minimum": 0 },
+    "endFrame": { "type": "integer", "minimum": 1 },
+    "background": { "type": "string" },
+    "layers": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "kind", "z"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "kind": { "enum": ["svg", "image", "group", "path"] },
+          "asset": { "type": "string" },
+          "z": { "type": "number" },
+          "opacity": { "type": "number", "minimum": 0, "maximum": 1 },
+          "pathEffect": { "enum": ["trim", "dash", "morph", "follow-path"] },
+          "motionIntent": {
+            "enum": ["breathing", "eye-shift", "head-turn", "cloth", "hair", "camera", "ambient", "ink-draw"]
+          },
+          "transform": { "type": "object" },
+          "keyframes": { "type": "object" }
+        },
+        "allOf": [
+          {
+            "if": { "properties": { "kind": { "const": "group" } } },
+            "then": {},
+            "else": { "required": ["asset"] }
+          }
+        ]
+      }
+    }
+  },
+  "additionalProperties": false
+}
