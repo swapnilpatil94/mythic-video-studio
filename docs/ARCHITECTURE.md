@@ -52,7 +52,7 @@
 
 The repository does not commit Friction's binary `.friction` project files. Instead, the canonical handoff is a versioned `FrictionSceneSpec` plus generated SVG/assets. This keeps source control reviewable and prevents the renderer from depending on an opaque editor project format.
 
-The Friction adapter currently prepares that handoff. It deliberately does **not** pretend that Friction has a stable documented headless CLI/API. When Friction is available locally, the generated scene/assets can be opened in Friction for keyframing and path/morph work. Friction's documented export path can then produce SVG animation or rendered video, while Remotion remains responsible for final episode composition. citeturn0search0turn0search1
+The Friction adapter currently prepares that handoff. It deliberately does **not** pretend that Friction has a stable documented headless CLI/API. When Friction is available locally, the generated scene/assets can be opened in Friction for keyframing and path/morph work. Friction can then export SVG animation or rendered video, while Remotion remains responsible for final episode composition.
 
 ## Artifact boundaries
 
@@ -87,6 +87,6 @@ AI generation is reserved for new visual information that cannot be cheaply prod
 - local Hindi TTS — narration
 - FFmpeg — audio/video utilities
 
-Friction is intentionally treated as an animation tool, not the asset-design system; its documentation recommends creating/designing assets externally and importing/linking them. citeturn0search1
+Friction is intentionally treated as an animation tool, not the asset-design system; assets should be created externally and imported/linked into Friction.
 
 The image model is intentionally abstracted behind an adapter so FLUX/Klein or another local model can be swapped without changing the story/animation contracts.
