@@ -1,5 +1,5 @@
 import React from 'react';
-import {Composition} from 'remotion';
+import {Composition, staticFile} from 'remotion';
 import {MythicShort} from './MythicShort';
 import {DrawingStageTest} from './DrawingStageTest';
 import {ProductionDrawingTest} from './ProductionDrawingTest';
@@ -36,6 +36,7 @@ export const RemotionRoot: React.FC = () => {
         fps={30}
         width={1080}
         height={1920}
+        defaultProps={{masterSrc: staticFile('/generated/karna-full-journey/karna-karna.png')}}
       />
       <Composition
         id="ProductionDrawingTest"
@@ -44,6 +45,7 @@ export const RemotionRoot: React.FC = () => {
         fps={30}
         width={1080}
         height={1920}
+        defaultProps={{}}
       />
     </>
   );
