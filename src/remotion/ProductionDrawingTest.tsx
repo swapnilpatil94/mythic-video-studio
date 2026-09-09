@@ -11,7 +11,6 @@ const CREAM = '#F4E8CF';
 const INK = '#171510';
 const GOLD = '#B8872D';
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
-const CI_MASTER = staticFile('/test-assets/kathaya-master-fallback.svg');
 
 const revealBeats = runtimeManifest.beats.filter((beat) => beat.reveal);
 
