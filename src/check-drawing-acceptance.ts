@@ -21,8 +21,15 @@ const tracesMasterArtwork =
   overlay.includes('getImageData') &&
   overlay.includes('objectFit') &&
   overlay.includes('objectPosition') &&
-  overlay.includes('chainBoundarySegments') &&
+  overlay.includes('skeletonize') &&
+  overlay.includes('traceSkeletonStrokes') &&
   overlay.includes('pathFromPoints');
+
+const centerlineTracingIsExplicit =
+  overlay.includes('Zhang-Suen thinning') &&
+  overlay.includes('centerline') &&
+  overlay.includes('inkMask') &&
+  !overlay.includes('chainBoundarySegments');
 
 const copiesMasterTransform =
   overlay.includes('getComputedStyle(image)') &&
@@ -63,6 +70,7 @@ const result = evaluateDrawingAcceptance({
   hasRealStrokeLayer:
     hasRealStrokeLayer &&
     tracesMasterArtwork &&
+    centerlineTracingIsExplicit &&
     copiesMasterTransform &&
     noGenericCharacterLibrary &&
     masterIsIndependentFromMask &&
@@ -73,4 +81,4 @@ const result = evaluateDrawingAcceptance({
 
 if (!result.ok) throw new Error(result.errors.join('\n'));
 
-console.log('Drawing acceptance contract passed: smooth SVG contour paths are traced from the rendered master artwork, aligned to its object-fit/position/transform, and fully revealed before pigment wash; no generic character construction library or raster mask is used.');
+console.log('Drawing acceptance contract passed: neutral/dark master ink is skeletonized into centerline SVG strokes, ordered for recognition-first drawing, aligned to the master object-fit/position/transform, and fully revealed before pigment wash; no generic character construction library or raster mask is used.');
