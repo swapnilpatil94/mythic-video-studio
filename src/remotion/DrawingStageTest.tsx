@@ -14,17 +14,15 @@ const smooth = (v: number) => {
 };
 const phase = (frame: number, fps: number, start: number, end: number) => smooth((frame / fps - start) / (end - start));
 
-const masterSrc = process.env.CI
-  ? staticFile('/test-assets/kathaya-master-fallback.svg')
-  : staticFile('/generated/karna-full-journey/karna-karna.png');
+export type DrawingStageTestProps = {
+  masterSrc?: string;
+};
 
 /**
  * Cinematic acceptance composition: parchment -> Friction-style 2D environment ->
  * recognition-first ink drawing -> restrained pigment -> finished master.
- * CI uses a checked-in vector master only when generated production assets are unavailable;
- * local/production renders continue to use the actual staged master artwork.
  */
-export const DrawingStageTest: React.FC = () => {
+export const DrawingStageTest: React.FC<DrawingStageTestProps> = ({masterSrc = staticFile('/generated/karna-full-journey/karna-karna.png')}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const t = frame / fps;
