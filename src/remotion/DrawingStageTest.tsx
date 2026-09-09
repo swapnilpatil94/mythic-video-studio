@@ -14,9 +14,15 @@ const smooth = (v: number) => {
 };
 const phase = (frame: number, fps: number, start: number, end: number) => smooth((frame / fps - start) / (end - start));
 
+const masterSrc = process.env.CI
+  ? staticFile('/test-assets/kathaya-master-fallback.svg')
+  : staticFile('/generated/karna-full-journey/karna-karna.png');
+
 /**
  * Cinematic acceptance composition: parchment -> Friction-style 2D environment ->
  * recognition-first ink drawing -> restrained pigment -> finished master.
+ * CI uses a checked-in vector master only when generated production assets are unavailable;
+ * local/production renders continue to use the actual staged master artwork.
  */
 export const DrawingStageTest: React.FC = () => {
   const frame = useCurrentFrame();
@@ -42,7 +48,7 @@ export const DrawingStageTest: React.FC = () => {
       <div style={{position: 'absolute', inset: 0, transform: `translate(${interpolate(settle, [0, 1], [0, -16])}px, ${interpolate(settle, [0, 1], [0, -8])}px) scale(${scale})`, transformOrigin: '50% 54%'}}>
         <div style={{position: 'absolute', left: '26%', width: '72%', top: '8%', bottom: '0%', overflow: 'hidden'}}>
           <ProgressiveArtwork
-            src={staticFile('/generated/karna-full-journey/karna-karna.png')}
+            src={masterSrc}
             inkProgress={ink}
             washProgress={wash}
             regions={regions}
