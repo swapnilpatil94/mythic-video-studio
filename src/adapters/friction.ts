@@ -1,5 +1,5 @@
 import { mkdir, writeFile } from 'node:fs/promises';
-import { dirname, resolve } from 'node:path';
+import { resolve } from 'node:path';
 
 export type FrictionKeyframe = {
   frame: number;
@@ -48,16 +48,35 @@ const escapeXml = (value: string): string =>
 const keyframeValue = (value: FrictionKeyframe['value']): string =>
   Array.isArray(value) ? value.join(' ') : String(value);
 
-const animate = (attributeName: string, frames: FrictionKeyframe[] | undefined): string => {
-  if (!frames || frames.length < 2) return '';
-  const begin = frames[0]?.frame ?? 0;
-  const end = frames[frames.length - 1]?.frame ?? begin;
-  const values = frames.map((frame) => keyframeValue(frame.value)).join(';');
-  const keyTimes = frames.map((frame) => ((frame.frame - begin) / Math.max(1, end - begin)).toFixed(5)).join(';');
-  return `<animate attributeName="${attributeName}" begin="0s" dur="${Math.max(1, end - begin)}f" values="${values}" keyTimes="${keyTimes}" fill="freeze" />`;
+const keyTimes = (frames: FrictionKeyframe[], start: number, end: number): string =>
+  frames.map((frame) => ((frame.frame - start) / Math.max(1, end - start)).toFixed(5)).join(';');
+
+const durationSeconds = (frames: FrictionKeyframe[], fps: number): string => {
+  const start = frames[0]?.frame ?? 0;
+  const end = frames[frames.length - 1]?.frame ?? start;
+  return Math.max(1 / fps, (end - start) / fps).toFixed(4);
 };
 
-const transform = (layer: FrictionLayer): string => {
+const animateNumber = (attributeName: string, frames: FrictionKeyframe[] | undefined, fps: number): string => {
+  if (!frames || frames.length < 2) return '';
+  const start = frames[0]?.frame ?? 0;
+  const end = frames[frames.length - 1]?.frame ?? start;
+  return `<animate attributeName="${attributeName}" begin="${(start / fps).toFixed(4)}s" dur="${durationSeconds(frames, fps)}s" values="${frames.map((frame) => keyframeValue(frame.value)).join(';')}" keyTimes="${keyTimes(frames, start, end)}" fill="freeze" />`;
+};
+
+const animateTransform = (type: 'translate' | 'scale' | 'rotate', frames: FrictionKeyframe[] | undefined, fps: number): string => {
+  if (!frames || frames.length < 2) return '';
+  const start = frames[0]?.frame ?? 0;
+  const end = frames[frames.length - 1]?.frame ?? start;
+  const values = frames.map((frame) => {
+    const value = Array.isArray(frame.value) ? frame.value : [frame.value];
+    if (type === 'translate' || type === 'scale') return `${value[0]} ${value[1] ?? value[0]}`;
+    return `${value[0]}`;
+  }).join(';');
+  return `<animateTransform attributeName="transform" type="${type}" begin="${(start / fps).toFixed(4)}s" dur="${durationSeconds(frames, fps)}s" values="${values}" keyTimes="${keyTimes(frames, start, end)}" fill="freeze" additive="sum" />`;
+};
+
+const staticTransform = (layer: FrictionLayer): string => {
   const commands: string[] = [];
   const pivot = layer.transform?.pivot;
   const position = layer.transform?.position;
@@ -71,26 +90,24 @@ const transform = (layer: FrictionLayer): string => {
   return commands.length ? ` transform="${commands.join(' ')}"` : '';
 };
 
-const renderLayer = (layer: FrictionLayer): string => {
+const renderLayer = (layer: FrictionLayer, fps: number): string => {
   const opacity = layer.opacity ?? 1;
-  const attrs = ` id="${escapeXml(layer.id)}" data-friction-motion="${layer.motionIntent ?? 'none'}" opacity="${opacity}"${transform(layer)}`;
+  const attrs = ` id="${escapeXml(layer.id)}" data-friction-motion="${layer.motionIntent ?? 'none'}" opacity="${opacity}"${staticTransform(layer)}`;
   const animations = [
-    animate('opacity', layer.keyframes?.opacity),
-    animate('transform', undefined),
+    animateNumber('opacity', layer.keyframes?.opacity, fps),
+    animateTransform('translate', layer.keyframes?.position, fps),
+    animateTransform('scale', layer.keyframes?.scale, fps),
+    animateTransform('rotate', layer.keyframes?.rotation, fps),
   ].filter(Boolean).join('');
 
   if (layer.kind === 'group') return `<g${attrs}>${animations}</g>`;
   if (!layer.asset) throw new Error(`Friction layer "${layer.id}" requires an asset`);
 
-  if (layer.kind === 'image') {
-    return `<image${attrs} href="${escapeXml(layer.asset)}" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">${animations}</image>`;
-  }
-
   return `<g${attrs} data-friction-path-effect="${layer.pathEffect ?? 'none'}"><image href="${escapeXml(layer.asset)}" width="100%" height="100%" preserveAspectRatio="xMidYMid meet" />${animations}</g>`;
 };
 
 export function buildFrictionSvg(spec: FrictionSceneSpec): string {
-  const layers = [...spec.layers].sort((a, b) => a.z - b.z).map(renderLayer).join('\n');
+  const layers = [...spec.layers].sort((a, b) => a.z - b.z).map((layer) => renderLayer(layer, spec.fps)).join('\n');
   const background = spec.background ? `<rect width="100%" height="100%" fill="${escapeXml(spec.background)}" />` : '';
   return [
     `<?xml version="1.0" encoding="UTF-8"?>`,
