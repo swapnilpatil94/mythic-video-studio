@@ -70,7 +70,6 @@ function pathFromPoints(points: Point[]) {
   return d;
 }
 
-/** Zhang-Suen thinning: convert actual master ink pixels into centerline pixels. */
 function skeletonize(input: Uint8Array, width: number, height: number) {
   const image = new Uint8Array(input);
   const neighbors = (x: number, y: number) => [image[(y - 1) * width + x], image[(y - 1) * width + x + 1], image[y * width + x + 1], image[(y + 1) * width + x + 1], image[(y + 1) * width + x], image[(y + 1) * width + x - 1], image[y * width + x - 1], image[(y - 1) * width + x - 1]];
@@ -113,7 +112,6 @@ function removeTinyComponents(mask: Uint8Array, width: number, height: number, m
   return output;
 }
 
-/** Follow actual centerline pixels into independent SVG pen strokes. */
 function traceSkeletonStrokes(skeleton: Uint8Array, width: number, height: number): SkeletonStroke[] {
   const points = new Set<string>();
   for (let y = 1; y < height - 1; y += 1) for (let x = 1; x < width - 1; x += 1) if (skeleton[y * width + x]) points.add(`${x},${y}`);
@@ -157,23 +155,18 @@ function regionAffinity(stroke: SkeletonStroke, regions: ConstructionRegion[], w
   for (const region of regions) { const radius = Math.max(5, region.radius * 2.2); best = Math.max(best, clamp01(1 - Math.hypot(x - region.x, y - region.y) / radius) * (1.1 - region.start * 0.5)); }
   return best;
 }
-
 function isLikelyEnvironmentStroke(stroke: SkeletonStroke, width: number, height: number) {
   const x = stroke.centerX / width; const y = stroke.centerY / height;
   const horizontal = stroke.width > Math.max(28, stroke.height * 5);
   return horizontal && y > 0.67 && x > 0.01 && x < 0.99 && stroke.length > 55;
 }
-
 function mapSourcePoint(point: Point, naturalWidth: number, naturalHeight: number, boxWidth: number, boxHeight: number, fit: string, position: {x: number; y: number}) {
   const scale = fit === 'cover' ? Math.max(boxWidth / naturalWidth, boxHeight / naturalHeight) : fit === 'contain' ? Math.min(boxWidth / naturalWidth, boxHeight / naturalHeight) : 1;
   const contentWidth = naturalWidth * scale; const contentHeight = naturalHeight * scale;
   const offsetX = (boxWidth - contentWidth) * position.x; const offsetY = (boxHeight - contentHeight) * position.y;
   return {x: ((point.x * scale + offsetX) / boxWidth) * 100, y: ((point.y * scale + offsetY) / boxHeight) * 100};
 }
-
-function pathNumbers(d: string) {
-  return (d.match(/-?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?/g) ?? []).map(Number);
-}
+function pathNumbers(d: string) { return (d.match(/-?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?/g) ?? []).map(Number); }
 function pathBounds(d: string) {
   const n = pathNumbers(d); if (n.length < 2) return {x: 0, y: 0, width: 0, height: 0};
   const xs: number[] = []; const ys: number[] = [];
@@ -183,7 +176,13 @@ function pathBounds(d: string) {
 }
 function inheritedAttribute(element: Element, name: string) {
   let current: Element | null = element;
-  while (current) { const value = current.getAttribute(name); if (value) return value; current = current.parentElement; }
+  while (current) {
+    const value = current.getAttribute(name); if (value) return value;
+    const style = current.getAttribute('style') ?? '';
+    const match = style.match(new RegExp(`(?:^|;)\\s*${name}\\s*:\\s*([^;]+)`, 'i'));
+    if (match?.[1]) return match[1].trim();
+    current = current.parentElement;
+  }
   return undefined;
 }
 function numericAttr(element: Element, name: string, fallback = 0) { const value = Number.parseFloat(element.getAttribute(name) ?? ''); return Number.isFinite(value) ? value : fallback; }
@@ -202,7 +201,6 @@ function elementToPath(element: Element) {
   }
   return '';
 }
-
 function mapSvgPathToPercent(d: string, box: {scale: number; offsetX: number; offsetY: number; boxWidth: number; boxHeight: number}, viewMinX = 0, viewMinY = 0) {
   const tokens = d.match(/[A-Za-z]|-?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?/g) ?? [];
   const arity: Record<string, number> = {M: 2, L: 2, H: 1, V: 1, C: 6, S: 4, Q: 4, T: 2, A: 7, Z: 0};
@@ -228,7 +226,6 @@ function mapSvgPathToPercent(d: string, box: {scale: number; offsetX: number; of
   }
   return output.trim();
 }
-
 async function traceSvgArtwork(image: HTMLImageElement, regions: ConstructionRegion[]): Promise<ContourPath[] | null> {
   const src = image.currentSrc || image.src; if (!src || !/\.svg(?:$|[?#])/i.test(src)) return null;
   const response = await fetch(src); if (!response.ok) return null; const text = await response.text();
@@ -242,12 +239,17 @@ async function traceSvgArtwork(image: HTMLImageElement, regions: ConstructionReg
   const boxWidth = Math.max(1, image.clientWidth); const boxHeight = Math.max(1, image.clientHeight); const box = naturalBox(image, fit, position, boxWidth, boxHeight, sourceWidth, sourceHeight);
   const elements = Array.from(root.querySelectorAll('path,line,polyline,polygon,circle,ellipse'));
   const candidates = elements.map((element, sourceIndex) => {
-    const d = elementToPath(element); const stroke = inheritedAttribute(element, 'stroke'); const opacity = Number.parseFloat(inheritedAttribute(element, 'opacity') ?? '1'); const strokeWidth = Number.parseFloat(inheritedAttribute(element, 'stroke-width') ?? '8');
+    const d = elementToPath(element); const stroke = inheritedAttribute(element, 'stroke'); const fill = inheritedAttribute(element, 'fill'); const opacity = Number.parseFloat(inheritedAttribute(element, 'opacity') ?? '1');
+    const strokeWidth = Number.parseFloat(inheritedAttribute(element, 'stroke-width') ?? '8');
+    const visibleStroke = Boolean(stroke && stroke !== 'none' && opacity > 0.05);
+    const visibleFill = Boolean(fill && fill !== 'none' && opacity > 0.05);
+    // SVG masters often encode the illustration as filled paths rather than stroked paths. A filled
+    // silhouette is still authored vector geometry, so its perimeter is a legitimate pen contour.
+    const drawable = visibleStroke || visibleFill;
     const bounds = pathBounds(d); const centerX = bounds.x + bounds.width / 2; const centerY = bounds.y + bounds.height / 2;
-    const strokeLike = Boolean(stroke && stroke !== 'none' && opacity > 0.05);
     const boundsStroke: SkeletonStroke = {points: [{x: centerX, y: centerY}], length: Math.max(bounds.width, bounds.height, strokeWidth), centerX, centerY, width: bounds.width, height: bounds.height};
-    return {d, sourceIndex, stroke, strokeWidth, boundsStroke, strokeLike};
-  }).filter((entry) => entry.strokeLike && entry.d);
+    return {d, sourceIndex, strokeWidth, boundsStroke, drawable};
+  }).filter((entry) => entry.drawable && entry.d);
   if (!candidates.length) return null;
   const normalized = candidates.map((entry) => ({...entry, affinity: regionAffinity(entry.boundsStroke, regions, sourceWidth, sourceHeight), environment: isLikelyEnvironmentStroke(entry.boundsStroke, sourceWidth, sourceHeight)}));
   const subject = normalized.filter((entry) => !entry.environment).sort((a, b) => b.affinity - a.affinity || a.sourceIndex - b.sourceIndex);
@@ -263,12 +265,10 @@ async function traceSvgArtwork(image: HTMLImageElement, regions: ConstructionReg
     return {d: mapSvgPathToPercent(entry.d, box, viewMinX, viewMinY), start, end, color: INK, width: Math.max(0.8, Math.min(1.55, entry.strokeWidth * 0.13)), opacity: 0.94};
   }).filter((path) => Boolean(path.d));
 }
-
 function naturalBox(_image: HTMLImageElement, fit: string, position: {x: number; y: number}, boxWidth: number, boxHeight: number, naturalWidth: number, naturalHeight: number) {
   const scale = fit === 'cover' ? Math.max(boxWidth / naturalWidth, boxHeight / naturalHeight) : fit === 'contain' ? Math.min(boxWidth / naturalWidth, boxHeight / naturalHeight) : 1;
   return {scale, offsetX: (boxWidth - naturalWidth * scale) * position.x, offsetY: (boxHeight - naturalHeight * scale) * position.y, boxWidth, boxHeight};
 }
-
 function traceArtwork(image: HTMLImageElement, regions: ConstructionRegion[]): ContourPath[] {
   const naturalWidth = image.naturalWidth; const naturalHeight = image.naturalHeight;
   if (!naturalWidth || !naturalHeight) throw new Error('Master artwork has no intrinsic dimensions');
@@ -301,7 +301,6 @@ function traceArtwork(image: HTMLImageElement, regions: ConstructionRegion[]): C
     return {d: pathFromPoints(mapped), start, end, color: INK, width: stroke.centerY / height > 0.82 ? 0.92 : 1.02, opacity: 0.96};
   }).filter((path) => Boolean(path.d));
 }
-
 function Stroke({path, progress}: {path: ContourPath; progress: number}) {
   const local = clamp01((progress - path.start) / Math.max(0.01, path.end - path.start));
   if (local <= 0.001) return null;
@@ -310,7 +309,6 @@ function Stroke({path, progress}: {path: ContourPath; progress: number}) {
     <path d={path.d} fill="none" stroke={path.color} strokeWidth={path.width} strokeLinecap="round" strokeLinejoin="round" pathLength={1} strokeDasharray="1" strokeDashoffset={1 - local} opacity={path.opacity} vectorEffect="non-scaling-stroke" />
   </>;
 }
-
 export function InkConstructionOverlay({regions, progress, opacity = 1, showGuide = true}: {regions: ConstructionRegion[]; progress: number; opacity?: number; showGuide?: boolean}) {
   const svgRef = useRef<SVGSVGElement | null>(null); const [paths, setPaths] = useState<ContourPath[] | null>(null); const [geometry, setGeometry] = useState<Geometry>({transform: 'none', transformOrigin: '50% 50%'});
   const {delayRender, continueRender, cancelRender} = useDelayRender(); const [handle] = useState(() => delayRender('Tracing master artwork centerline strokes', {retries: 2}));
