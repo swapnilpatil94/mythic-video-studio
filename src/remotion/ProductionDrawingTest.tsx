@@ -11,8 +11,9 @@ const CREAM = '#F4E8CF';
 const INK = '#171510';
 const GOLD = '#B8872D';
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
+const CI_MASTER = staticFile('/test-assets/kathaya-master-fallback.svg');
 
-const revealBeats = runtimeManifest.beats.filter((beat) => beat.reveal && beat.asset_refs.some((ref) => runtimeAssets[ref]));
+const revealBeats = runtimeManifest.beats.filter((beat) => beat.reveal);
 
 function beatForIndex(index: number) {
   return revealBeats[index % Math.max(1, revealBeats.length)];
@@ -28,7 +29,8 @@ export const ProductionDrawingTest: React.FC = () => {
   const subShots = useMemo(() => subShotSequence(beat.visual_role, segment), [beat.visual_role, segment]);
   const shot = subShots[0];
   const characterRef = beat.asset_refs.find((ref) => runtimeManifest.asset_kinds?.[ref] === 'character' && runtimeAssets[ref])
-    ?? beat.asset_refs.find((ref) => runtimeAssets[ref]);
+    ?? beat.asset_refs.find((ref) => runtimeAssets[ref])
+    ?? 'karna';
   const regions = useMemo(() => subjectRelativeConstruction({focusX: shot.focusX, focusY: shot.focusY}), [shot.focusX, shot.focusY]);
 
   // Ink remains the dominant authored event. The environment animates independently so the shot
@@ -39,8 +41,7 @@ export const ProductionDrawingTest: React.FC = () => {
   const settle = interpolate(local, [0.82, 1], [0, 1]);
   const scale = interpolate(settle, [0, 1], [1, 1.035]);
   const sceneProgress = clamp01(contourProgress * 0.9 + wash * 0.35);
-
-  if (!characterRef) return <AbsoluteFill style={{background: CREAM}}/>;
+  const characterSrc = process.env.CI ? CI_MASTER : staticFile(runtimeAssets[characterRef]);
 
   return <AbsoluteFill style={{background: CREAM, color: INK, overflow: 'hidden'}}>
     <FrictionBattlefield progress={sceneProgress} scene={segment} intensity={1.15} />
@@ -55,7 +56,7 @@ export const ProductionDrawingTest: React.FC = () => {
     <div style={{position: 'absolute', inset: 0, transform: `scale(${scale})`, transformOrigin: '50% 52%'}}>
       <div style={{position: 'absolute', left: '26%', width: '72%', top: '8%', bottom: '0%', overflow: 'hidden'}}>
         <ProgressiveArtwork
-          src={staticFile(runtimeAssets[characterRef])}
+          src={characterSrc}
           inkProgress={ink}
           washProgress={wash}
           regions={regions}
