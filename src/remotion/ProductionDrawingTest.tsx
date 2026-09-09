@@ -19,7 +19,11 @@ function beatForIndex(index: number) {
   return revealBeats[index % Math.max(1, revealBeats.length)];
 }
 
-export const ProductionDrawingTest: React.FC = () => {
+export type ProductionDrawingTestProps = {
+  masterSrcOverride?: string;
+};
+
+export const ProductionDrawingTest: React.FC<ProductionDrawingTestProps> = ({masterSrcOverride}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const seconds = frame / fps;
@@ -33,15 +37,13 @@ export const ProductionDrawingTest: React.FC = () => {
     ?? 'karna';
   const regions = useMemo(() => subjectRelativeConstruction({focusX: shot.focusX, focusY: shot.focusY}), [shot.focusX, shot.focusY]);
 
-  // Ink remains the dominant authored event. The environment animates independently so the shot
-  // reads as 2D film rather than a static portrait on a card.
   const ink = interpolate(local, [0.03, 0.78], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
   const contourProgress = clamp01(ink * 1.28);
   const wash = interpolate(local, [0.8, 1], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
   const settle = interpolate(local, [0.82, 1], [0, 1]);
   const scale = interpolate(settle, [0, 1], [1, 1.035]);
   const sceneProgress = clamp01(contourProgress * 0.9 + wash * 0.35);
-  const characterSrc = process.env.CI ? CI_MASTER : staticFile(runtimeAssets[characterRef]);
+  const characterSrc = masterSrcOverride ?? staticFile(runtimeAssets[characterRef]);
 
   return <AbsoluteFill style={{background: CREAM, color: INK, overflow: 'hidden'}}>
     <FrictionBattlefield progress={sceneProgress} scene={segment} intensity={1.15} />
