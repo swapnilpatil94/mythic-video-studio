@@ -15,14 +15,10 @@ const smooth = (v: number) => {
 const phase = (frame: number, fps: number, start: number, end: number) => smooth((frame / fps - start) / (end - start));
 
 export type DrawingStageTestProps = {
-  masterSrc?: string;
+  masterPath?: string;
 };
 
-/**
- * Cinematic acceptance composition: parchment -> Friction-style 2D environment ->
- * recognition-first ink drawing -> restrained pigment -> finished master.
- */
-export const DrawingStageTest: React.FC<DrawingStageTestProps> = ({masterSrc = staticFile('/generated/karna-full-journey/karna-karna.png')}) => {
+export const DrawingStageTest: React.FC<DrawingStageTestProps> = ({masterPath = 'generated/karna-full-journey/karna-karna.png'}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const t = frame / fps;
@@ -33,6 +29,7 @@ export const DrawingStageTest: React.FC<DrawingStageTestProps> = ({masterSrc = s
   const scale = interpolate(settle, [0, 1], [1, 1.055]);
   const sceneProgress = clamp01(contourProgress * 0.9 + wash * 0.35);
   const regions = subjectRelativeConstruction({focusX: 50, focusY: 42});
+  const masterSrc = staticFile(masterPath.replace(/^\/+/, ''));
 
   return (
     <AbsoluteFill style={{background: CREAM, color: INK, overflow: 'hidden'}}>
