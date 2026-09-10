@@ -84,7 +84,15 @@ function mapPoint(p: Point, naturalWidth: number, naturalHeight: number, boxWidt
 }
 function schedule(points: Array<{points: Point[]; affinity: number; environment: boolean; strokeWidth: number}>, image: HTMLImageElement, startAt: number, endAt: number): ContourPath[] {
   const style = getComputedStyle(image); const fit = style.objectFit || 'fill'; const pos = parseObjectPosition(style.objectPosition || '50% 50%'); const w = Math.max(1, image.clientWidth), h = Math.max(1, image.clientHeight); const nw = image.naturalWidth, nh = image.naturalHeight;
-  return points.map((item, i) => { const t = points.length <= 1 ? 0 : i / (points.length - 1); const start = startAt + t * Math.max(0, endAt - startAt - 0.045); const end = Math.min(endAt, start + Math.max(0.055, 0.09 - t * 0.025)); return {d: pathFromPoints(item.points.map((p) => mapPoint(p, nw, nh, w, h, fit, pos))), start, end, width: Math.max(0.85, Math.min(1.65, item.strokeWidth * 0.12)), opacity: 0.96}; });
+  return points.map((item, i) => {
+    const t = points.length <= 1 ? 0 : i / (points.length - 1);
+    // Front-load authored contours. The earliest meaningful lines need to become legible well
+    // before pigment wash; later lines can overlap the reveal to preserve a continuous hand-drawn feel.
+    const ordered = Math.pow(t, 1.65);
+    const start = startAt + ordered * Math.max(0, endAt - startAt - 0.12);
+    const end = Math.min(endAt, start + Math.max(0.13, 0.18 - t * 0.045));
+    return {d: pathFromPoints(item.points.map((p) => mapPoint(p, nw, nh, w, h, fit, pos))), start, end, width: Math.max(1.45, Math.min(2.65, item.strokeWidth * 0.24)), opacity: 0.98};
+  });
 }
 
 /** Uses the browser's SVGGeometryElement APIs, so nested transforms and CSS-authored vector paths remain source-of-truth geometry. */
@@ -128,7 +136,7 @@ function traceArtwork(image: HTMLImageElement, regions: ConstructionRegion[]): C
   return [...schedule(subject.map(convert), image, 0.01, SUBJECT_REVEAL_END), ...schedule(support.map(convert), image, SUBJECT_REVEAL_END + 0.015, FULL_REVEAL_END)];
 }
 
-function StrokeView({path, progress}: {path: ContourPath; progress: number}) { const local = clamp01((progress - path.start) / Math.max(0.01, path.end - path.start)); if (local <= 0.001) return null; return <><path d={path.d} fill="none" stroke={INK} strokeWidth={path.width + 0.45} strokeLinecap="round" strokeLinejoin="round" pathLength={1} strokeDasharray="1" strokeDashoffset={1 - local} opacity={path.opacity * 0.13} filter="blur(0.45px)" vectorEffect="non-scaling-stroke"/><path d={path.d} fill="none" stroke={INK} strokeWidth={path.width} strokeLinecap="round" strokeLinejoin="round" pathLength={1} strokeDasharray="1" strokeDashoffset={1 - local} opacity={path.opacity} vectorEffect="non-scaling-stroke"/></>; }
+function StrokeView({path, progress}: {path: ContourPath; progress: number}) { const local = clamp01((progress - path.start) / Math.max(0.01, path.end - path.start)); if (local <= 0.001) return null; return <><path d={path.d} fill="none" stroke={INK} strokeWidth={path.width + 0.7} strokeLinecap="round" strokeLinejoin="round" pathLength={1} strokeDasharray="1" strokeDashoffset={1 - local} opacity={path.opacity * 0.2} filter="blur(0.35px)" vectorEffect="non-scaling-stroke"/><path d={path.d} fill="none" stroke={INK} strokeWidth={path.width} strokeLinecap="round" strokeLinejoin="round" pathLength={1} strokeDasharray="1" strokeDashoffset={1 - local} opacity={path.opacity} vectorEffect="non-scaling-stroke"/></>; }
 
 export function InkConstructionOverlay({regions, progress, opacity = 1, showGuide = true}: {regions: ConstructionRegion[]; progress: number; opacity?: number; showGuide?: boolean}) {
   const svgRef = useRef<SVGSVGElement | null>(null); const [paths, setPaths] = useState<ContourPath[] | null>(null); const [geometry, setGeometry] = useState<Geometry>({transform: 'none', transformOrigin: '50% 50%'}); const {delayRender, continueRender, cancelRender} = useDelayRender(); const [handle] = useState(() => delayRender('Tracing master artwork centerline strokes', {retries: 2}));
