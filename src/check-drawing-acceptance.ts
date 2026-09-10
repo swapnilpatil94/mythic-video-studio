@@ -26,7 +26,8 @@ const tracesMasterArtwork =
   overlay.includes('pathFromPoints');
 
 const centerlineTracingIsExplicit =
-  overlay.includes('Zhang-Suen thinning') &&
+  overlay.includes('Zhang-Suen') &&
+  overlay.includes('skeletonize') &&
   overlay.includes('centerline') &&
   overlay.includes('inkMask') &&
   !overlay.includes('chainBoundarySegments');
@@ -87,4 +88,4 @@ const result = evaluateDrawingAcceptance({
 
 if (!result.ok) throw new Error(result.errors.join('\n'));
 
-console.log('Drawing acceptance contract passed: neutral/dark master ink is skeletonized into centerline SVG strokes, ordered for recognition-first drawing, aligned to the master object-fit/position/transform, front-loaded for protagonist recognition, and fully revealed before pigment wash; production proof is continuous with no beat-cycle reset.');
+console.log('Drawing acceptance contract passed: neutral/dark master ink is skeletonized into centerline SVG strokes, authored SVG contours are independently animated when available, ordered for recognition-first drawing, aligned to the master object-fit/position/transform, front-loaded for protagonist recognition, and fully revealed before pigment wash; production proof is continuous with no beat-cycle reset.');
