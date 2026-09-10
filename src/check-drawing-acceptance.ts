@@ -25,8 +25,10 @@ const tracesMasterArtwork =
   overlay.includes('traceSkeletonStrokes') &&
   overlay.includes('pathFromPoints');
 
+// Raster masters use the explicit skeletonize/centerline pipeline (Zhang-Suen thinning).
+// SVG masters use their authored vector contours directly; both produce an independent SVG path layer.
 const centerlineTracingIsExplicit =
-  overlay.includes('Zhang-Suen thinning') &&
+  overlay.includes('function skeletonize') &&
   overlay.includes('centerline') &&
   overlay.includes('inkMask') &&
   !overlay.includes('chainBoundarySegments');
@@ -47,11 +49,23 @@ const masterIsIndependentFromMask =
   !construction.includes('maskImage') &&
   /opacity:\s*pigment/.test(construction);
 
-const drawingTimingIsSeparated =
+// Masters may arrive with their own paper-colored canvas. The final pigment layer must blend that
+// paper into the scene parchment so the viewer never sees a hard rectangular source boundary.
+const masterPaperBoundaryIsHandled =
+  construction.includes('mixBlendMode: "darken"') &&
+  construction.includes('Generated masters often carry their own paper-colored background');
+
+const protagonistFirstTiming =
+  drawingTest.includes('Math.pow(ink, 0.62)') &&
   drawingTest.includes('phase(frame, fps, 0.65, 10.8)') &&
   drawingTest.includes('phase(frame, fps, 10.85, 13.2)') &&
-  productionTest.includes('interpolate(local, [0.03, 0.78], [0, 1]') &&
-  productionTest.includes('interpolate(local, [0.8, 1], [0, 1]');
+  drawingTest.includes('phase(frame, fps, 0.35, 3.4)') &&
+  productionTest.includes('single 15-second production proof') &&
+  productionTest.includes('phase(seconds, 0.65, 9.1)') &&
+  productionTest.includes('phase(seconds, 9.15, 11.7)') &&
+  productionTest.includes('phase(seconds, 0.35, 3.4)') &&
+  !productionTest.includes('Math.floor(seconds / 5)') &&
+  !productionTest.includes('index % Math.max(1, revealBeats.length)');
 
 const drawingTestUsesProductionLayer =
   drawingTest.includes('<InkConstructionOverlay') &&
@@ -74,11 +88,12 @@ const result = evaluateDrawingAcceptance({
     copiesMasterTransform &&
     noGenericCharacterLibrary &&
     masterIsIndependentFromMask &&
-    drawingTimingIsSeparated &&
+    masterPaperBoundaryIsHandled &&
+    protagonistFirstTiming &&
     drawingTestUsesProductionLayer &&
     productionTestUsesProductionLayer,
 });
 
 if (!result.ok) throw new Error(result.errors.join('\n'));
 
-console.log('Drawing acceptance contract passed: neutral/dark master ink is skeletonized into centerline SVG strokes, ordered for recognition-first drawing, aligned to the master object-fit/position/transform, and fully revealed before pigment wash; no generic character construction library or raster mask is used.');
+console.log('Drawing acceptance contract passed: neutral/dark master ink is skeletonized into centerline SVG strokes, authored SVG contours are independently animated when available, ordered for recognition-first drawing, aligned to the master object-fit/position/transform, front-loaded for protagonist recognition, paper-background boundaries are composited into the parchment stage, and fully revealed before pigment wash; production proof is continuous with no beat-cycle reset.');

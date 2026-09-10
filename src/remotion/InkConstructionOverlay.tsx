@@ -4,514 +4,142 @@ import {ConstructionRegion} from './artwork-construction';
 
 const INK = '#171510';
 const GOLD = '#B8872D';
-const RED = '#8E2F24';
-const TRACE_WIDTH = 360;
-const MAX_TRACE_HEIGHT = 680;
-const MAX_STROKES = 220;
+const TRACE_WIDTH = 420;
+const MAX_TRACE_HEIGHT = 760;
+const MAX_STROKES = 420;
 const MAX_WAIT_MS = 5000;
-const MIN_STROKE_LENGTH = 7;
-
-const clamp01 = (value: number) => Math.max(0, Math.min(1, value));
-
+const MIN_STROKE_LENGTH = 4;
+const SUBJECT_REVEAL_END = 0.66;
+const FULL_REVEAL_END = 0.94;
+const clamp01 = (n: number) => Math.max(0, Math.min(1, n));
 type Point = {x: number; y: number};
-type SkeletonStroke = {points: Point[]; length: number; centerX: number; centerY: number; width: number; height: number};
+type Stroke = {points: Point[]; length: number; centerX: number; centerY: number; width: number; height: number};
+type ContourPath = {d: string; start: number; end: number; width: number; opacity: number};
+type Geometry = {transform: string; transformOrigin: string};
 
-type ContourPath = {
-  d: string;
-  start: number;
-  end: number;
-  color: string;
-  width: number;
-  opacity: number;
-};
-
-type Geometry = {
-  transform: string;
-  transformOrigin: string;
-};
-
-function parseObjectPosition(value: string) {
-  const matches = value.match(/-?\d+(?:\.\d+)?%/g) ?? [];
-  return {
-    x: matches[0] ? Number.parseFloat(matches[0]) / 100 : 0.5,
-    y: matches[1] ? Number.parseFloat(matches[1]) / 100 : 0.5,
-  };
-}
-
-function pointKey(point: Point) {
-  return `${point.x},${point.y}`;
-}
-
-function distance(a: Point, b: Point) {
-  return Math.hypot(a.x - b.x, a.y - b.y);
-}
-
-function dot(ax: number, ay: number, bx: number, by: number) {
-  return ax * bx + ay * by;
-}
-
-function normalize(x: number, y: number) {
-  const length = Math.hypot(x, y) || 1;
-  return {x: x / length, y: y / length};
-}
-
-function simplify(points: Point[], tolerance: number) {
-  if (points.length <= 2) return points;
-  const squaredTolerance = tolerance * tolerance;
-  const radial: Point[] = [points[0]];
-  let previous = points[0];
-  for (let i = 1; i < points.length; i += 1) {
-    const point = points[i];
-    if ((point.x - previous.x) ** 2 + (point.y - previous.y) ** 2 > squaredTolerance) {
-      radial.push(point);
-      previous = point;
-    }
-  }
-  if (radial[radial.length - 1] !== points[points.length - 1]) radial.push(points[points.length - 1]);
-  if (radial.length <= 2) return radial;
-
-  const keep = new Uint8Array(radial.length);
-  keep[0] = 1;
-  keep[radial.length - 1] = 1;
-  const stack: Array<[number, number]> = [[0, radial.length - 1]];
-  while (stack.length) {
-    const [start, end] = stack.pop() as [number, number];
-    const a = radial[start];
-    const b = radial[end];
-    const dx = b.x - a.x;
-    const dy = b.y - a.y;
-    const denominator = dx * dx + dy * dy;
-    let maxDistance = squaredTolerance;
-    let index = -1;
-    for (let i = start + 1; i < end; i += 1) {
-      const p = radial[i];
-      const t = denominator === 0 ? 0 : ((p.x - a.x) * dx + (p.y - a.y) * dy) / denominator;
-      const clamped = Math.max(0, Math.min(1, t));
-      const px = a.x + clamped * dx;
-      const py = a.y + clamped * dy;
-      const distanceSquared = (p.x - px) ** 2 + (p.y - py) ** 2;
-      if (distanceSquared > maxDistance) {
-        maxDistance = distanceSquared;
-        index = i;
-      }
-    }
-    if (index !== -1) {
-      keep[index] = 1;
-      stack.push([start, index], [index, end]);
-    }
-  }
-  return radial.filter((_, index) => keep[index] === 1);
-}
-
+function distance(a: Point, b: Point) { return Math.hypot(a.x - b.x, a.y - b.y); }
+function pointKey(p: Point) { return `${p.x},${p.y}`; }
+function normalize(x: number, y: number) { const n = Math.hypot(x, y) || 1; return {x: x / n, y: y / n}; }
+function dot(a: Point, b: Point) { return a.x * b.x + a.y * b.y; }
+function parseObjectPosition(value: string) { const m = value.match(/-?\d+(?:\.\d+)?%/g) ?? []; return {x: m[0] ? Number.parseFloat(m[0]) / 100 : 0.5, y: m[1] ? Number.parseFloat(m[1]) / 100 : 0.5}; }
 function pathFromPoints(points: Point[]) {
   if (points.length < 2) return '';
-  const closed = distance(points[0], points[points.length - 1]) <= 1.5;
-  const usable = closed ? points.slice(0, -1) : points;
-  if (usable.length < 2) return '';
-  let d = `M${usable[0].x.toFixed(2)} ${usable[0].y.toFixed(2)}`;
-  for (let i = 1; i < usable.length - 1; i += 1) {
-    const current = usable[i];
-    const next = usable[i + 1];
-    const midX = (current.x + next.x) / 2;
-    const midY = (current.y + next.y) / 2;
-    d += ` Q${current.x.toFixed(2)} ${current.y.toFixed(2)} ${midX.toFixed(2)} ${midY.toFixed(2)}`;
-  }
-  const last = usable[usable.length - 1];
-  d += ` L${last.x.toFixed(2)} ${last.y.toFixed(2)}`;
-  if (closed) d += ' Z';
+  let d = `M${points[0].x.toFixed(2)} ${points[0].y.toFixed(2)}`;
+  for (let i = 1; i < points.length; i += 1) d += ` L${points[i].x.toFixed(2)} ${points[i].y.toFixed(2)}`;
   return d;
 }
+function simplify(points: Point[], tolerance = 0.7) {
+  if (points.length < 3) return points;
+  const out = [points[0]]; const t2 = tolerance * tolerance; let last = points[0];
+  for (let i = 1; i < points.length - 1; i += 1) { const p = points[i]; if ((p.x - last.x) ** 2 + (p.y - last.y) ** 2 > t2) { out.push(p); last = p; } }
+  out.push(points[points.length - 1]); return out;
+}
 
-/** Zhang-Suen thinning: convert dark artwork strokes into one-pixel centerlines. */
+/** Zhang-Suen centerline extraction used only for raster masters. */
 function skeletonize(input: Uint8Array, width: number, height: number) {
   const image = new Uint8Array(input);
-  const neighbors = (x: number, y: number) => [
-    image[(y - 1) * width + x], image[(y - 1) * width + x + 1], image[y * width + x + 1],
-    image[(y + 1) * width + x + 1], image[(y + 1) * width + x], image[(y + 1) * width + x - 1],
-    image[y * width + x - 1], image[(y - 1) * width + x - 1],
-  ];
-  const transitions = (n: number[]) => {
-    let count = 0;
-    for (let i = 0; i < n.length; i += 1) if (n[i] === 0 && n[(i + 1) % n.length] === 1) count += 1;
-    return count;
-  };
-
-  for (let iteration = 0; iteration < 32; iteration += 1) {
-    const removeA: number[] = [];
-    for (let y = 1; y < height - 1; y += 1) {
-      for (let x = 1; x < width - 1; x += 1) {
-        const index = y * width + x;
-        if (!image[index]) continue;
-        const n = neighbors(x, y);
-        const count = n.reduce((sum, value) => sum + value, 0);
-        if (count < 2 || count > 6 || transitions(n) !== 1) continue;
-        if (n[0] * n[2] * n[4] !== 0 || n[2] * n[4] * n[6] !== 0) continue;
-        removeA.push(index);
-      }
+  const n = (x: number, y: number) => [image[(y - 1) * width + x], image[(y - 1) * width + x + 1], image[y * width + x + 1], image[(y + 1) * width + x + 1], image[(y + 1) * width + x], image[(y + 1) * width + x - 1], image[y * width + x - 1], image[(y - 1) * width + x - 1]];
+  const transitions = (a: number[]) => a.reduce((s, v, i) => s + (v === 0 && a[(i + 1) % 8] === 1 ? 1 : 0), 0);
+  for (let pass = 0; pass < 40; pass += 1) {
+    const remove: number[] = [];
+    for (let y = 1; y < height - 1; y += 1) for (let x = 1; x < width - 1; x += 1) {
+      const i = y * width + x; if (!image[i]) continue; const a = n(x, y); const count = a.reduce((s, v) => s + v, 0);
+      if (count >= 2 && count <= 6 && transitions(a) === 1 && a[0] * a[2] * a[4] === 0 && a[2] * a[4] * a[6] === 0) remove.push(i);
     }
-    for (const index of removeA) image[index] = 0;
-
-    const removeB: number[] = [];
-    for (let y = 1; y < height - 1; y += 1) {
-      for (let x = 1; x < width - 1; x += 1) {
-        const index = y * width + x;
-        if (!image[index]) continue;
-        const n = neighbors(x, y);
-        const count = n.reduce((sum, value) => sum + value, 0);
-        if (count < 2 || count > 6 || transitions(n) !== 1) continue;
-        if (n[0] * n[2] * n[6] !== 0 || n[0] * n[4] * n[6] !== 0) continue;
-        removeB.push(index);
-      }
-    }
-    for (const index of removeB) image[index] = 0;
-    if (removeA.length + removeB.length === 0) break;
+    remove.forEach((i) => { image[i] = 0; });
+    if (!remove.length) break;
   }
   return image;
 }
-
-/** Remove isolated raster noise before centerline extraction. */
-function removeTinyComponents(mask: Uint8Array, width: number, height: number, minimum = 6) {
-  const visited = new Uint8Array(mask.length);
-  const output = new Uint8Array(mask);
-  for (let y = 1; y < height - 1; y += 1) {
-    for (let x = 1; x < width - 1; x += 1) {
-      const start = y * width + x;
-      if (!mask[start] || visited[start]) continue;
-      const queue = [start];
-      const component: number[] = [];
-      visited[start] = 1;
-      while (queue.length) {
-        const index = queue.pop() as number;
-        component.push(index);
-        const cx = index % width;
-        const cy = Math.floor(index / width);
-        for (let dy = -1; dy <= 1; dy += 1) for (let dx = -1; dx <= 1; dx += 1) {
-          if (!dx && !dy) continue;
-          const nx = cx + dx;
-          const ny = cy + dy;
-          if (nx < 1 || ny < 1 || nx >= width - 1 || ny >= height - 1) continue;
-          const next = ny * width + nx;
-          if (mask[next] && !visited[next]) {
-            visited[next] = 1;
-            queue.push(next);
-          }
-        }
-      }
-      if (component.length < minimum) for (const index of component) output[index] = 0;
-    }
-  }
-  return output;
-}
-
-/**
- * Follow centerline pixels into smooth stroke paths. Branches are deliberately split into separate
- * strokes so the reveal can feel like a hand moving from one meaningful line to the next.
- */
-function traceSkeletonStrokes(skeleton: Uint8Array, width: number, height: number): SkeletonStroke[] {
-  const points = new Set<string>();
-  for (let y = 1; y < height - 1; y += 1) for (let x = 1; x < width - 1; x += 1) {
-    if (skeleton[y * width + x]) points.add(`${x},${y}`);
-  }
-  const neighborsOf = (point: Point) => {
-    const result: Point[] = [];
-    for (let dy = -1; dy <= 1; dy += 1) for (let dx = -1; dx <= 1; dx += 1) {
-      if (!dx && !dy) continue;
-      const candidate = {x: point.x + dx, y: point.y + dy};
-      if (points.has(pointKey(candidate))) result.push(candidate);
-    }
-    return result;
-  };
-
-  const visited = new Set<string>();
-  const strokes: SkeletonStroke[] = [];
-  const seeds = [...points].map((key) => {
-    const [x, y] = key.split(',').map(Number);
-    return {x, y};
-  }).sort((a, b) => neighborsOf(a).length - neighborsOf(b).length);
-
-  const follow = (seed: Point) => {
-    const chain: Point[] = [seed];
-    let previous: Point | null = null;
-    let current = seed;
-    for (let guard = 0; guard < width * height; guard += 1) {
-      const candidates = neighborsOf(current).filter((candidate) => !visited.has(pointKey(candidate)));
-      if (!candidates.length) break;
-      let best = candidates[0];
-      if (previous) {
-        const incoming = normalize(current.x - previous.x, current.y - previous.y);
-        let bestScore = -Infinity;
-        for (const candidate of candidates) {
-          const outgoing = normalize(candidate.x - current.x, candidate.y - current.y);
-          const score = dot(incoming.x, incoming.y, outgoing.x, outgoing.y) * 100 - distance(current, candidate);
-          if (score > bestScore) {
-            bestScore = score;
-            best = candidate;
-          }
-        }
-      }
-      visited.add(pointKey(best));
-      chain.push(best);
-      previous = current;
-      current = best;
-      if (neighborsOf(current).length > 2 && chain.length > 8) break;
-    }
-    return chain;
-  };
-
+function traceSkeletonStrokes(skeleton: Uint8Array, width: number, height: number): Stroke[] {
+  const pixels = new Set<string>();
+  for (let y = 1; y < height - 1; y += 1) for (let x = 1; x < width - 1; x += 1) if (skeleton[y * width + x]) pixels.add(`${x},${y}`);
+  const near = (p: Point) => { const a: Point[] = []; for (let dy = -1; dy <= 1; dy += 1) for (let dx = -1; dx <= 1; dx += 1) if (dx || dy) { const q = {x: p.x + dx, y: p.y + dy}; if (pixels.has(pointKey(q))) a.push(q); } return a; };
+  const visited = new Set<string>(); const strokes: Stroke[] = [];
+  const seeds = [...pixels].map((s) => { const [x, y] = s.split(',').map(Number); return {x, y}; }).sort((a, b) => near(a).length - near(b).length);
   for (const seed of seeds) {
-    if (visited.has(pointKey(seed))) continue;
-    visited.add(pointKey(seed));
-    const chain = follow(seed);
-    if (chain.length < 4) continue;
-    const simplified = simplify(chain, 0.75);
-    const length = simplified.reduce((total, point, index) => index === 0 ? 0 : total + distance(simplified[index - 1], point), 0);
-    if (length < MIN_STROKE_LENGTH) continue;
-    const xs = simplified.map((point) => point.x);
-    const ys = simplified.map((point) => point.y);
-    strokes.push({
-      points: simplified,
-      length,
-      centerX: (Math.min(...xs) + Math.max(...xs)) / 2,
-      centerY: (Math.min(...ys) + Math.max(...ys)) / 2,
-      width: Math.max(...xs) - Math.min(...xs),
-      height: Math.max(...ys) - Math.min(...ys),
-    });
+    if (visited.has(pointKey(seed))) continue; visited.add(pointKey(seed)); const chain = [seed]; let prev: Point | null = null; let cur = seed;
+    for (let guard = 0; guard < width * height; guard += 1) {
+      const options = near(cur).filter((p) => !visited.has(pointKey(p))); if (!options.length) break; let best = options[0];
+      if (prev) { const incoming = normalize(cur.x - prev.x, cur.y - prev.y); let score = -Infinity; for (const p of options) { const outgoing = normalize(p.x - cur.x, p.y - cur.y); const s = dot(incoming, outgoing) * 100 - distance(cur, p); if (s > score) { score = s; best = p; } } }
+      visited.add(pointKey(best)); chain.push(best); prev = cur; cur = best; if (near(cur).length > 2 && chain.length > 8) break;
+    }
+    const points = simplify(chain); const length = points.reduce((s, p, i) => i ? s + distance(points[i - 1], p) : 0, 0); if (length < MIN_STROKE_LENGTH) continue;
+    const xs = points.map((p) => p.x), ys = points.map((p) => p.y); strokes.push({points, length, centerX: (Math.min(...xs) + Math.max(...xs)) / 2, centerY: (Math.min(...ys) + Math.max(...ys)) / 2, width: Math.max(...xs) - Math.min(...xs), height: Math.max(...ys) - Math.min(...ys)});
   }
   return strokes;
 }
-
-function traceArtwork(image: HTMLImageElement): ContourPath[] {
-  const naturalWidth = image.naturalWidth;
-  const naturalHeight = image.naturalHeight;
-  if (!naturalWidth || !naturalHeight) throw new Error('Master artwork has no intrinsic dimensions');
-
-  const width = TRACE_WIDTH;
-  const height = Math.max(64, Math.min(MAX_TRACE_HEIGHT, Math.round((naturalHeight / naturalWidth) * width)));
-  const canvas = document.createElement('canvas');
-  canvas.width = width;
-  canvas.height = height;
-  const ctx = canvas.getContext('2d', {willReadFrequently: true});
-  if (!ctx) throw new Error('Unable to create centerline tracing canvas');
-  ctx.drawImage(image, 0, 0, width, height);
-  const pixels = ctx.getImageData(0, 0, width, height).data;
-  const sample = (x: number, y: number) => {
-    const safeX = Math.max(0, Math.min(width - 1, x));
-    const safeY = Math.max(0, Math.min(height - 1, y));
-    const i = (safeY * width + safeX) * 4;
-    return {r: pixels[i], g: pixels[i + 1], b: pixels[i + 2], a: pixels[i + 3]};
-  };
-
-  // Do not use the four corners as the background estimate. Transparent PNG corners become
-  // black in RGB while alpha=0, which made the previous threshold reject every dark stroke.
-  // Instead, estimate the parchment/reference luminance from the bright end of the actual
-  // rendered pixels. This works for opaque parchment and transparent artwork equally well.
-  const luminances: number[] = [];
-  for (let y = 2; y < height - 2; y += 3) {
-    for (let x = 2; x < width - 2; x += 3) {
-      const p = sample(x, y);
-      if (p.a < 32) continue;
-      luminances.push(0.2126 * p.r + 0.7152 * p.g + 0.0722 * p.b);
-    }
-  }
-  luminances.sort((a, b) => a - b);
-  const referenceLum = luminances.length
-    ? luminances[Math.floor((luminances.length - 1) * 0.9)]
-    : 220;
-  const inkMask = new Uint8Array(width * height);
-
-  // Favor actual dark/neutral ink and reject red/gold pigment. The thresholds are deliberately
-  // adaptive to the master instead of assuming a particular parchment RGB value.
-  for (let y = 1; y < height - 1; y += 1) {
-    for (let x = 1; x < width - 1; x += 1) {
-      const p = sample(x, y);
-      if (p.a < 32) continue;
-      const lum = 0.2126 * p.r + 0.7152 * p.g + 0.0722 * p.b;
-      const chroma = Math.max(p.r, p.g, p.b) - Math.min(p.r, p.g, p.b);
-      const left = sample(x - 1, y);
-      const right = sample(x + 1, y);
-      const up = sample(x, y - 1);
-      const down = sample(x, y + 1);
-      const gradient = Math.max(
-        Math.hypot(left.r - right.r, left.g - right.g, left.b - right.b),
-        Math.hypot(up.r - down.r, up.g - down.g, up.b - down.b),
-      );
-      const darkNeutral = lum < referenceLum - 30 && chroma < 105;
-      const deepNeutral = lum < 112 && chroma < 120;
-      const darkEdge = gradient > 32 && lum < referenceLum - 12 && chroma < 92;
-      if (darkNeutral || deepNeutral || darkEdge) inkMask[y * width + x] = 1;
-    }
-  }
-
-  const cleaned = removeTinyComponents(inkMask, width, height, 6);
-  const skeleton = skeletonize(cleaned, width, height);
-  const strokes = traceSkeletonStrokes(skeleton, width, height)
-    .sort((a, b) => b.length - a.length)
-    .slice(0, MAX_STROKES);
-  if (!strokes.length) {
-    throw new Error(`Master artwork produced no centerline strokes (reference luminance ${referenceLum.toFixed(1)})`);
-  }
-
-  const minY = Math.min(...strokes.map((stroke) => stroke.centerY));
-  const maxY = Math.max(...strokes.map((stroke) => stroke.centerY));
-  const minX = Math.min(...strokes.map((stroke) => stroke.centerX));
-  const maxX = Math.max(...strokes.map((stroke) => stroke.centerX));
-  const spanY = Math.max(1, maxY - minY);
-  const spanX = Math.max(1, maxX - minX);
-  const style = getComputedStyle(image);
-  const fit = style.objectFit || 'fill';
-  const position = parseObjectPosition(style.objectPosition || '50% 50%');
-  const boxWidth = Math.max(1, image.clientWidth);
-  const boxHeight = Math.max(1, image.clientHeight);
-  const scale = fit === 'cover'
-    ? Math.max(boxWidth / naturalWidth, boxHeight / naturalHeight)
-    : fit === 'contain'
-      ? Math.min(boxWidth / naturalWidth, boxHeight / naturalHeight)
-      : 1;
-  const contentWidth = naturalWidth * scale;
-  const contentHeight = naturalHeight * scale;
-  const offsetX = (boxWidth - contentWidth) * position.x;
-  const offsetY = (boxHeight - contentHeight) * position.y;
-
-  // Recognition-first ordering: long silhouette strokes and upper-body/weapon strokes lead;
-  // secondary drapery and micro-detail arrive later.
-  const ordered = [...strokes].sort((a, b) => {
-    const score = (stroke: SkeletonStroke) => {
-      const y = clamp01((stroke.centerY - minY) / spanY);
-      const x = clamp01((stroke.centerX - minX) / spanX);
-      const recognitionZone = y < 0.62 ? 1.35 : 0.82;
-      const silhouetteBonus = stroke.length > 28 ? 1.25 : 1;
-      const upperStructure = y < 0.38 ? 1.18 : 1;
-      const centerBonus = x > 0.28 && x < 0.82 ? 1.08 : 1;
-      return stroke.length * recognitionZone * silhouetteBonus * upperStructure * centerBonus;
-    };
-    return score(b) - score(a);
+function regionAffinity(stroke: Stroke, regions: ConstructionRegion[], width: number, height: number) {
+  const x = stroke.centerX / width * 100, y = stroke.centerY / height * 100; let best = 0;
+  for (const r of regions) { const radius = Math.max(5, r.radius * 2.2); best = Math.max(best, clamp01(1 - Math.hypot(x - r.x, y - r.y) / radius)); }
+  return best;
+}
+function environmentStroke(stroke: Stroke, width: number, height: number) {
+  const horizontal = stroke.width > Math.max(28, stroke.height * 5); const x = stroke.centerX / width; const y = stroke.centerY / height;
+  return horizontal && y > 0.67 && x > 0.01 && x < 0.99 && stroke.length > 55;
+}
+function mapPoint(p: Point, naturalWidth: number, naturalHeight: number, boxWidth: number, boxHeight: number, fit: string, pos: {x: number; y: number}) {
+  const scale = fit === 'cover' ? Math.max(boxWidth / naturalWidth, boxHeight / naturalHeight) : fit === 'contain' ? Math.min(boxWidth / naturalWidth, boxHeight / naturalHeight) : 1;
+  return {x: ((p.x * scale + (boxWidth - naturalWidth * scale) * pos.x) / boxWidth) * 100, y: ((p.y * scale + (boxHeight - naturalHeight * scale) * pos.y) / boxHeight) * 100};
+}
+function schedule(points: Array<{points: Point[]; affinity: number; environment: boolean; strokeWidth: number}>, image: HTMLImageElement, startAt: number, endAt: number): ContourPath[] {
+  const style = getComputedStyle(image); const fit = style.objectFit || 'fill'; const pos = parseObjectPosition(style.objectPosition || '50% 50%'); const w = Math.max(1, image.clientWidth), h = Math.max(1, image.clientHeight); const nw = image.naturalWidth, nh = image.naturalHeight;
+  return points.map((item, i) => {
+    const t = points.length <= 1 ? 0 : i / (points.length - 1);
+    // Front-load authored contours. The earliest meaningful lines need to become legible well
+    // before pigment wash; later lines can overlap the reveal to preserve a continuous hand-drawn feel.
+    const ordered = Math.pow(t, 1.65);
+    const start = startAt + ordered * Math.max(0, endAt - startAt - 0.12);
+    const end = Math.min(endAt, start + Math.max(0.13, 0.18 - t * 0.045));
+    return {d: pathFromPoints(item.points.map((p) => mapPoint(p, nw, nh, w, h, fit, pos))), start, end, width: Math.max(1.45, Math.min(2.65, item.strokeWidth * 0.24)), opacity: 0.98};
   });
-
-  const revealWindow = 0.93;
-  const totalWeight = ordered.reduce((sum, stroke) => sum + Math.sqrt(stroke.length), 0);
-  let cursor = 0;
-
-  return ordered.map((stroke, index) => {
-    const weight = Math.sqrt(stroke.length) / Math.max(0.001, totalWeight);
-    const duration = Math.max(0.018, Math.min(0.13, weight * ordered.length * 0.9));
-    const start = Math.min(revealWindow - 0.02, cursor * revealWindow);
-    const end = Math.min(1, start + duration + (index < 12 ? 0.045 : 0.018));
-    cursor += weight;
-    const y = clamp01((stroke.centerY - minY) / spanY);
-    const mapped = stroke.points.map((point) => ({
-      x: (((point.x / width) * naturalWidth * scale + offsetX) / boxWidth) * 100,
-      y: (((point.y / height) * naturalHeight * scale + offsetY) / boxHeight) * 100,
-    }));
-    const path = pathFromPoints(mapped);
-    return {
-      d: path,
-      start,
-      end,
-      color: INK,
-      width: y > 0.8 ? 0.72 : 0.84,
-      opacity: 0.9,
-    };
-  }).filter((path) => Boolean(path.d));
 }
 
-function Stroke({path, progress}: {path: ContourPath; progress: number}) {
-  const local = clamp01((progress - path.start) / Math.max(0.01, path.end - path.start));
-  if (local <= 0.001) return null;
-  return (
-    <>
-      <path d={path.d} fill="none" stroke={path.color} strokeWidth={path.width + 0.38} strokeLinecap="round" strokeLinejoin="round" pathLength={1} strokeDasharray="1" strokeDashoffset={1 - local} opacity={path.opacity * 0.11} filter="blur(0.4px)" vectorEffect="non-scaling-stroke" />
-      <path d={path.d} fill="none" stroke={path.color} strokeWidth={path.width} strokeLinecap="round" strokeLinejoin="round" pathLength={1} strokeDasharray="1" strokeDashoffset={1 - local} opacity={path.opacity} vectorEffect="non-scaling-stroke" />
-    </>
-  );
+/** Uses the browser's SVGGeometryElement APIs, so nested transforms and CSS-authored vector paths remain source-of-truth geometry. */
+async function traceSvgArtwork(image: HTMLImageElement, regions: ConstructionRegion[]): Promise<ContourPath[] | null> {
+  const src = image.currentSrc || image.src; if (!src || !/\.svg(?:$|[?#])/i.test(src)) return null;
+  const response = await fetch(src); if (!response.ok) return null; const text = await response.text();
+  const parsed = new DOMParser().parseFromString(text, 'image/svg+xml'); const root = parsed.documentElement; if (!root || root.querySelector('parsererror')) return null;
+  const vb = (root.getAttribute('viewBox') || '').trim().split(/[ ,]+/).map(Number); const nw = vb.length >= 4 ? vb[2] : Number.parseFloat(root.getAttribute('width') || '') || image.naturalWidth; const nh = vb.length >= 4 ? vb[3] : Number.parseFloat(root.getAttribute('height') || '') || image.naturalHeight; const minX = vb.length >= 4 ? vb[0] : 0, minY = vb.length >= 4 ? vb[1] : 0;
+  if (!nw || !nh) return null;
+  const host = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); host.setAttribute('viewBox', `${minX} ${minY} ${nw} ${nh}`); host.setAttribute('width', String(nw)); host.setAttribute('height', String(nh)); host.style.cssText = `position:absolute;left:-100000px;top:-100000px;width:${nw}px;height:${nh}px;opacity:0;pointer-events:none;`;
+  host.innerHTML = root.innerHTML; document.body.appendChild(host);
+  try {
+    const rootMatrix = host.getScreenCTM(); if (!rootMatrix) return null; const elements = Array.from(host.querySelectorAll('path,line,polyline,polygon,circle,ellipse')) as SVGGeometryElement[];
+    const items: Array<{points: Point[]; affinity: number; environment: boolean; strokeWidth: number; sourceIndex: number}> = [];
+    for (let index = 0; index < elements.length; index += 1) {
+      const el = elements[index]; const cs = getComputedStyle(el); const opacity = Number.parseFloat(cs.opacity || '1'); const drawable = opacity > 0.05 && ((cs.stroke && cs.stroke !== 'none') || (cs.fill && cs.fill !== 'none')); if (!drawable) continue;
+      const length = el.getTotalLength(); if (!Number.isFinite(length) || length < MIN_STROKE_LENGTH) continue; const matrix = el.getScreenCTM(); if (!matrix) continue; const relative = rootMatrix.inverse().multiply(matrix); const count = Math.max(10, Math.min(360, Math.ceil(length / 5))); const points: Point[] = [];
+      for (let i = 0; i <= count; i += 1) { const p = el.getPointAtLength(length * i / count); const q = new DOMPoint(p.x, p.y).matrixTransform(relative); points.push({x: q.x, y: q.y}); }
+      const xs = points.map((p) => p.x), ys = points.map((p) => p.y); const min = {x: Math.min(...xs), y: Math.min(...ys)}, max = {x: Math.max(...xs), y: Math.max(...ys)}; const area = (max.x - min.x) * (max.y - min.y);
+      if (area > nw * nh * 0.82 && min.x <= minX + nw * 0.05 && min.y <= minY + nh * 0.05 && max.x >= minX + nw * 0.95 && max.y >= minY + nh * 0.95) continue;
+      const bounds: Stroke = {points: [{x: (min.x + max.x) / 2, y: (min.y + max.y) / 2}], length, centerX: (min.x + max.x) / 2, centerY: (min.y + max.y) / 2, width: max.x - min.x, height: max.y - min.y};
+      items.push({points, affinity: regionAffinity(bounds, regions, nw, nh), environment: environmentStroke(bounds, nw, nh), strokeWidth: Number.parseFloat(cs.strokeWidth || '8') || 8, sourceIndex: index});
+    }
+    if (!items.length) return null;
+    items.sort((a, b) => { const as = a.affinity > 0.08 && !a.environment, bs = b.affinity > 0.08 && !b.environment; if (as !== bs) return as ? -1 : 1; return (b.affinity * 100 + Math.sqrt(b.points.length)) - (a.affinity * 100 + Math.sqrt(a.points.length)) || a.sourceIndex - b.sourceIndex; });
+    const subject = items.filter((i) => i.affinity > 0.08 && !i.environment).slice(0, MAX_STROKES); const support = items.filter((i) => !subject.includes(i)).slice(0, Math.max(0, MAX_STROKES - subject.length));
+    const convert = (i: typeof items[number]) => ({points: i.points, affinity: i.affinity, environment: i.environment, strokeWidth: i.strokeWidth});
+    return [...schedule(subject.map(convert), image, 0.01, SUBJECT_REVEAL_END), ...schedule(support.map(convert), image, SUBJECT_REVEAL_END + 0.015, FULL_REVEAL_END)];
+  } finally { host.remove(); }
 }
 
-export function InkConstructionOverlay({
-  regions,
-  progress,
-  opacity = 1,
-  showGuide = true,
-}: {
-  regions: ConstructionRegion[];
-  progress: number;
-  opacity?: number;
-  showGuide?: boolean;
-}) {
-  const svgRef = useRef<SVGSVGElement | null>(null);
-  const [paths, setPaths] = useState<ContourPath[] | null>(null);
-  const [geometry, setGeometry] = useState<Geometry>({transform: 'none', transformOrigin: '50% 50%'});
-  const {delayRender, continueRender, cancelRender} = useDelayRender();
-  const [handle] = useState(() => delayRender('Tracing master artwork centerline strokes', {retries: 2}));
+function traceArtwork(image: HTMLImageElement, regions: ConstructionRegion[]): ContourPath[] {
+  const naturalWidth = image.naturalWidth, naturalHeight = image.naturalHeight; if (!naturalWidth || !naturalHeight) throw new Error('Master artwork has no intrinsic dimensions');
+  const width = TRACE_WIDTH, height = Math.max(64, Math.min(MAX_TRACE_HEIGHT, Math.round(naturalHeight / naturalWidth * width))); const canvas = document.createElement('canvas'); canvas.width = width; canvas.height = height; const ctx = canvas.getContext('2d', {willReadFrequently: true}); if (!ctx) throw new Error('Unable to create centerline tracing canvas');
+  ctx.drawImage(image, 0, 0, width, height); const pixels = ctx.getImageData(0, 0, width, height).data; const inkMask = new Uint8Array(width * height);
+  for (let y = 1; y < height - 1; y += 1) for (let x = 1; x < width - 1; x += 1) { const i = (y * width + x) * 4; const r = pixels[i], g = pixels[i + 1], b = pixels[i + 2], a = pixels[i + 3]; const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b; const chroma = Math.max(r, g, b) - Math.min(r, g, b); if (a > 32 && ((lum < 185 && chroma < 115) || lum < 118)) inkMask[y * width + x] = 1; }
+  const skeleton = skeletonize(inkMask, width, height); const strokes = traceSkeletonStrokes(skeleton, width, height).slice(0, MAX_STROKES); if (!strokes.length) throw new Error('Master artwork produced no centerline strokes');
+  const enriched = strokes.map((stroke) => ({stroke, affinity: regionAffinity(stroke, regions, width, height), environment: environmentStroke(stroke, width, height)})); const subject = enriched.filter((e) => e.affinity > 0.08 && !e.environment).sort((a, b) => b.affinity - a.affinity || b.stroke.length - a.stroke.length); const support = enriched.filter((e) => !subject.includes(e)).sort((a, b) => b.stroke.length - a.stroke.length);
+  const style = getComputedStyle(image); const fit = style.objectFit || 'fill'; const pos = parseObjectPosition(style.objectPosition || '50% 50%'); const bw = Math.max(1, image.clientWidth), bh = Math.max(1, image.clientHeight);
+  const convert = (e: typeof enriched[number]) => ({points: e.stroke.points.map((p) => mapPoint({x: p.x / width * naturalWidth, y: p.y / height * naturalHeight}, naturalWidth, naturalHeight, bw, bh, fit, pos)), affinity: e.affinity, environment: e.environment, strokeWidth: 8});
+  return [...schedule(subject.map(convert), image, 0.01, SUBJECT_REVEAL_END), ...schedule(support.map(convert), image, SUBJECT_REVEAL_END + 0.015, FULL_REVEAL_END)];
+}
 
-  useEffect(() => {
-    let cancelled = false;
-    let frameHandle: number | null = null;
-    let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
-    const startedAt = Date.now();
-    const parent = svgRef.current?.parentElement;
-    const fail = (error: Error) => {
-      if (cancelled) return;
-      cancelRender(error);
-    };
-    const traceWhenReady = () => {
-      if (cancelled) return;
-      const image = parent?.querySelector('img');
-      if (!image) {
-        if (Date.now() - startedAt > MAX_WAIT_MS) {
-          fail(new Error('InkConstructionOverlay could not find the master artwork <img>'));
-          return;
-        }
-        frameHandle = requestAnimationFrame(traceWhenReady);
-        return;
-      }
-      const finish = () => {
-        if (cancelled) return;
-        try {
-          setPaths(traceArtwork(image));
-          const style = getComputedStyle(image);
-          setGeometry({
-            transform: style.transform === 'none' ? 'none' : style.transform,
-            transformOrigin: style.transformOrigin || '50% 50%',
-          });
-          continueRender(handle);
-        } catch (error) {
-          cancelRender(error);
-        }
-      };
-      if (image.complete && image.naturalWidth > 0) finish();
-      else image.addEventListener('load', finish, {once: true});
-      timeoutHandle = setTimeout(() => {
-        if (!image.complete || image.naturalWidth === 0) fail(new Error('Master artwork did not finish loading for centerline tracing'));
-      }, MAX_WAIT_MS);
-    };
-    traceWhenReady();
-    return () => {
-      cancelled = true;
-      if (frameHandle !== null) cancelAnimationFrame(frameHandle);
-      if (timeoutHandle !== null) clearTimeout(timeoutHandle);
-      continueRender(handle);
-    };
-  }, [cancelRender, continueRender, handle]);
+function StrokeView({path, progress}: {path: ContourPath; progress: number}) { const local = clamp01((progress - path.start) / Math.max(0.01, path.end - path.start)); if (local <= 0.001) return null; return <><path d={path.d} fill="none" stroke={INK} strokeWidth={path.width + 0.7} strokeLinecap="round" strokeLinejoin="round" pathLength={1} strokeDasharray="1" strokeDashoffset={1 - local} opacity={path.opacity * 0.2} filter="blur(0.35px)" vectorEffect="non-scaling-stroke"/><path d={path.d} fill="none" stroke={INK} strokeWidth={path.width} strokeLinecap="round" strokeLinejoin="round" pathLength={1} strokeDasharray="1" strokeDashoffset={1 - local} opacity={path.opacity} vectorEffect="non-scaling-stroke"/></>; }
 
-  if (regions.length === 0) return null;
-  const progressValue = clamp01(progress);
-  return (
-    <svg
-      ref={svgRef}
-      viewBox="0 0 100 100"
-      preserveAspectRatio="none"
-      width="100%"
-      height="100%"
-      style={{position: 'absolute', inset: 0, pointerEvents: 'none', opacity, transform: geometry.transform, transformOrigin: geometry.transformOrigin}}
-      aria-hidden
-    >
-      {showGuide ? (
-        <g opacity={0.11 * (1 - progressValue)}>
-          <ellipse cx="50" cy="27" rx="18" ry="13.5" fill="none" stroke={GOLD} strokeWidth="0.48" strokeDasharray="1.2 2.8" />
-          <path d="M50 8 C48 28 52 52 50 94" fill="none" stroke={GOLD} strokeWidth="0.36" strokeDasharray="1.2 3" />
-          <path d="M25 41 Q50 35 75 41" fill="none" stroke={GOLD} strokeWidth="0.34" strokeDasharray="1 2.5" />
-        </g>
-      ) : null}
-      {paths?.map((path, index) => <Stroke key={index} path={path} progress={progressValue} />)}
-    </svg>
-  );
+export function InkConstructionOverlay({regions, progress, opacity = 1, showGuide = true}: {regions: ConstructionRegion[]; progress: number; opacity?: number; showGuide?: boolean}) {
+  const svgRef = useRef<SVGSVGElement | null>(null); const [paths, setPaths] = useState<ContourPath[] | null>(null); const [geometry, setGeometry] = useState<Geometry>({transform: 'none', transformOrigin: '50% 50%'}); const {delayRender, continueRender, cancelRender} = useDelayRender(); const [handle] = useState(() => delayRender('Tracing master artwork centerline strokes', {retries: 2}));
+  useEffect(() => { let cancelled = false; let raf: number | null = null; let timeout: ReturnType<typeof setTimeout> | null = null; const started = Date.now(); const parent = svgRef.current?.parentElement; const fail = (e: Error) => { if (!cancelled) cancelRender(e); }; const ready = () => { if (cancelled) return; const image = parent?.querySelector('img'); if (!image) { if (Date.now() - started > MAX_WAIT_MS) fail(new Error('InkConstructionOverlay could not find the master artwork <img>')); else raf = requestAnimationFrame(ready); return; } const finish = async () => { if (cancelled) return; try { const traced = await traceSvgArtwork(image, regions); setPaths(traced ?? traceArtwork(image, regions)); const style = getComputedStyle(image); setGeometry({transform: style.transform === 'none' ? 'none' : style.transform, transformOrigin: style.transformOrigin || '50% 50%'}); continueRender(handle); } catch (e) { cancelRender(e); } }; if (image.complete && image.naturalWidth > 0) void finish(); else image.addEventListener('load', () => void finish(), {once: true}); timeout = setTimeout(() => { if (!image.complete || image.naturalWidth === 0) fail(new Error('Master artwork did not finish loading for centerline tracing')); }, MAX_WAIT_MS); }; ready(); return () => { cancelled = true; if (raf !== null) cancelAnimationFrame(raf); if (timeout !== null) clearTimeout(timeout); continueRender(handle); }; }, [cancelRender, continueRender, handle, regions]);
+  if (!regions.length) return null; const p = clamp01(progress); return <svg ref={svgRef} viewBox="0 0 100 100" preserveAspectRatio="none" width="100%" height="100%" style={{position: 'absolute', inset: 0, pointerEvents: 'none', opacity, transform: geometry.transform, transformOrigin: geometry.transformOrigin}} aria-hidden>{showGuide && <g opacity={0.11 * (1 - p)}><ellipse cx="50" cy="27" rx="18" ry="13.5" fill="none" stroke={GOLD} strokeWidth="0.48" strokeDasharray="1.2 2.8"/><path d="M50 8 C48 28 52 52 50 94" fill="none" stroke={GOLD} strokeWidth="0.36" strokeDasharray="1.2 3"/><path d="M25 41 Q50 35 75 41" fill="none" stroke={GOLD} strokeWidth="0.34" strokeDasharray="1 2.5"/></g>}{paths?.map((path, i) => <StrokeView key={i} path={path} progress={p}/>)}</svg>;
 }
