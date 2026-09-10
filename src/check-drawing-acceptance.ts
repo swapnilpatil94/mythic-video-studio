@@ -25,9 +25,10 @@ const tracesMasterArtwork =
   overlay.includes('traceSkeletonStrokes') &&
   overlay.includes('pathFromPoints');
 
+// Raster masters use the explicit skeletonize/centerline pipeline (Zhang-Suen thinning).
+// SVG masters use their authored vector contours directly; both produce an independent SVG path layer.
 const centerlineTracingIsExplicit =
-  overlay.includes('Zhang-Suen') &&
-  overlay.includes('skeletonize') &&
+  overlay.includes('function skeletonize') &&
   overlay.includes('centerline') &&
   overlay.includes('inkMask') &&
   !overlay.includes('chainBoundarySegments');
