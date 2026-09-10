@@ -104,7 +104,18 @@ export function ProgressiveArtwork({
 
   return (
     <div style={{position: "absolute", inset: 0, opacity: pigment, pointerEvents: "none"}}>
-      <Img src={src} style={{...common, filter: "saturate(.92) contrast(1.03)"}} />
+      <Img
+        src={src}
+        style={{
+          ...common,
+          filter: "saturate(.92) contrast(1.03)",
+          // Generated masters often carry their own paper-colored background. Darken compositing
+          // lets that light paper disappear into the scene parchment while retaining authored ink,
+          // red wash, and gold accents. This prevents a hard rectangular master boundary during
+          // the pigment reveal without altering the independent construction stroke layer.
+          mixBlendMode: "darken",
+        }}
+      />
     </div>
   );
 }
