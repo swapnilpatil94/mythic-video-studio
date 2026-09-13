@@ -37,7 +37,9 @@
     "studio:build": "vite build --config web/vite.config.ts",
     "check:drawing-acceptance": "tsx src/check-drawing-acceptance.ts",
     "friction:prepare": "tsx src/prepare-friction.ts",
-    "friction:check": "tsx src/check-friction.ts"
+    "friction:check": "tsx src/check-friction.ts",
+    "check:tts-provider": "tsx src/check-tts-provider.ts",
+    "benchmark:tts": "tsx src/benchmark-tts.ts"
   },
   "dependencies": {
     "@remotion/cli": "^4.0.520",

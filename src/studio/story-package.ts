@@ -100,7 +100,7 @@ export function splitStoryPackage(raw: unknown, context: {projectId?: string}): 
     project_id: projectId, title: pkg.story.title, language: pkg.project.language as 'hi-IN',
     duration_seconds: pkg.project.target_duration_seconds, characters: pkg.characters.map((c) => c.id),
     world: pkg.world as WorldBible | undefined, asset_kinds: assetKinds, asset_sacred: assetSacred,
-    asset_visual_direction: assetVisualDirection, beats,
+    asset_visual_direction: assetVisualDirection, beats, format: pkg.project.format,
     audio: {voice_style: pkg.audio.voice_style || undefined, target_wpm: pkg.audio.target_wpm ?? pkg.script.target_wpm, music_direction: pkg.audio.music_direction || undefined, silence_guidance: pkg.audio.silence_guidance || undefined},
   };
   const manifestErrors = validateProductionManifest(manifest);
@@ -127,9 +127,10 @@ function splitFlatManifest(raw: unknown, context: {projectId?: string}): SplitRe
   const manifestErrors = validateProductionManifest(raw);
   if (manifestErrors.length) return {ok: false, errors: manifestErrors.map((e) => `manifest: ${e}`)};
   const projectId = context.projectId ?? raw.project_id;
-  const manifest: ProductionManifest = {...raw, project_id: projectId};
+  const resolvedFormat = raw.format ?? (raw.duration_seconds > 120 ? 'LONGFORM' : 'SHORT');
+  const manifest: ProductionManifest = {...raw, project_id: projectId, format: resolvedFormat};
   const now = new Date().toISOString();
-  const project = ProjectMetaSchema.parse({project_id: projectId, name: manifest.title, format: manifest.duration_seconds > 120 ? 'LONGFORM' : 'SHORT', language: manifest.language, target_duration_seconds: manifest.duration_seconds, status: 'draft', created_at: now, updated_at: now});
+  const project = ProjectMetaSchema.parse({project_id: projectId, name: manifest.title, format: resolvedFormat, language: manifest.language, target_duration_seconds: manifest.duration_seconds, status: 'draft', created_at: now, updated_at: now});
   const story = StorySchema.parse({title: manifest.title, hook: manifest.beats[0]?.text || manifest.beats[0]?.narration || ''});
   const script = ScriptSchema.parse({full_narration: manifest.beats.map((b) => b.narration).filter(Boolean).join(' '), beats: manifest.beats.map((b) => ({id: b.beat_id, narration: b.narration ?? '', duration_seconds: b.duration_seconds}))});
   const characters = CharactersSchema.parse({characters: manifest.characters.map((id) => ({id, name: id, sacred_or_respected: false}))});

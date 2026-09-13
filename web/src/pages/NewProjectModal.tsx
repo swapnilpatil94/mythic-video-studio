@@ -25,6 +25,7 @@ export default function NewProjectModal({onClose, onCreated}: {onClose: () => vo
   const [format, setFormat] = useState<'SHORT' | 'LONGFORM'>('SHORT');
   const [language, setLanguage] = useState('hi-IN');
   const [duration, setDuration] = useState(77);
+  const [voiceProvider, setVoiceProvider] = useState<'chatterbox' | 'vibevoice'>('chatterbox');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -38,7 +39,7 @@ export default function NewProjectModal({onClose, onCreated}: {onClose: () => vo
     if (!name.trim()) { setError('Project name is required.'); return; }
     setBusy(true);
     try {
-      const files = await api.createProject({name, format, language, target_duration_seconds: duration});
+      const files = await api.createProject({name, format, language, target_duration_seconds: duration, voice_provider: voiceProvider});
       onCreated(files.project.project_id);
     } catch (e) {
       setError((e as Error).message);
@@ -111,6 +112,20 @@ export default function NewProjectModal({onClose, onCreated}: {onClose: () => vo
               <label>Target duration (seconds)</label>
               <input type="number" value={duration} onChange={(e) => setDuration(Number(e.target.value))} min={45} max={1200} />
               <p className="hint">A starter 5-beat manifest is generated automatically and already passes pipeline validation — edit it in the Story/Script/Visuals tabs.</p>
+            </div>
+            <div className="field">
+              <label>Voice Engine</label>
+              <div className="stack" style={{gap: 4}}>
+                <label className="checkbox-row" style={{textTransform: 'none', fontWeight: 400}}>
+                  <input type="radio" name="voice-engine" checked={voiceProvider === 'chatterbox'} onChange={() => setVoiceProvider('chatterbox')} />
+                  <span><strong>Chatterbox</strong> — voice cloning, the proven default</span>
+                </label>
+                <label className="checkbox-row" style={{textTransform: 'none', fontWeight: 400}}>
+                  <input type="radio" name="voice-engine" checked={voiceProvider === 'vibevoice'} onChange={() => setVoiceProvider('vibevoice')} />
+                  <span><strong>VibeVoice Hindi 7B</strong> — long-form, heavier (GPU-recommended)</span>
+                </label>
+              </div>
+              <p className="hint">Can be changed later per-project from the Production tab. Both engines need their local adapter configured in <code>.env</code> first — see <code>docs/RUNNING_LOCALLY.md</code>.</p>
             </div>
             {error ? <div className="errors-list"><li>{error}</li></div> : null}
             <div className="row" style={{justifyContent: 'flex-end'}}>

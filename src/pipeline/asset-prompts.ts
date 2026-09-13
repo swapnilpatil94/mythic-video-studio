@@ -36,10 +36,13 @@ export function buildAssetPromptJobs(manifest: ProductionManifest): AssetPromptJ
     const environmentInstruction = isEnvironment
       ? 'Environment is a first-class cinematic asset: establish geography, era, foreground/midground/background depth, atmospheric perspective and usable parallax layers; never use generic parchment as the scene background.'
       : '';
+    const orientationHint = manifest.format === 'LONGFORM'
+      ? 'detailed, elegant, cinematic composition designed for landscape 1920x1080 video'
+      : 'detailed, elegant, cinematic composition designed for vertical 1080x1920 video';
     const prompt = [
       'Indian hand-illustrated mythology storytelling artwork',
       'cream parchment base, expressive black ink linework, restrained antique gold and muted red accents',
-      'detailed, elegant, cinematic composition designed for vertical 1080x1920 video',
+      orientationHint,
       `asset: ${describe(asset_id)}`,
       ...worldLines,
       ...(visualDirection ? [visualDirection] : []), `story roles: ${role}`, environmentInstruction,

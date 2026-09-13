@@ -5,6 +5,8 @@ import {validateProductionManifest} from '../pipeline/validate-manifest';
 export const FORMAT_VALUES = ['SHORT', 'LONGFORM'] as const;
 export type ProjectFormat = (typeof FORMAT_VALUES)[number];
 
+export const TTS_PROVIDER_VALUES = ['chatterbox', 'vibevoice'] as const;
+
 export const ProjectMetaSchema = z.object({
   project_id: z.string().min(1),
   name: z.string().min(1),
@@ -12,6 +14,10 @@ export const ProjectMetaSchema = z.object({
   language: z.string().min(2).default('hi-IN'),
   target_duration_seconds: z.number().positive(),
   platform_profiles: z.array(z.string()).default(['youtube_shorts']),
+  // Displayed/edited in the Studio UI (Production tab); manifest.json's own audio.provider is
+  // what generate-voice.ts actually reads at generation time — see writeProjectFile's sync when
+  // this field changes, and src/pipeline/tts-provider.ts for the full provider contract.
+  voice_provider: z.enum(TTS_PROVIDER_VALUES).default('chatterbox'),
   status: z.enum(['draft', 'ready', 'rendered', 'failed']).default('draft'),
   created_at: z.string(),
   updated_at: z.string(),

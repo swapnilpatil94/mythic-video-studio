@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useMemo} from 'react';
 import {AbsoluteFill, interpolate, staticFile, useCurrentFrame, useVideoConfig} from 'remotion';
 import {ProgressiveArtwork, subjectRelativeConstruction} from './artwork-construction';
 import {InkConstructionOverlay} from './InkConstructionOverlay';
@@ -23,17 +23,30 @@ export const DrawingStageTest: React.FC<DrawingStageTestProps> = ({masterPath = 
   const {fps} = useVideoConfig();
   const t = frame / fps;
   const ink = phase(frame, fps, 0.65, 10.8);
-  const contourProgress = clamp01(ink * 1.28);
+  // Front-load the master-derived contour reveal so the protagonist reads before the environment reaches full detail.
+  const contourProgress = clamp01(Math.pow(ink, 0.62) * 1.28);
   const wash = phase(frame, fps, 10.85, 13.2);
   const settle = phase(frame, fps, 12.6, 15);
   const scale = interpolate(settle, [0, 1], [1, 1.055]);
-  const sceneProgress = clamp01(contourProgress * 0.9 + wash * 0.35);
-  const regions = subjectRelativeConstruction({focusX: 50, focusY: 42});
+  // Environment establishes the world early, then stays subordinate while the character is drawn.
+  const environmentProgress = phase(frame, fps, 0.35, 3.4);
   const masterSrc = staticFile(masterPath.replace(/^\/+/, ''));
+  // Memoized so this array keeps one stable identity across the many frame-driven re-renders of
+  // this component (useCurrentFrame() changes every frame) — InkConstructionOverlay's tracing
+  // effect depends on `regions` by reference, and an unstable identity was restarting that effect
+  // on every single frame. A real render caught the actual consequence: the fast SVG-native tracing
+  // path (traceSvgArtwork) usually finished before the next reset and so looked fine, but the much
+  // slower raster skeletonization path (traceArtwork — full Zhang-Suen thinning over the whole
+  // trace canvas) never once completed in time, so a real character master's construction phase
+  // rendered as nothing at all until the pigment wash. ProductionDrawingTest.tsx already memoized
+  // this correctly; this file just hadn't been brought in line with it.
+  const regions = useMemo(() => subjectRelativeConstruction({focusX: 50, focusY: 42}), []);
 
   return (
     <AbsoluteFill style={{background: CREAM, color: INK, overflow: 'hidden'}}>
-      <FrictionBattlefield progress={sceneProgress} scene={0} intensity={0.9} />
+      <div style={{position: 'absolute', inset: 0, opacity: interpolate(ink, [0, 0.22, 0.7, 1], [0.46, 0.32, 0.24, 0.42])}}>
+        <FrictionBattlefield progress={environmentProgress} scene={0} intensity={0.75} />
+      </div>
 
       <div style={{position: 'absolute', inset: 0, opacity: interpolate(ink, [0, 0.2, 0.72, 1], [0, 0.15, 0.38, 0.12])}}>
         <div style={{position: 'absolute', top: 54, left: 64, right: 64, height: 2, background: `linear-gradient(90deg, transparent, ${GOLD}88 18%, ${GOLD}88 82%, transparent)`, opacity: 0.5}} />
@@ -49,7 +62,7 @@ export const DrawingStageTest: React.FC<DrawingStageTestProps> = ({masterPath = 
             regions={regions}
             style={{objectFit: 'contain', objectPosition: '50% 50%'}}
           />
-          <InkConstructionOverlay regions={regions} progress={contourProgress} showGuide={contourProgress < 0.84} />
+          <InkConstructionOverlay regions={regions} progress={contourProgress} showGuide={contourProgress < 0.5} />
         </div>
       </div>
 

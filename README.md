@@ -1,6 +1,7 @@
 # Mythic Video Studio
 
-A local-first production system for high-retention Hindi mythology storytelling videos.
+A local-first production system for high-retention Hindi mythology storytelling videos, built by
+**getByteRush**. See [`CREDITS.md`](CREDITS.md) for who actually runs and creates a KATHAAYA movie.
 
 **Current strategy:** prove the complete 60–90s Short pipeline first, then scale the same engine to 8–12 minute long-form episodes and serialized source-based seasons.
 

@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, feature/neuromarketing-drawing-stage]
+    branches: [main, feature/neuromarketing-drawing-stage, fix/cinematic-drawing-timeline]
   pull_request:
     branches: [main]
 
@@ -20,6 +20,7 @@ jobs:
       - run: npm run typecheck
       - run: npm run check:psychology
       - run: npm run check:drawing-acceptance
+      - run: npm run check:tts-provider
       - run: npm run validate -- examples/karna-short.json
       - run: npm run validate -- examples/karna-longform-test.json
       - run: npm run check:motion
@@ -34,7 +35,7 @@ jobs:
           path: pipeline-check.log
 
   visual-drawing:
-    if: github.ref == 'refs/heads/feature/neuromarketing-drawing-stage'
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/fix/cinematic-drawing-timeline'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:

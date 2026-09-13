@@ -1,6 +1,6 @@
 # Implementation Status
 
-Updated: 2026-09-07 (real shot-grammar pass + 3 asset-ghosting bugs found and fixed)
+Updated: 2026-09-11 (both drawing-engine defects genuinely fixed — real protagonist-first construction now works — + TTS provider abstraction: Chatterbox + VibeVoice Hindi 7B)
 
 ## Overall
 
@@ -10,7 +10,176 @@ Updated: 2026-09-07 (real shot-grammar pass + 3 asset-ghosting bugs found and fi
 
 **Current engineering focus:** `bash run.sh examples/karna-short.json` (or, equivalently, a project run from **KATHAAYA Studio**'s Production tab) runs the complete pipeline end-to-end on this machine using real local FLUX image generation, real local Chatterbox Hindi voice cloning, and real local Whisper (whisperx) forced alignment, producing a real, technically-passing MP4. `npm run studio` now gives a local dashboard for managing multiple projects, importing story-package JSON, and driving that same pipeline instead of hand-editing manifest files — see the latest milestone below. The compositor (`src/remotion/MythicShort.tsx`) is **format-aware** (one engine, a Short vs. long-form tempo/motion profile selected purely from the manifest's existing `duration_seconds` — no schema change, no second pipeline), branded as **KATHAAYA** (subtle open, minimal watermark, full end card — no more MYTHIC STORIES header/footer), and its kinetic keyword/caption emphasis is driven by whichever word Whisper actually found emphasized in the real narration, not a fixed per-story vocabulary table. Remaining work is visual/asset-consistency tuning (character distinction, source `sun.symbol` asset content review), a real long-form production to validate the long-form profile beyond a structural smoke test, and human mythology-respect/editorial review — not pipeline wiring.
 
-## Latest milestone — real shot grammar (not just zoom), a real logo, and 3 asset-ghosting bugs traced and fixed
+## Latest milestone — both real drawing-engine defects fixed (with real evidence), TTS provider abstraction + VibeVoice Hindi 7B wired in
+
+Brief: continuing PR #5 (`fix/cinematic-drawing-timeline`) per the KATHAAYA 2D-movie-engine spec's
+priority order — P0 (current visual correctness) first, then P1 (2D movie foundations + audio/TTS
+architecture). Followed the mandated loop throughout: render the actual proof → extract real
+frames → inspect → identify the real failure mechanism → patch → rerender → recheck. Several
+findings in this pass only surfaced because a static/rendered-once check said "pass" while the
+*next* real render still showed the defect — consistent with `docs/AI_ENGINEERING_SQUAD.md`'s own
+operating rule ("when implementation and rendered evidence disagree, rendered evidence wins").
+
+### P0: the rectangular master-paper boundary — found still present, then genuinely fixed
+
+The PR's own prior commits (16 of them) had already tried to fix this via `mixBlendMode: "darken"`
+in `artwork-construction.tsx`'s `ProgressiveArtwork`, and the existing static acceptance check
+(`check-drawing-acceptance.ts`) reported that fix as present. **A real render of the actual proof
+(`ProductionDrawingTest`, the CI fallback SVG master) still showed a clean, hard rectangular seam**
+at the pigment-wash/final frame — `darken` only ever `min()`s color channels against whatever
+happens to sit behind the master at render time, so wherever the scene behind the master's
+bounding box was *lighter* than the master's own paper tone, the seam couldn't be removed; it isn't
+a general fix, it's a coincidence-dependent one.
+
+Root-caused and fixed properly: the master's own opaque paper canvas needs real alpha=0, not a
+color blend. Added a single SVG `feColorMatrix` + `feComposite` "paper-to-alpha" filter
+(`artwork-construction.tsx`) that keys the bright, desaturated paper tone to transparent by
+luminance threshold — this project's whole palette (cream paper vs. ink/gold/red pigment) sits on a
+wide luminance gap, so one fixed threshold works without per-asset tuning. Verified via a real
+rerender: the rectangular seam is gone, mountains/flags/crowd silhouettes behind the master show
+through cleanly and continuously.
+
+**A second real bug this surfaced**: applying that filter unconditionally to a REAL production
+character master (`karna-karna.png`, already background-removed via `rembg` at generation time —
+see `tools/flux_image.py`'s `ALPHA_REQUIRED_KINDS`) checked directly against the asset's own pixel
+data showed ~48% of its *already-correct* opaque pixels (white/cream drapery, skin highlights) sit
+in the same luminance band as paper — a blanket filter would have erased nearly half the character,
+not just removed a paper background. Fixed by adding `useNeedsPaperNormalization`, a small runtime
+probe (mirroring `InkConstructionOverlay`'s own established load-detection/`useDelayRender`
+pattern) that samples each master's actual alpha channel once and only wires the filter in when the
+master doesn't already have real transparency. Verified on both: the CI fallback SVG (needs and
+gets normalization) and the real `karna-karna.png` master (already-correct alpha, filter correctly
+skipped, full costume detail intact, no boundary).
+
+### P0: raster (real PNG) master construction-stroke visibility — found and genuinely fixed
+
+A related, more serious defect surfaced while re-verifying: `DrawingStageTest`'s default real
+character master showed **no visible construction/ink strokes at all** before the pigment wash —
+just blank parchment, then the finished illustration fading straight in. The CI fallback SVG master
+was never affected (its own construction phase works correctly and was reconfirmed clean
+throughout this investigation) — only real, detailed raster masters.
+
+Traced through three real, confirmed contributing issues:
+1. **Pure-affinity stroke ordering let noise dominate the front-loaded reveal.** A detailed real
+   master's skeletonization produces hundreds of tiny fragments (a single jewelry bead, a hair
+   strand); `regionAffinity` only measures a stroke's centroid distance to a named region center,
+   so a tiny fragment sitting exactly on a region's center outranked a long, sweeping, actually
+   silhouette-defining contour. Fixed by gating "subject" (front-loaded, protagonist-defining)
+   tier membership on stroke size in addition to affinity — `isSignificantStroke`, applied
+   identically to both the raster (`traceArtwork`) and SVG-native (`traceSvgArtwork`) tracing
+   paths.
+2. **That size gate was first measured wrong.** The first version used cumulative stroke *travel
+   length* (an odometer reading along all the stroke's points) — a real render disproved this too:
+   dumping an actual "significant" stroke's mapped coordinates showed 51 points confined to a 4x3px
+   box. A tightly-wound, jittery skeletonization artifact (fine texture noise) can rack up a long
+   travel length while staying spatially tiny. Switched to bounding-box diagonal extent (already
+   computed per stroke as `width`/`height`), which actually correlates with on-screen size.
+3. `DrawingStageTest.tsx` did not memoize its `regions` array (`ProductionDrawingTest.tsx` already
+   did) — fixed for consistency, though isolated testing showed this wasn't the actual cause.
+
+After those three, direct DOM/isolation testing (temporarily rendering every stroke as a bold,
+undashed, fixed-width red line — bypassing the `pathLength`/`strokeDasharray`/`vector-effect`
+reveal mechanism entirely) *still* showed only a single stroke painting, even checked at the very
+last frame of the timeline (long past every stroke's own reveal window, ruling out a timing
+explanation) — despite dumped data confirming ~50 "subject" strokes with reasonable, spread-out
+positions and non-zero sizes in their *own pre-mapped* coordinate space. That last detail was the
+real clue: **the raster tracing path (`traceArtwork`) was calling `mapPoint()` twice** — once in
+its own `convert()`, rescaling trace-canvas coordinates into percentage-of-box space, and *again*
+inside `schedule()`, which maps every stroke's points from natural-image pixel space into
+percentage-of-box space as its own single, canonical mapping pass (exactly what
+`traceSvgArtwork`'s own `convert()` correctly relies on, since it hands `schedule()` raw,
+un-mapped SVG viewBox points). Feeding `schedule()` *already-mapped* percentage values as if they
+were still raw natural-image pixels sent them through the contain-fit formula a second time,
+collapsing almost every stroke toward a near-constant point near the image's edge — visually, one
+small persistent blob, growing only from the handful of strokes whose second mapping pass happened
+to still land somewhere plausible.
+
+Fixed by removing the premature `mapPoint()` call from `traceArtwork`'s `convert()`, leaving
+`schedule()` as the one and only place mapping happens — matching `traceSvgArtwork`'s existing,
+correct convention. Verified immediately via the same red-line isolation test: strokes now spread
+correctly across the character's actual silhouette (head, raised arm holding the spear, torso,
+legs) instead of collapsing to one blob. Verified again with the real ink styling restored, on a
+full render of the real production master: the intended `blank parchment -> construction guide ->
+recognizable protagonist (by ~6s) -> denser linework -> pigment wash -> finished illustration`
+progression is now genuinely present, not just claimed. Reconfirmed the CI fallback SVG path has no
+regression (it was never touched by this fix, and a real rerender still shows it clean).
+
+### P1: TTS provider abstraction — Chatterbox (existing) + VibeVoice Hindi 7B (new), both wired
+
+Per the spec's explicit requirement: two coexisting, production-capable local Hindi TTS engines,
+switchable per-project, neither hardwired as the only option.
+
+- **`src/pipeline/tts-provider.ts`** (new): the actual abstraction. `resolveTTSProvider(manifest)`
+  picks a provider (manifest's own `audio.provider` → `TTS_PROVIDER` env var → `'chatterbox'`
+  default — the existing default is never silently removed, matching the spec's explicit
+  instruction) and resolves its command/args/voice/reference-audio from that provider's own
+  dedicated env vars. Reuses the **existing** job-JSON contract (`project_id`/`language`/`title`/
+  `output_path`/`voice`/`reference_audio`/`target_duration_seconds`/`segments`) rather than
+  inventing a new shape, so `generate-voice.ts`'s actual generation logic didn't need touching —
+  only *which command* runs changed. `commandArgs()` (the `{job}`/`{output}` templating) is the
+  same logic previously inlined in `generate-voice.ts`, now shared.
+- **`tools/vibevoice_tts.py`** (new): a second local adapter, matching the identical job contract.
+  VibeVoice ([vibevoice-community/VibeVoice](https://github.com/vibevoice-community/VibeVoice), a
+  community fork of Microsoft's original) is architecturally different from Chatterbox — a
+  long-form, multi-speaker CLI tool over a cloned repo checkout, not a pip-importable per-sentence
+  clip generator — so this adapter writes the job's segments out as a "Speaker 1: ..." script file,
+  registers the reference audio as that speaker's cloned voice in VibeVoice's own `demo/voices/`
+  convention, and shells out to its documented `demo/inference_from_file.py --model_path ...
+  --txt_path ... --speaker_names ... --device ...` CLI. Default model: `tarun7r/vibevoice-hindi-7b`
+  (Hindi-tuned, built on the 7B base), configurable via `VIBEVOICE_MODEL_PATH`, not hardcoded.
+  Device resolves cuda → mps → cpu automatically, with an explicit loud warning (not a silent hang)
+  if it falls all the way back to CPU on a 7B model. **Honestly unverified**: this machine has no
+  discrete NVIDIA GPU, and a full local generation run (a 7B-parameter model) was outside this
+  session's practical time/resource budget — implemented strictly against the documented CLI
+  contract, not against a completed real run here. Per spec section 25 (lazy loading, no
+  preloading): nothing about this adapter runs until a job actually selects VibeVoice.
+- **`src/preflight.ts`**: now checks whichever provider the manifest actually selects, not always
+  Chatterbox.
+- **Studio UI**: a "Voice Engine" selector in two places — `NewProjectModal.tsx` (blank-project
+  creation, sets the starter manifest's `audio.provider`) and a new card at the top of
+  `ProductionTab.tsx` (changeable per-project at any time, writes through `project.json`'s new
+  `voice_provider` field). `writeProjectFile` keeps `manifest.json`'s `audio.provider` — the field
+  `generate-voice.ts` actually reads — in sync whenever the UI changes it, so `run.sh
+  <manifest.json>` (which has no notion of `project.json` and must keep working standalone from a
+  terminal) and the Studio UI never disagree about which engine a run will use.
+- **`src/check-tts-provider.ts`** (new, wired into CI): default/override priority (manifest wins
+  over env var wins over the chatterbox default), both providers resolve independently without
+  cross-contaminating each other's config when both are set at once, an unconfigured provider
+  resolves to `null` rather than silently falling back to the other one, token substitution. All
+  passing.
+- **`src/benchmark-tts.ts`** (new) + `benchmarks/tts/fixtures/{short,longform}.json`: a reproducible
+  A/B harness per spec section 23 — same fixed Hindi script (real narration text reused from
+  `examples/karna-short.json` and the real `karna-full-journey` production manifest, not invented
+  text) and the same reference voice for every provider under test, for both SHORT and LONGFORM
+  configuration. Deliberately does **not** fake-score pronunciation/voice-similarity/emotional-
+  delivery/naturalness — those need a human listening, and pretending otherwise would be exactly
+  the "audio QA that only checks file existence" anti-pattern the spec explicitly warns against.
+  What it does measure objectively (generation time, output duration, words-per-minute, clipping
+  via `volumedetect`, dead air via `silencedetect`) it measures per provider per format and writes
+  to a timestamped run directory alongside both WAV files and a `README.md` telling a human
+  reviewer exactly what to listen for. **Verified working end-to-end** on the Chatterbox side — a
+  real run against this machine's actually-configured Chatterbox adapter completed for both
+  fixtures (short: 116.7s to generate a 24.7s clip at ~163 WPM; longform: proportionally longer),
+  no clipping, no significant dead air, real WAV files and a real `summary.json` produced; the
+  VibeVoice side correctly reports "not configured" and skips cleanly rather than crashing, since
+  `VIBEVOICE_COMMAND` isn't set up on this machine (see the honest note above).
+
+### Honest, unresolved limitations after this pass
+
+- **VibeVoice Hindi 7B has not been run end-to-end on real hardware** — the adapter is implemented
+  against the documented CLI contract, but this machine (Apple Silicon, no discrete NVIDIA GPU)
+  could not practically run a full 7B-parameter local generation this session. The upstream
+  inference script's own `--device` flag documents `mps` as a supported option, so Apple Silicon is
+  a real code path, just not one exercised here.
+- **P2 not started**: directorial automation pipeline (Research/Story/Screenplay/Scene/Shot/Visual/
+  Asset/Animation/Audio director roles as structured contracts), automated visual+audio QA →
+  diagnose → fix → rerender loop, Scene Graph formalization, and camera-engine structuring beyond
+  the existing `cameraMotion()` presets are all still open per the spec's own P1/P2 priority order.
+- The gold-standard voice benchmark (spec section 31) is built and proven to work, but only ever
+  produced a real comparison on this machine for Chatterbox — a genuine Chatterbox-vs-VibeVoice A/B
+  listen has not happened yet, pending either GPU hardware or a slow CPU/MPS run.
+
+## Previous milestone — real shot grammar (not just zoom), a real logo, and 3 asset-ghosting bugs traced and fixed
 
 Brief: a direct continuation of the cinematic pass below — accepted its 5 findings as real, then pushed
 further per explicit direction: fix `surya_glow` for good, real shot GRAMMAR (wide/close/detail/

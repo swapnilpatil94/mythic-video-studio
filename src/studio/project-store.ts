@@ -1,7 +1,7 @@
 import {existsSync} from 'node:fs';
 import {mkdir, readFile, readdir, rm, writeFile, cp} from 'node:fs/promises';
 import {join} from 'node:path';
-import type {ProductionManifest} from '../pipeline/types';
+import type {ProductionManifest, TTSProviderId} from '../pipeline/types';
 import {validateProductionManifest} from '../pipeline/validate-manifest';
 import {
   ProjectMetaSchema, StorySchema, ScriptSchema, CharactersSchema, MetadataSchema,
@@ -46,7 +46,7 @@ async function writeJson(path: string, value: unknown): Promise<void> {
 /** A minimal, immediately-valid starter manifest — passes `validateProductionManifest` (>=5 beats,
  * >=1 character, beat durations summing to the target) as soon as a project is created, so a brand
  * new project is real/runnable rather than a placeholder that fails validation until hand-edited. */
-export function starterManifest(projectId: string, name: string, targetDurationSeconds: number, platform?: string): ProductionManifest {
+export function starterManifest(projectId: string, name: string, targetDurationSeconds: number, platform?: string, voiceProvider?: TTSProviderId, format?: ProjectFormat): ProductionManifest {
   const beatCount = 5;
   const each = Math.round((targetDurationSeconds / beatCount) * 100) / 100;
   const beats = Array.from({length: beatCount}).map((_, i) => {
@@ -71,7 +71,9 @@ export function starterManifest(projectId: string, name: string, targetDurationS
     duration_seconds: targetDurationSeconds,
     characters: ['character.master'],
     platform,
+    format,
     beats,
+    audio: voiceProvider ? {provider: voiceProvider} : undefined,
   };
 }
 
@@ -122,7 +124,7 @@ export async function listProjects(): Promise<ProjectSummary[]> {
   return summaries;
 }
 
-export async function createProject(input: {name: string; format: ProjectFormat; language: string; target_duration_seconds: number; platform_profiles?: string[]}): Promise<ProjectFiles> {
+export async function createProject(input: {name: string; format: ProjectFormat; language: string; target_duration_seconds: number; platform_profiles?: string[]; voice_provider?: TTSProviderId}): Promise<ProjectFiles> {
   const projectId = await uniqueProjectId(input.name);
   const dir = projectDir(projectId);
   await Promise.all(['assets', 'audio', 'renders', 'qa'].map((sub) => mkdir(join(dir, sub), {recursive: true})));
@@ -135,6 +137,7 @@ export async function createProject(input: {name: string; format: ProjectFormat;
     language: input.language,
     target_duration_seconds: input.target_duration_seconds,
     platform_profiles: input.platform_profiles?.length ? input.platform_profiles : ['youtube_shorts'],
+    voice_provider: input.voice_provider ?? 'chatterbox',
     status: 'draft',
     created_at: now,
     updated_at: now,
@@ -143,7 +146,7 @@ export async function createProject(input: {name: string; format: ProjectFormat;
   const script = ScriptSchema.parse({});
   const characters = CharactersSchema.parse({});
   const metadata = MetadataSchema.parse({});
-  const manifest = starterManifest(projectId, input.name, input.target_duration_seconds, project.platform_profiles[0]);
+  const manifest = starterManifest(projectId, input.name, input.target_duration_seconds, project.platform_profiles[0], input.voice_provider, input.format);
 
   await Promise.all([
     writeJson(join(dir, 'project.json'), project),
@@ -200,6 +203,18 @@ export async function writeProjectFile(projectId: string, file: WritableFileName
   if (!parsed.success) return {ok: false, errors: parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`)};
   const toWrite = file === 'project.json' ? {...parsed.data, updated_at: new Date().toISOString()} : parsed.data;
   await writeJson(join(dir, file), toWrite);
+  // project.json's voice_provider is the Studio UI's own display/edit surface; manifest.json's
+  // audio.provider is what generate-voice.ts actually reads (it has no notion of project.json —
+  // `bash run.sh <manifest.json>` must work standalone, without a Studio project directory at
+  // all). Keep the manifest in sync whenever the UI changes the provider here, so the two never
+  // silently disagree about which engine a "Run Pipeline" click will actually use.
+  if (file === 'project.json') {
+    const voiceProvider = (toWrite as ProjectMeta).voice_provider;
+    const manifest = await readJson<ProductionManifest>(join(dir, 'manifest.json'));
+    if (manifest && manifest.audio?.provider !== voiceProvider) {
+      await writeJson(join(dir, 'manifest.json'), {...manifest, audio: {...manifest.audio, provider: voiceProvider}});
+    }
+  }
   return {ok: true, value: toWrite};
 }
 
