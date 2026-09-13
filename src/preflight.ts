@@ -2,6 +2,7 @@ import {existsSync} from 'node:fs';
 import {mkdir, readFile, writeFile} from 'node:fs/promises';
 import {spawn} from 'node:child_process';
 import {projectPaths, ensureProjectPaths} from './pipeline/paths';
+import {selectedTTSProviderId, TTS_PROVIDER_LABELS} from './pipeline/tts-provider';
 import type {ProductionManifest} from './pipeline/types';
 
 const input = process.argv[2] ?? 'examples/karna-short.json';
@@ -38,7 +39,9 @@ checks.push({name: 'npx', ok: await commandExists('npx'), detail: 'required by p
 const strictAssets = process.env.REQUIRE_GENERATED_ASSETS === '1';
 const strictTts = process.env.REQUIRE_TTS === '1';
 await checkCommand('image generator', process.env.IMAGE_GENERATOR_COMMAND ?? process.env.FLUX_COMMAND, strictAssets);
-await checkCommand('TTS generator', process.env.TTS_COMMAND ?? process.env.CHATTERBOX_COMMAND, strictTts);
+const ttsProviderId = selectedTTSProviderId(manifest);
+const ttsCommand = ttsProviderId === 'vibevoice' ? process.env.VIBEVOICE_COMMAND : (process.env.TTS_COMMAND ?? process.env.CHATTERBOX_COMMAND);
+await checkCommand(`TTS generator (${TTS_PROVIDER_LABELS[ttsProviderId]})`, ttsCommand, strictTts);
 
 if (process.env.REQUIRE_CHARACTER_REFERENCES === '1') {
   const referenceDir = process.env.ASSET_REFERENCE_DIR?.trim() || `${paths.root}/references`;

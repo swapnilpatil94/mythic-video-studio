@@ -49,11 +49,18 @@ const masterIsIndependentFromMask =
   !construction.includes('maskImage') &&
   /opacity:\s*pigment/.test(construction);
 
-// Masters may arrive with their own paper-colored canvas. The final pigment layer must blend that
-// paper into the scene parchment so the viewer never sees a hard rectangular source boundary.
+// Masters may arrive with their own opaque paper-colored canvas. A blend mode alone can only
+// min() color channels against whatever happens to sit behind the master, which does not remove
+// the canvas's own hard rectangular edge (confirmed by rendering the actual proof and inspecting
+// the frames, not by this static check alone). The real fix gives the master's own paper pixels
+// genuine alpha=0 via a luminance-threshold SVG color matrix, so ordinary compositing lets the
+// real scene behind it show through everywhere except the authored ink.
 const masterPaperBoundaryIsHandled =
-  construction.includes('mixBlendMode: "darken"') &&
-  construction.includes('Generated masters often carry their own paper-colored background');
+  construction.includes('feColorMatrix') &&
+  construction.includes('feComposite') &&
+  construction.includes('operator="in"') &&
+  construction.includes('kathaaya-paper-to-alpha') &&
+  !construction.includes('mixBlendMode');
 
 const protagonistFirstTiming =
   drawingTest.includes('Math.pow(ink, 0.62)') &&

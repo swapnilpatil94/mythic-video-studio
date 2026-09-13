@@ -43,7 +43,7 @@ export const PLATFORM_PROFILES: Record<string, PlatformProfile> = {
       bottomUi: {x: 0, y: 1680, width: 1080, height: 240},
       sideUi: {x: 860, y: 300, width: 220, height: 1300},
     },
-    subtitleZone: {centerY: 1540, maxHeight: 140, marginX: 160},
+    subtitleZone: {centerY: 1460, maxHeight: 140, marginX: 160},
     brandingZone: {x: 40, y: 56, width: 220, height: 56},
   },
   instagram_reels: {
@@ -57,8 +57,25 @@ export const PLATFORM_PROFILES: Record<string, PlatformProfile> = {
       bottomUi: {x: 0, y: 1620, width: 1080, height: 300},
       sideUi: {x: 860, y: 260, width: 220, height: 1300},
     },
-    subtitleZone: {centerY: 1540, maxHeight: 140, marginX: 160},
+    subtitleZone: {centerY: 1460, maxHeight: 140, marginX: 160},
     brandingZone: {x: 40, y: 60, width: 220, height: 56},
+  },
+  // Landscape 1920x1080 — standard YouTube (not Shorts): no persistent right-rail icons or bottom
+  // title/channel row the way vertical short-form platforms have, since YouTube's own player chrome
+  // only appears on hover/tap rather than staying on-screen, so the safe zones here are deliberately
+  // minimal (just enough margin for the progress bar/controls strip when it does show).
+  youtube_longform: {
+    id: 'youtube_longform',
+    label: 'YouTube (longform)',
+    canvasWidth: 1920,
+    canvasHeight: 1080,
+    safeZones: {
+      topUi: {x: 0, y: 0, width: 1920, height: 40},
+      bottomUi: {x: 0, y: 990, width: 1920, height: 90},
+      sideUi: {x: 0, y: 0, width: 0, height: 0},
+    },
+    subtitleZone: {centerY: 930, maxHeight: 120, marginX: 240},
+    brandingZone: {x: 1920 - 260, y: 40, width: 220, height: 56},
   },
 };
 

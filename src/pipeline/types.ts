@@ -1,5 +1,11 @@
 export type AssetKind = 'character' | 'environment' | 'prop' | 'background' | 'overlay' | 'audio';
 
+/** Which local TTS engine narration should be generated with. Both are production-capable and
+ * coexist — see src/pipeline/tts-provider.ts. 'chatterbox' is the safe/default path (existing
+ * behavior, unchanged unless a manifest or the TTS_PROVIDER env var explicitly asks for
+ * 'vibevoice'). */
+export type TTSProviderId = 'chatterbox' | 'vibevoice';
+
 export type WorldBible = {
   period: string;
   architecture: string;
@@ -73,6 +79,12 @@ export type ProductionManifest = {
   duration_seconds: number;
   characters: string[];
   platform?: string;
+  /** 'SHORT' -> vertical 1080x1920 (YouTube Shorts/Instagram Reels), 'LONGFORM' -> landscape
+   * 1920x1080 (standard YouTube). Read by Root.tsx's calculateMetadata to pick the render
+   * resolution — see that file for why this can't just be a fixed Composition prop. Optional and
+   * derived from duration_seconds when absent (see resolveOrientation in Root.tsx) so manifests
+   * written before this field existed still render at the right aspect ratio. */
+  format?: 'SHORT' | 'LONGFORM';
   world?: WorldBible;
   asset_kinds?: Record<string, AssetKind>;
   asset_sacred?: Record<string, boolean>;
@@ -96,6 +108,9 @@ export type ProductionManifest = {
     sfx_dir?: string;
     voice_style?: string;
     target_wpm?: number;
+    /** Which TTS engine to generate narration with. Defaults to 'chatterbox' when omitted — see
+     * TTSProviderId. */
+    provider?: TTSProviderId;
     music_direction?: string;
     silence_guidance?: string;
   };

@@ -2,6 +2,8 @@ import {mkdir, readFile, writeFile} from 'node:fs/promises';
 import {execFile} from 'node:child_process';
 import {promisify} from 'node:util';
 import type {ProductionManifest} from './pipeline/types';
+import {IDENT_DURATION_SECONDS} from './shared/ident';
+import {resolveOrientation} from './shared/orientation';
 
 const execFileAsync = promisify(execFile);
 const input = process.argv[2] ?? 'examples/karna-short.json';
@@ -27,16 +29,27 @@ const audio = probe.streams?.find((stream: any) => stream.codec_type === 'audio'
 if (!video) errors.push('missing video stream');
 if (!audio) errors.push('missing audio stream');
 if (video) {
-  if (video.width !== 1080 || video.height !== 1920) errors.push(`resolution ${video.width}x${video.height}, expected 1080x1920`);
+  const expected = resolveOrientation(manifest);
+  if (video.width !== expected.width || video.height !== expected.height) errors.push(`resolution ${video.width}x${video.height}, expected ${expected.width}x${expected.height}`);
   const [num, den] = String(video.r_frame_rate ?? '').split('/').map(Number);
   const fps = den ? num / den : Number(video.r_frame_rate);
   if (!Number.isFinite(fps) || Math.abs(fps - 30) > 0.01) errors.push(`fps ${video.r_frame_rate}, expected 30fps`);
 }
 const duration = Number(probe.format?.duration ?? video?.duration ?? 0);
-if (!duration || Math.abs(duration - manifest.duration_seconds) > 0.5) errors.push(`duration ${duration.toFixed(3)}s differs from manifest ${manifest.duration_seconds}s by more than 0.5s`);
+// Every rendered feature opens with the KATHAAYA ident (see KathaayaFeature.tsx) before the story
+// begins, so the real video is always IDENT_DURATION_SECONDS longer than the manifest's own
+// duration_seconds — that offset belongs here, not in the manifest, since it's a constant part of
+// every render rather than something a story's own beats add up to.
+const expectedDuration = manifest.duration_seconds + IDENT_DURATION_SECONDS;
+if (!duration || Math.abs(duration - expectedDuration) > 0.5) errors.push(`duration ${duration.toFixed(3)}s differs from manifest+ident ${expectedDuration}s by more than 0.5s`);
 
 try {
-  const black = await run('ffmpeg', ['-hide_banner', '-i', output, '-vf', 'blackdetect=d=0.5:pix_th=0.10', '-an', '-f', 'null', '-']);
+  // Skip the opening ident: it's a deliberately dark title card (ink background, a small gold
+  // mark) by design, the same way a real film's logo bumper often is — ffmpeg's blackdetect can't
+  // tell that apart from a genuinely broken black frame, since its 98%-of-pixels-below-threshold
+  // rule doesn't care whether the non-black pixels are meaningful, only how many there are. The
+  // story content after the ident should never legitimately be black, so that's still checked.
+  const black = await run('ffmpeg', ['-hide_banner', '-ss', String(IDENT_DURATION_SECONDS), '-i', output, '-vf', 'blackdetect=d=0.5:pix_th=0.10', '-an', '-f', 'null', '-']);
   if (/black_start:\s*\d/m.test(black)) errors.push('black-frame interval detected by blackdetect');
 } catch (error) {
   errors.push(`black-frame check failed: ${error instanceof Error ? error.message : String(error)}`);
@@ -80,7 +93,7 @@ try {
 const report = {
   project_id: manifest.project_id,
   output,
-  expected: {width: 1080, height: 1920, fps: 30, duration_seconds: manifest.duration_seconds},
+  expected: {width: resolveOrientation(manifest).width, height: resolveOrientation(manifest).height, fps: 30, duration_seconds: manifest.duration_seconds},
   observed: {duration_seconds: duration, trailing_silence_seconds: trailingSilenceSeconds, video: video ? {width: video.width, height: video.height, fps: video.r_frame_rate, codec: video.codec_name} : null, audio: audio ? {codec: audio.codec_name, sample_rate: audio.sample_rate, channels: audio.channels} : null},
   errors,
   status: errors.length ? 'FAIL' : 'PASS',

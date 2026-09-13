@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useMemo} from 'react';
 import {AbsoluteFill, interpolate, staticFile, useCurrentFrame, useVideoConfig} from 'remotion';
 import {ProgressiveArtwork, subjectRelativeConstruction} from './artwork-construction';
 import {InkConstructionOverlay} from './InkConstructionOverlay';
@@ -31,7 +31,16 @@ export const DrawingStageTest: React.FC<DrawingStageTestProps> = ({masterPath = 
   // Environment establishes the world early, then stays subordinate while the character is drawn.
   const environmentProgress = phase(frame, fps, 0.35, 3.4);
   const masterSrc = staticFile(masterPath.replace(/^\/+/, ''));
-  const regions = subjectRelativeConstruction({focusX: 50, focusY: 42});
+  // Memoized so this array keeps one stable identity across the many frame-driven re-renders of
+  // this component (useCurrentFrame() changes every frame) — InkConstructionOverlay's tracing
+  // effect depends on `regions` by reference, and an unstable identity was restarting that effect
+  // on every single frame. A real render caught the actual consequence: the fast SVG-native tracing
+  // path (traceSvgArtwork) usually finished before the next reset and so looked fine, but the much
+  // slower raster skeletonization path (traceArtwork — full Zhang-Suen thinning over the whole
+  // trace canvas) never once completed in time, so a real character master's construction phase
+  // rendered as nothing at all until the pigment wash. ProductionDrawingTest.tsx already memoized
+  // this correctly; this file just hadn't been brought in line with it.
+  const regions = useMemo(() => subjectRelativeConstruction({focusX: 50, focusY: 42}), []);
 
   return (
     <AbsoluteFill style={{background: CREAM, color: INK, overflow: 'hidden'}}>

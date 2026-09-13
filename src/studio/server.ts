@@ -96,11 +96,12 @@ async function handle(req: IncomingMessage, res: ServerResponse) {
       if (body.format && !FORMAT_VALUES.includes(body.format as never)) return sendJson(res, 400, {error: `format must be one of ${FORMAT_VALUES.join('/')}`});
       const language = typeof body.language === 'string' && body.language ? body.language : 'hi-IN';
       if (language !== 'hi-IN') {
-        return sendJson(res, 400, {error: 'Only hi-IN is currently supported by the production pipeline (Chatterbox Hindi voice cloning). Other languages will be rejected by the existing pipeline\'s manifest validator.'});
+        return sendJson(res, 400, {error: 'Only hi-IN is currently supported by the production pipeline (both Hindi TTS engines, Chatterbox and VibeVoice Hindi 7B, are Hindi-only). Other languages will be rejected by the existing pipeline\'s manifest validator.'});
       }
       const defaultDuration = format === 'SHORT' ? 77 : 480;
       const target = Number(body.target_duration_seconds) || defaultDuration;
-      const files = await createProject({name: body.name, format, language, target_duration_seconds: target, platform_profiles: body.platform_profiles as string[] | undefined});
+      const voiceProvider = body.voice_provider === 'vibevoice' ? 'vibevoice' : 'chatterbox';
+      const files = await createProject({name: body.name, format, language, target_duration_seconds: target, platform_profiles: body.platform_profiles as string[] | undefined, voice_provider: voiceProvider});
       return sendJson(res, 201, files);
     }
 

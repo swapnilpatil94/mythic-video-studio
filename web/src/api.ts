@@ -1,7 +1,7 @@
-import type {ProductionManifest} from '../../src/pipeline/types';
+import type {ProductionManifest, TTSProviderId} from '../../src/pipeline/types';
 import type {ProjectMeta, Story, Script, Characters, Metadata, ProjectFormat} from '../../src/studio/schemas';
 
-export type {ProductionManifest, ProjectMeta, Story, Script, Characters, Metadata, ProjectFormat};
+export type {ProductionManifest, ProjectMeta, Story, Script, Characters, Metadata, ProjectFormat, TTSProviderId};
 
 export type ProjectSummary = {
   project_id: string;
@@ -40,7 +40,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const api = {
   listProjects: () => request<ProjectSummary[]>('/projects'),
-  createProject: (input: {name: string; format: ProjectFormat; language: string; target_duration_seconds: number; platform_profiles?: string[]}) =>
+  createProject: (input: {name: string; format: ProjectFormat; language: string; target_duration_seconds: number; platform_profiles?: string[]; voice_provider?: TTSProviderId}) =>
     request<ProjectFiles>('/projects', {method: 'POST', body: JSON.stringify(input)}),
   getProject: (id: string) => request<ProjectFiles>(`/projects/${encodeURIComponent(id)}`),
   deleteProject: (id: string) => request<{ok: true}>(`/projects/${encodeURIComponent(id)}`, {method: 'DELETE'}),

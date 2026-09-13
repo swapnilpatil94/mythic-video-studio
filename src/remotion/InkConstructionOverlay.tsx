@@ -78,6 +78,28 @@ function environmentStroke(stroke: Stroke, width: number, height: number) {
   const horizontal = stroke.width > Math.max(28, stroke.height * 5); const x = stroke.centerX / width; const y = stroke.centerY / height;
   return horizontal && y > 0.67 && x > 0.01 && x < 0.99 && stroke.length > 55;
 }
+// A finely detailed master (real authored/generated art, as opposed to the simple CI fallback
+// asset) produces hundreds of tiny, high-affinity fragments — a single jewelry bead or hair strand
+// can sit exactly on a named region's center point and so outrank a long, sweeping torso or limb
+// contour in a pure affinity sort, which only compares centroid distance, never stroke size. A
+// real render caught this directly: DrawingStageTest's default real character master showed
+// nothing recognizable at all until the pigment wash, because the "subject" tier that's supposed
+// to read as the protagonist early was almost entirely tiny fragments.
+//
+// The first attempt at this gate used the stroke's cumulative travel length (the "odometer"
+// distance walked along all its points) — but a real render disproved that too: a genuinely tiny,
+// jittery skeletonization artifact (fine hair/jewelry texture the Zhang-Suen thinning pass turned
+// into a wobbly zigzag) can rack up a long travel length while its actual bounding box stays a
+// handful of pixels across, confirmed directly by dumping a real "significant" stroke's mapped
+// coordinates: 51 points, all within a 4x3px box. Travel length measures how much the pen
+// wobbled, not how much space the stroke actually occupies on screen — bounding-box diagonal
+// (`width`/`height`, already computed for every stroke) is what actually correlates with visual
+// significance, so the gate uses that instead. `canvasSpan` normalizes this the same way for both
+// the raster trace canvas and an SVG's own native viewBox units.
+const SIGNIFICANT_STROKE_FRACTION = 0.035;
+function isSignificantStroke(width: number, height: number, canvasSpan: number) {
+  return Math.hypot(width, height) >= canvasSpan * SIGNIFICANT_STROKE_FRACTION;
+}
 function mapPoint(p: Point, naturalWidth: number, naturalHeight: number, boxWidth: number, boxHeight: number, fit: string, pos: {x: number; y: number}) {
   const scale = fit === 'cover' ? Math.max(boxWidth / naturalWidth, boxHeight / naturalHeight) : fit === 'contain' ? Math.min(boxWidth / naturalWidth, boxHeight / naturalHeight) : 1;
   return {x: ((p.x * scale + (boxWidth - naturalWidth * scale) * pos.x) / boxWidth) * 100, y: ((p.y * scale + (boxHeight - naturalHeight * scale) * pos.y) / boxHeight) * 100};
@@ -106,7 +128,7 @@ async function traceSvgArtwork(image: HTMLImageElement, regions: ConstructionReg
   host.innerHTML = root.innerHTML; document.body.appendChild(host);
   try {
     const rootMatrix = host.getScreenCTM(); if (!rootMatrix) return null; const elements = Array.from(host.querySelectorAll('path,line,polyline,polygon,circle,ellipse')) as SVGGeometryElement[];
-    const items: Array<{points: Point[]; affinity: number; environment: boolean; strokeWidth: number; sourceIndex: number}> = [];
+    const items: Array<{points: Point[]; affinity: number; environment: boolean; strokeWidth: number; sourceIndex: number; boundsWidth: number; boundsHeight: number}> = [];
     for (let index = 0; index < elements.length; index += 1) {
       const el = elements[index]; const cs = getComputedStyle(el); const opacity = Number.parseFloat(cs.opacity || '1'); const drawable = opacity > 0.05 && ((cs.stroke && cs.stroke !== 'none') || (cs.fill && cs.fill !== 'none')); if (!drawable) continue;
       const length = el.getTotalLength(); if (!Number.isFinite(length) || length < MIN_STROKE_LENGTH) continue; const matrix = el.getScreenCTM(); if (!matrix) continue; const relative = rootMatrix.inverse().multiply(matrix); const count = Math.max(10, Math.min(360, Math.ceil(length / 5))); const points: Point[] = [];
@@ -114,11 +136,12 @@ async function traceSvgArtwork(image: HTMLImageElement, regions: ConstructionReg
       const xs = points.map((p) => p.x), ys = points.map((p) => p.y); const min = {x: Math.min(...xs), y: Math.min(...ys)}, max = {x: Math.max(...xs), y: Math.max(...ys)}; const area = (max.x - min.x) * (max.y - min.y);
       if (area > nw * nh * 0.82 && min.x <= minX + nw * 0.05 && min.y <= minY + nh * 0.05 && max.x >= minX + nw * 0.95 && max.y >= minY + nh * 0.95) continue;
       const bounds: Stroke = {points: [{x: (min.x + max.x) / 2, y: (min.y + max.y) / 2}], length, centerX: (min.x + max.x) / 2, centerY: (min.y + max.y) / 2, width: max.x - min.x, height: max.y - min.y};
-      items.push({points, affinity: regionAffinity(bounds, regions, nw, nh), environment: environmentStroke(bounds, nw, nh), strokeWidth: Number.parseFloat(cs.strokeWidth || '8') || 8, sourceIndex: index});
+      items.push({points, affinity: regionAffinity(bounds, regions, nw, nh), environment: environmentStroke(bounds, nw, nh), strokeWidth: Number.parseFloat(cs.strokeWidth || '8') || 8, sourceIndex: index, boundsWidth: bounds.width, boundsHeight: bounds.height});
     }
     if (!items.length) return null;
-    items.sort((a, b) => { const as = a.affinity > 0.08 && !a.environment, bs = b.affinity > 0.08 && !b.environment; if (as !== bs) return as ? -1 : 1; return (b.affinity * 100 + Math.sqrt(b.points.length)) - (a.affinity * 100 + Math.sqrt(a.points.length)) || a.sourceIndex - b.sourceIndex; });
-    const subject = items.filter((i) => i.affinity > 0.08 && !i.environment).slice(0, MAX_STROKES); const support = items.filter((i) => !subject.includes(i)).slice(0, Math.max(0, MAX_STROKES - subject.length));
+    const canvasSpan = Math.min(nw, nh);
+    items.sort((a, b) => { const as = a.affinity > 0.08 && !a.environment && isSignificantStroke(a.boundsWidth, a.boundsHeight, canvasSpan), bs = b.affinity > 0.08 && !b.environment && isSignificantStroke(b.boundsWidth, b.boundsHeight, canvasSpan); if (as !== bs) return as ? -1 : 1; return (b.affinity * 100 + Math.sqrt(b.points.length)) - (a.affinity * 100 + Math.sqrt(a.points.length)) || a.sourceIndex - b.sourceIndex; });
+    const subject = items.filter((i) => i.affinity > 0.08 && !i.environment && isSignificantStroke(i.boundsWidth, i.boundsHeight, canvasSpan)).slice(0, MAX_STROKES); const support = items.filter((i) => !subject.includes(i)).slice(0, Math.max(0, MAX_STROKES - subject.length));
     const convert = (i: typeof items[number]) => ({points: i.points, affinity: i.affinity, environment: i.environment, strokeWidth: i.strokeWidth});
     return [...schedule(subject.map(convert), image, 0.01, SUBJECT_REVEAL_END), ...schedule(support.map(convert), image, SUBJECT_REVEAL_END + 0.015, FULL_REVEAL_END)];
   } finally { host.remove(); }
@@ -130,9 +153,21 @@ function traceArtwork(image: HTMLImageElement, regions: ConstructionRegion[]): C
   ctx.drawImage(image, 0, 0, width, height); const pixels = ctx.getImageData(0, 0, width, height).data; const inkMask = new Uint8Array(width * height);
   for (let y = 1; y < height - 1; y += 1) for (let x = 1; x < width - 1; x += 1) { const i = (y * width + x) * 4; const r = pixels[i], g = pixels[i + 1], b = pixels[i + 2], a = pixels[i + 3]; const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b; const chroma = Math.max(r, g, b) - Math.min(r, g, b); if (a > 32 && ((lum < 185 && chroma < 115) || lum < 118)) inkMask[y * width + x] = 1; }
   const skeleton = skeletonize(inkMask, width, height); const strokes = traceSkeletonStrokes(skeleton, width, height).slice(0, MAX_STROKES); if (!strokes.length) throw new Error('Master artwork produced no centerline strokes');
-  const enriched = strokes.map((stroke) => ({stroke, affinity: regionAffinity(stroke, regions, width, height), environment: environmentStroke(stroke, width, height)})); const subject = enriched.filter((e) => e.affinity > 0.08 && !e.environment).sort((a, b) => b.affinity - a.affinity || b.stroke.length - a.stroke.length); const support = enriched.filter((e) => !subject.includes(e)).sort((a, b) => b.stroke.length - a.stroke.length);
-  const style = getComputedStyle(image); const fit = style.objectFit || 'fill'; const pos = parseObjectPosition(style.objectPosition || '50% 50%'); const bw = Math.max(1, image.clientWidth), bh = Math.max(1, image.clientHeight);
-  const convert = (e: typeof enriched[number]) => ({points: e.stroke.points.map((p) => mapPoint({x: p.x / width * naturalWidth, y: p.y / height * naturalHeight}, naturalWidth, naturalHeight, bw, bh, fit, pos)), affinity: e.affinity, environment: e.environment, strokeWidth: 8});
+  const enriched = strokes.map((stroke) => ({stroke, affinity: regionAffinity(stroke, regions, width, height), environment: environmentStroke(stroke, width, height)}));
+  const canvasSpan = Math.min(width, height);
+  const subject = enriched.filter((e) => e.affinity > 0.08 && !e.environment && isSignificantStroke(e.stroke.width, e.stroke.height, canvasSpan)).sort((a, b) => b.affinity - a.affinity || b.stroke.length - a.stroke.length);
+  const support = enriched.filter((e) => !subject.includes(e)).sort((a, b) => b.stroke.length - a.stroke.length);
+  // `schedule()` (below) maps every point from natural-image pixel space into percentage-of-box
+  // space via `mapPoint` itself — that's the one and only mapping pass, the same contract
+  // `traceSvgArtwork`'s own `convert` already follows (it hands `schedule()` raw SVG viewBox-space
+  // points, untouched). This `convert` must only rescale from the downsampled trace canvas up to
+  // natural-image pixel space, nothing more. A real render caught the bug this comment now guards
+  // against: this used to *also* call `mapPoint` right here, before `schedule()` called it a
+  // second time on the result — double-mapping collapsed almost every stroke's points toward a
+  // single small cluster near the image's edge, which is exactly why a real detailed master's
+  // construction phase rendered as one small blob instead of a spread-out recognizable figure,
+  // confirmed by isolating every stroke as a bold, undashed line and watching only one ever paint.
+  const convert = (e: typeof enriched[number]) => ({points: e.stroke.points.map((p) => ({x: p.x / width * naturalWidth, y: p.y / height * naturalHeight})), affinity: e.affinity, environment: e.environment, strokeWidth: 8});
   return [...schedule(subject.map(convert), image, 0.01, SUBJECT_REVEAL_END), ...schedule(support.map(convert), image, SUBJECT_REVEAL_END + 0.015, FULL_REVEAL_END)];
 }
 
@@ -141,5 +176,6 @@ function StrokeView({path, progress}: {path: ContourPath; progress: number}) { c
 export function InkConstructionOverlay({regions, progress, opacity = 1, showGuide = true}: {regions: ConstructionRegion[]; progress: number; opacity?: number; showGuide?: boolean}) {
   const svgRef = useRef<SVGSVGElement | null>(null); const [paths, setPaths] = useState<ContourPath[] | null>(null); const [geometry, setGeometry] = useState<Geometry>({transform: 'none', transformOrigin: '50% 50%'}); const {delayRender, continueRender, cancelRender} = useDelayRender(); const [handle] = useState(() => delayRender('Tracing master artwork centerline strokes', {retries: 2}));
   useEffect(() => { let cancelled = false; let raf: number | null = null; let timeout: ReturnType<typeof setTimeout> | null = null; const started = Date.now(); const parent = svgRef.current?.parentElement; const fail = (e: Error) => { if (!cancelled) cancelRender(e); }; const ready = () => { if (cancelled) return; const image = parent?.querySelector('img'); if (!image) { if (Date.now() - started > MAX_WAIT_MS) fail(new Error('InkConstructionOverlay could not find the master artwork <img>')); else raf = requestAnimationFrame(ready); return; } const finish = async () => { if (cancelled) return; try { const traced = await traceSvgArtwork(image, regions); setPaths(traced ?? traceArtwork(image, regions)); const style = getComputedStyle(image); setGeometry({transform: style.transform === 'none' ? 'none' : style.transform, transformOrigin: style.transformOrigin || '50% 50%'}); continueRender(handle); } catch (e) { cancelRender(e); } }; if (image.complete && image.naturalWidth > 0) void finish(); else image.addEventListener('load', () => void finish(), {once: true}); timeout = setTimeout(() => { if (!image.complete || image.naturalWidth === 0) fail(new Error('Master artwork did not finish loading for centerline tracing')); }, MAX_WAIT_MS); }; ready(); return () => { cancelled = true; if (raf !== null) cancelAnimationFrame(raf); if (timeout !== null) clearTimeout(timeout); continueRender(handle); }; }, [cancelRender, continueRender, handle, regions]);
-  if (!regions.length) return null; const p = clamp01(progress); return <svg ref={svgRef} viewBox="0 0 100 100" preserveAspectRatio="none" width="100%" height="100%" style={{position: 'absolute', inset: 0, pointerEvents: 'none', opacity, transform: geometry.transform, transformOrigin: geometry.transformOrigin}} aria-hidden>{showGuide && <g opacity={0.11 * (1 - p)}><ellipse cx="50" cy="27" rx="18" ry="13.5" fill="none" stroke={GOLD} strokeWidth="0.48" strokeDasharray="1.2 2.8"/><path d="M50 8 C48 28 52 52 50 94" fill="none" stroke={GOLD} strokeWidth="0.36" strokeDasharray="1.2 3"/><path d="M25 41 Q50 35 75 41" fill="none" stroke={GOLD} strokeWidth="0.34" strokeDasharray="1 2.5"/></g>}{paths?.map((path, i) => <StrokeView key={i} path={path} progress={p}/>)}</svg>;
+  if (!regions.length) return null; const p = clamp01(progress);
+  return <svg ref={svgRef} viewBox="0 0 100 100" preserveAspectRatio="none" width="100%" height="100%" style={{position: 'absolute', inset: 0, pointerEvents: 'none', opacity, transform: geometry.transform, transformOrigin: geometry.transformOrigin}} aria-hidden>{showGuide && <g opacity={0.11 * (1 - p)}><ellipse cx="50" cy="27" rx="18" ry="13.5" fill="none" stroke={GOLD} strokeWidth="0.48" strokeDasharray="1.2 2.8"/><path d="M50 8 C48 28 52 52 50 94" fill="none" stroke={GOLD} strokeWidth="0.36" strokeDasharray="1.2 3"/><path d="M25 41 Q50 35 75 41" fill="none" stroke={GOLD} strokeWidth="0.34" strokeDasharray="1 2.5"/></g>}{paths?.map((path, i) => <StrokeView key={i} path={path} progress={p}/>)}</svg>;
 }

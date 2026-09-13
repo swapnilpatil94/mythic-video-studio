@@ -2,6 +2,7 @@ import {existsSync} from 'node:fs';
 import {mkdir, readFile, writeFile} from 'node:fs/promises';
 import {basename, dirname, join} from 'node:path';
 import {runCommand} from './adapters/command';
+import {commandArgs, resolveTTSProvider, selectedTTSProviderId, TTS_PROVIDER_LABELS} from './pipeline/tts-provider';
 import type {ProductionManifest} from './pipeline/types';
 
 const input = process.argv[2] ?? 'examples/karna-short.json';
@@ -12,8 +13,8 @@ const logsDir = join(root, 'logs');
 await mkdir(audioDir, {recursive: true});
 await mkdir(logsDir, {recursive: true});
 
-const command = (process.env.TTS_COMMAND ?? process.env.CHATTERBOX_COMMAND)?.trim();
-const argsTemplate = (process.env.TTS_ARGS ?? process.env.CHATTERBOX_ARGS ?? '').trim();
+const providerId = selectedTTSProviderId(manifest);
+const provider = resolveTTSProvider(manifest);
 const strict = process.env.REQUIRE_TTS === '1';
 const outputPath = manifest.audio?.narration_path ?? join(audioDir, 'narration.wav');
 
@@ -26,12 +27,13 @@ const narration = manifest.beats.map((beat) => ({
 
 const scriptPath = join(logsDir, 'narration-job.json');
 const job = {
+  provider: providerId,
   project_id: manifest.project_id,
   language: manifest.language,
   title: manifest.title,
   output_path: outputPath,
-  voice: process.env.TTS_VOICE ?? process.env.CHATTERBOX_VOICE ?? '',
-  reference_audio: process.env.TTS_REFERENCE_AUDIO ?? process.env.CHATTERBOX_REFERENCE_AUDIO ?? '',
+  voice: provider?.voice ?? '',
+  reference_audio: provider?.referenceAudio ?? '',
   target_duration_seconds: manifest.duration_seconds,
   segments: narration,
 };
@@ -49,25 +51,20 @@ if (narration.length === 0) {
   process.exit(0);
 }
 
-if (!command) {
-  const message = 'TTS_COMMAND/CHATTERBOX_COMMAND is not configured.';
+if (!provider) {
+  const envHint = providerId === 'vibevoice' ? 'VIBEVOICE_COMMAND' : 'TTS_COMMAND/CHATTERBOX_COMMAND';
+  const message = `${TTS_PROVIDER_LABELS[providerId]} is selected but ${envHint} is not configured.`;
   if (strict) throw new Error(message);
   console.warn(`[voice] ${message}`);
   console.warn(`[voice] Job written to ${scriptPath}`);
   process.exit(0);
 }
 
-function commandArgs(template: string): string[] {
-  return template.split(/\s+/).filter(Boolean).map((token) => token
-    .replaceAll('{job}', scriptPath)
-    .replaceAll('{output}', outputPath));
-}
-
-console.log(`[voice] generating narration (${narration.length} segments)`);
-const result = await runCommand(command, [...commandArgs(argsTemplate), JSON.stringify(job)]);
+console.log(`[voice] generating narration via ${provider.label} (${narration.length} segments)`);
+const result = await runCommand(provider.command, [...commandArgs(provider.argsTemplate, {job: scriptPath, output: outputPath}), JSON.stringify(job)]);
 if (result.code !== 0 || !existsSync(outputPath)) {
   console.error(result.stderr.trim() || result.stdout.trim());
-  throw new Error(`TTS generation failed or did not create ${outputPath}`);
+  throw new Error(`${provider.label} generation failed or did not create ${outputPath}`);
 }
 
 console.log(`[voice] ready: ${outputPath}`);

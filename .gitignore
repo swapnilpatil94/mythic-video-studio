@@ -15,3 +15,8 @@ logs/
 web/dist/
 public/generated/
 public/audio/
+benchmarks/tts/runs/
+tools/models/
+tools/vibevoice-model/
+tools/vibevoice-repo/
+tools/vibevoice-venv/

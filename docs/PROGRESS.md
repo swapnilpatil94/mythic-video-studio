@@ -1,5 +1,142 @@
 # Progress
 
+## 2026-09-11 (later) — real per-part 2D character animation (puppet warp), wired into production
+
+Brief: the karna-kavacha-ui-short Short produced earlier this session (via the Studio UI, with a
+real neuromarketing/retention critique delivered against the actual rendered output) was camera
+pan/zoom/sway over static art, not character animation — called out directly by the user ("can u
+make this to the 2d animation? i dont see it"), with explicit authority to change architecture as
+needed. Real ML pose-detection (MediaPipe's pose landmarker, the same model class tools like
+Stretchy Studio's auto-rigger use) was tried directly against this project's own hand-inked master
+assets first and found zero landmarks — these models are trained on photographs and don't register
+ink-illustration figures as people at all, a genuine negative result reported as such rather than
+worked around. Rigid rectangular cutout puppetry was ruled out in reasoning before writing code:
+this art's raised arm, weapon and hair overlap the torso in screen-space, so independent rigid
+layers would show a hard seam the moment they moved. Settled on an animated `feDisplacementMap`
+("puppet warp" — the same primitive behind Photoshop's Puppet Warp), which locally displaces a flat
+master's own pixels around authored pivot points, falling off smoothly with distance — real
+localized motion with no separate layers and no seam, because nothing is actually cut apart.
+
+**The mechanism looked broken through four different failure modes before it actually was fixed**,
+each one worth recording because each produced a *plausible-looking, clean render with zero visible
+motion* — the dangerous failure mode, since "no crash, no error, unchanged output" reads as
+"nothing's wrong" unless checked against a real diff:
+
+1. Wrong zero-displacement baseline (used channel value 50 instead of the SVG-spec-correct 127.5)
+   plus opacity-based falloff (feDisplacementMap reads raw un-premultiplied color, so fading a
+   region's edge via alpha never actually reaches "no displacement" underneath) — together produced
+   a harsh, uniform artifact across the whole image, later corrected to a baseline value but still
+   showing **zero real motion**, not caught until directly diffing extracted frames pixel-by-pixel
+   (two frames three seconds apart were byte-identical).
+2. A gradient-filled `<rect>` placed directly inside `<filter>` as if it were a primitive — invalid
+   per spec (`<filter>` only accepts actual `fe*` primitives) and silently dropped by Chromium.
+   Confirmed with an isolated three-way test page (`feImage href`, `feImage xlink:href`, bare
+   `<rect>`): both `feImage` variants rendered correctly, the bare rect rendered nothing.
+3. `feImage`'s `x/y/width/height` do not rescale a referenced plain-shape element the way they
+   rescale a raster image — a gradient authored as a 1×1 unit square and told to stretch to fill the
+   canvas instead rendered at its literal 1px size, confirmed by swapping the filter's own final
+   stage to output the built map as visible color and screenshotting it (blank).
+4. The actual root cause, after all of the above were genuinely fixed: Chromium silently no-ops
+   `feDisplacementMap` whenever its input traces back to an `feImage` at all — confirmed with three
+   live DOM tests in a real running Remotion Studio preview (the same map worked as a direct filter
+   *output*, but produced nothing as `feDisplacementMap`'s `in2`; a single un-composited `feImage`
+   alone also produced nothing; a plain `feFlood` worked immediately). This lines up with `feImage`
+   content getting the same cross-origin-style "tainted" treatment hit directly as a `SecurityError`
+   on `canvas.getImageData` earlier in the same debugging session — `feDisplacementMap` leaks its
+   input's pixel values through the shape of its own output, exactly the side channel tainting
+   exists to block. Fixed by rebuilding the radial falloff from only native, non-tainting primitives
+   (`feFlood` + `feComposite operator="over"` + `feGaussianBlur` — painting an opaque peak-colored
+   square over an opaque neutral background and blurring the whole opaque composite, so the blur
+   smooths color values, never alpha).
+
+**Verified for real, not just architecturally**: fresh uncompressed PNG stills (not video-compressed
+frames, which can mask sub-pixel motion) rendered at frames 0/45/90 of an isolated `PuppetTest`
+composition show real, independent, localized motion — hair sways, the raised arm shifts, the torso
+breathes — confirmed both by pixel diffing (86k+ changed pixels, correctly localized to the
+character's own bounding box) and by direct visual inspection of cropped frames side by side.
+
+**Wired into the real production composition** (`MythicShort.tsx`'s `FramedLayer`, gated by a new
+`src/remotion/puppet-regions.ts` lookup keyed by asset ref — only `karna.master` has authored
+regions so far): puppet warp now drives every non-introductory appearance of Karna's master art, on
+top of the existing camera pan/zoom/sway, unchanged. It deliberately does **not** apply during a
+character's construction-drawing reveal beat — `InkConstructionOverlay` traces stroke geometry off
+a real `<img>` DOM element via `querySelector('img')`, and `CutoutPuppet` renders an SVG `<image>`
+instead, which broke that lookup outright when tried together (verified: threw immediately). The
+full `karna-kavacha-ui-short` project was re-rendered end to end with this live and spot-checked
+against the delivered MP4, not just the isolated test composition.
+
+**Honest limitations**: only Karna has authored puppet regions (`indra.master` still uses the
+original static/camera-only path); region placement is hand-eyeballed against the master's own
+pixel geometry, the same convention `subjectRelativeConstruction` already uses, not derived from any
+automatic segmentation; the four-bug debugging arc above consumed most of this session's effort and
+a second character's regions were not attempted.
+
+## 2026-09-11 (PR #5 continued) — both drawing-engine defects genuinely fixed, TTS provider abstraction + VibeVoice Hindi 7B
+
+Brief: continuing `fix/cinematic-drawing-timeline` per the KATHAAYA 2D-movie-engine spec's own
+priority order — P0 (current visual correctness) first, then P1 (audio/TTS architecture). Render →
+inspect → fix → rerender throughout; several fixes only landed because a real rerender contradicted
+what an already-passing static check claimed.
+
+**P0 — rectangular master-paper boundary, actually fixed this time**: the PR's existing
+`mixBlendMode: "darken"` "fix" (and the static check that reported it present) still showed a
+clean, hard rectangular seam on a real rerender — darken only `min()`s color channels against
+whatever's behind the master, which can't remove a seam wherever the backdrop happens to be
+*lighter* than the master's own paper. Replaced with a real fix: a `feColorMatrix`+`feComposite`
+SVG filter that keys the master's bright paper tone to true alpha=0 by luminance threshold, gated
+by a new runtime probe (`useNeedsPaperNormalization`) that only applies it to masters that don't
+already have real transparency — checked directly against a real production character master
+(`karna-karna.png`, already background-removed via `rembg`) and found the filter would otherwise
+have erased ~48% of its own correct opaque pixels (white/cream drapery sits in the same luminance
+band as paper). Verified clean on both the CI fallback SVG and the real PNG master.
+
+**P0 — raster master construction-stroke invisibility — found and genuinely fixed**: a real
+production character master showed literally nothing during its construction phase, just blank
+parchment fading straight into the finished pigment wash. Fixed two real contributing issues along
+the way (pure-affinity stroke ordering let hundreds of tiny skeletonization fragments outrank
+actual silhouette contours; the size gate for that was first measured by cumulative travel length,
+which a jittery noise artifact can rack up while staying spatially tiny — switched to bounding-box
+extent) plus a `useMemo` fix for consistency with `ProductionDrawingTest.tsx` — none of these were
+the actual root cause. Direct isolation testing (rendering every stroke as a bold undashed red
+line, bypassing the whole dash-reveal mechanism, checked all the way out to the last frame of the
+timeline to rule out timing) kept showing only one stroke ever painting despite ~50 "subject"
+strokes with confirmed-correct positions in their own pre-mapped coordinates — the tell. Found it:
+`traceArtwork`'s `convert()` was calling `mapPoint()` to map trace-canvas points into
+percentage-of-box space, then handing that *already-mapped* result to `schedule()`, which maps
+every point into percentage-of-box space itself as its own canonical pass — double-mapping
+collapsed nearly every stroke toward one near-constant point. `traceSvgArtwork` never had this bug
+(it correctly hands `schedule()` raw, un-mapped points). Fixed by removing the premature mapping
+call; verified immediately via the red-line isolation test (strokes now spread correctly across the
+real character's silhouette) and again on a full real render with proper ink styling: the intended
+`parchment -> construction -> recognizable protagonist (~6s) -> denser linework -> pigment wash`
+progression genuinely works now, not just claimed. SVG-fallback path reconfirmed clean, no
+regression (it was never touched by this fix).
+
+**P1 — TTS provider abstraction, Chatterbox + VibeVoice Hindi 7B, both coexisting**:
+`src/pipeline/tts-provider.ts` resolves a provider (manifest's `audio.provider` → `TTS_PROVIDER` env
+var → `chatterbox` default, never silently removed) using the *existing* job-JSON contract, so
+`generate-voice.ts`'s actual generation logic didn't need to change — only which command runs.
+`tools/vibevoice_tts.py` is a second real adapter against VibeVoice's documented CLI contract
+(speaker-attributed script file + registered reference voice + `demo/inference_from_file.py`,
+device auto-resolving cuda→mps→cpu); honestly unverified end-to-end since this machine has no
+NVIDIA GPU and a 7B-parameter local run was outside this session's practical budget. Studio UI gets
+a "Voice Engine" selector in both `NewProjectModal.tsx` and a new `ProductionTab.tsx` card, synced
+through `project.json`'s `voice_provider` into `manifest.json`'s `audio.provider` (which is what
+`generate-voice.ts` and a standalone `run.sh <manifest.json>` actually read). New
+`src/check-tts-provider.ts` (wired into CI) covers selection priority and provider isolation. New
+`src/benchmark-tts.ts` + `benchmarks/tts/fixtures/` is a reproducible A/B harness (spec section 23)
+using real reused narration text — **verified working end-to-end**: a real run against this
+machine's actually-configured Chatterbox adapter completed for both fixtures (short: 116.7s to
+generate a 24.7s clip at ~163 WPM, no clipping, no significant dead air; longform similarly clean),
+real WAV files and a real `summary.json` produced; it deliberately does not fake-score
+pronunciation/voice-similarity/naturalness (those need a human listening) and instead writes a
+`README.md` per run telling a reviewer what to listen for, alongside what it does measure
+objectively (generation time, duration, WPM, clipping, dead air).
+
+**Honest limitations**: VibeVoice not run end-to-end on real hardware; P2 (directorial automation,
+automated QA loop, Scene Graph, camera engine formalization) not started — see `docs/STATUS.md` for
+the full breakdown.
+
 ## 2026-09-07 (real shot-grammar pass) — 3 asset-ghosting bugs traced and fixed, real logo wired
 
 Brief: continuation of the cinematic pass below — real shot GRAMMAR (wide/close/detail/two-shot as
