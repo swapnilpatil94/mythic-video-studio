@@ -154,6 +154,22 @@ function gestureLocalProgress(progress: number, active: boolean): number | undef
   return clamp01((progress - GESTURE_WINDOW_START) / (GESTURE_WINDOW_END - GESTURE_WINDOW_START));
 }
 
+/**
+ * A small, motivated camera push synced to a gesture's own action phase — "character + camera"
+ * moving together for the one moment in a beat that's actually about the character doing
+ * something, rather than the limb displacement alone having to carry "this character is acting"
+ * on its own. Peaks at the same point gestureArcEase's own overshoot does (~55% through the
+ * gesture window) and settles back by the gesture's own end, so the two read as one directed beat,
+ * not two independent animations that happen to overlap. Deliberately small (a few percent) — this
+ * reinforces the gesture, it isn't itself a push_in/pull_back-scale camera move.
+ */
+function gestureZoomPush(gestureProgress: number | undefined): number {
+  if (gestureProgress === undefined) return 1;
+  const p = clamp01(gestureProgress);
+  if (p < 0.55) return 1 + (p / 0.55) * 0.035;
+  return 1 + (1 - (p - 0.55) / 0.45) * 0.035;
+}
+
 function mainShotVisibility(progress: number, hasDetail: boolean): number {
   if (!hasDetail) return 1;
   if (progress < DETAIL_START - DETAIL_CUT_WIDTH) return 1;
@@ -301,7 +317,8 @@ function GeneratedArtwork({beat, progress, beatIndex, format, variant, assetKind
       const isIntroduction = cutIndex === 0 && firstAppearanceBeat[ref] === beatIndex;
       const reveal = isIntroduction ? revealProgress(staggered, Math.min(revealF, segDur * 0.85)) : undefined;
       const regions = isIntroduction ? subjectRelativeConstruction({focusX: subShot.focusX, focusY: subShot.focusY}) : undefined;
-      return <FramedLayer key={`${beat.beat_id}-${ref}`} src={staticFile(runtimeAssets[ref])} fit="contain" zoom={Math.min(subShot.zoom * cutSnapZoom(segLocal), 1.3)} focusY={subShot.focusY} focusX={leftSide ? 38 : 62} camera={camera} depth={0.72 - index * 0.06} progress={progress} direction={direction} reveal={reveal} opacity={entranceExitOpacity(staggered) * cutFlashOpacity(segLocal, cutIndex) * mainShotVisibility(staggered, hasDetail)} shiftY={entranceExitShiftY(staggered)} sway={1.35 * format.swayScale} swayX={30} swayY={26} cameraWeight={cameraWeight} idleScale={format.idleAmpScale} seed={`${beat.beat_id}-${ref}`} showPen={index === 0 && isIntroduction} constructionRegions={regions} puppetRef={ref} gestureProgress={gestureLocalProgress(staggered, gestureActive)} box={{left: leftSide ? '-8%' : '38%', width: '70%', top: '12%', bottom: '2%'}}/>;
+      const gestureProgress = gestureLocalProgress(staggered, gestureActive);
+      return <FramedLayer key={`${beat.beat_id}-${ref}`} src={staticFile(runtimeAssets[ref])} fit="contain" zoom={Math.min(subShot.zoom * cutSnapZoom(segLocal) * gestureZoomPush(gestureProgress), 1.3)} focusY={subShot.focusY} focusX={leftSide ? 38 : 62} camera={camera} depth={0.72 - index * 0.06} progress={progress} direction={direction} reveal={reveal} opacity={entranceExitOpacity(staggered) * cutFlashOpacity(segLocal, cutIndex) * mainShotVisibility(staggered, hasDetail)} shiftY={entranceExitShiftY(staggered)} sway={1.35 * format.swayScale} swayX={30} swayY={26} cameraWeight={cameraWeight} idleScale={format.idleAmpScale} seed={`${beat.beat_id}-${ref}`} showPen={index === 0 && isIntroduction} constructionRegions={regions} puppetRef={ref} gestureProgress={gestureProgress} box={{left: leftSide ? '-8%' : '38%', width: '70%', top: '12%', bottom: '2%'}}/>;
     }) : null}
 
     {characters.length >= 2 ? <div style={{position: 'absolute', left: '50%', top: '7%', bottom: '7%', width: 2, background: INK, opacity: entranceExitOpacity(progress) * 0.22 * mainVisible}}/> : null}
@@ -314,7 +331,8 @@ function GeneratedArtwork({beat, progress, beatIndex, format, variant, assetKind
       const reveal = isIntroduction ? revealProgress(progress, Math.min(revealF, segDur * 0.85)) : undefined;
       const regions = isIntroduction ? subjectRelativeConstruction({focusX: subShot.focusX, focusY: subShot.focusY}) : undefined;
       const layerOpacity = entranceExitOpacity(progress) * cutFlashOpacity(segLocal, cutIndex) * mainVisible;
-      return <React.Fragment key={`${beat.beat_id}-${ref}-frame`}><FramedLayer key={`${beat.beat_id}-${ref}`} src={staticFile(runtimeAssets[ref])} fit={fullBleed ? 'cover' : 'contain'} zoom={subShot.zoom * cutSnapZoom(segLocal)} focusY={subShot.focusY} focusX={subShot.focusX} camera={camera} depth={0.68} progress={progress} direction={direction} reveal={reveal} opacity={layerOpacity} shiftY={entranceExitShiftY(progress)} sway={2.1 * format.swayScale} swayX={28} swayY={24} cameraWeight={cameraWeight} idleScale={format.idleAmpScale} seed={`${beat.beat_id}-${ref}`} showPen={isIntroduction} constructionRegions={regions} puppetRef={ref} gestureProgress={gestureLocalProgress(progress, gestureActive)} box={fullBleed ? undefined : {left: beatIndex % 2 === 1 ? '2%' : '26%', width: '72%', top: '8%', bottom: '0%'}}/><ShotFrameTreatment label={subShot.label} opacity={layerOpacity}/></React.Fragment>;
+      const gestureProgress = gestureLocalProgress(progress, gestureActive);
+      return <React.Fragment key={`${beat.beat_id}-${ref}-frame`}><FramedLayer key={`${beat.beat_id}-${ref}`} src={staticFile(runtimeAssets[ref])} fit={fullBleed ? 'cover' : 'contain'} zoom={subShot.zoom * cutSnapZoom(segLocal) * gestureZoomPush(gestureProgress)} focusY={subShot.focusY} focusX={subShot.focusX} camera={camera} depth={0.68} progress={progress} direction={direction} reveal={reveal} opacity={layerOpacity} shiftY={entranceExitShiftY(progress)} sway={2.1 * format.swayScale} swayX={28} swayY={24} cameraWeight={cameraWeight} idleScale={format.idleAmpScale} seed={`${beat.beat_id}-${ref}`} showPen={isIntroduction} constructionRegions={regions} puppetRef={ref} gestureProgress={gestureProgress} box={fullBleed ? undefined : {left: beatIndex % 2 === 1 ? '2%' : '26%', width: '72%', top: '8%', bottom: '0%'}}/><ShotFrameTreatment label={subShot.label} opacity={layerOpacity}/></React.Fragment>;
     }) : null}
 
     {detail ? (() => {

@@ -39,7 +39,8 @@
     "friction:prepare": "tsx src/prepare-friction.ts",
     "friction:check": "tsx src/check-friction.ts",
     "check:tts-provider": "tsx src/check-tts-provider.ts",
-    "benchmark:tts": "tsx src/benchmark-tts.ts"
+    "benchmark:tts": "tsx src/benchmark-tts.ts",
+    "check:character-animation-backend": "tsx src/check-character-animation-backend.ts"
   },
   "dependencies": {
     "@remotion/cli": "^4.0.520",

@@ -143,9 +143,18 @@ function buildDisplacementFilter(
     // region keeps behaving exactly as authored, gesture or no gesture, which is what keeps this
     // change additive rather than a rewrite of the existing idle-motion system.
     if (gestureProgress !== undefined && i === gestureRegionIndex) {
+      // A director-triggered gesture is the one moment in a beat meant to read as "this character
+      // is doing something with intent" — verified on a real render that the region's own authored
+      // idle `strength` (tuned for a subtle, ambient sway) made the actual arm displacement too
+      // marginal to confidently call "visible" at normal playback, even though the anticipation/
+      // action/settle curve itself was firing correctly. GESTURE_STRENGTH_BOOST is deliberately
+      // only applied here, not to idle sway/breathe — the spec this serves draws a real line
+      // between "restrained ambient life" and "a character must visibly react", and conflating the
+      // two by boosting idle motion instead would just make every beat busier.
       const eased = gestureArcEase(gestureProgress);
-      dx = eased * region.strength;
-      dy = -eased * region.strength * 0.6;
+      const GESTURE_STRENGTH_BOOST = 1.7;
+      dx = eased * region.strength * GESTURE_STRENGTH_BOOST;
+      dy = -eased * region.strength * 0.6 * GESTURE_STRENGTH_BOOST;
     } else if (region.motion === 'sway') {
       dx = Math.sin(t) * region.strength;
       dy = Math.cos(t * 0.6) * region.strength * 0.35;
