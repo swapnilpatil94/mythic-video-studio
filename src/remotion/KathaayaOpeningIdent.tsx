@@ -18,20 +18,26 @@ const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
  * Timing (30fps, ~3s total): ink field settles in → a hand-drawn seal ring draws itself → the
  * wordmark and tagline resolve out of an ink-bleed blur → a brief hold → fades to black, which the
  * story then cuts in under (see KathaayaFeature.tsx's <Series>).
+ *
+ * `compact` plays the exact same beats on a compressed timeline (see `shared/ident.ts` for why
+ * Shorts need this) rather than a separately-designed short version — scaling every keyframe by
+ * the same factor `k` keeps the ring-draw/wordmark-resolve/tagline/hold-out shape intact, just
+ * faster, instead of truncating it mid-animation (which would cut the ring off half-drawn).
  */
-export function KathaayaOpeningIdent() {
+export function KathaayaOpeningIdent({compact = false}: {compact?: boolean} = {}) {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const t = frame / fps;
+  const k = compact ? 0.2 : 1;
 
-  const fieldIn = interpolate(t, [0, 0.25], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
-  const ringProgress = clamp01(interpolate(t, [0.35, 1.35], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'}));
-  const flourishProgress = clamp01(interpolate(t, [1.0, 1.7], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'}));
-  const wordScale = spring({frame: frame - 0.85 * fps, fps, config: {damping: 14, stiffness: 90, mass: 0.8}});
-  const wordOpacity = interpolate(t, [0.85, 1.25], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
-  const wordBlur = interpolate(t, [0.85, 1.4], [10, 0], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
-  const taglineOpacity = interpolate(t, [1.5, 1.9], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
-  const holdOut = interpolate(t, [2.55, 2.95], [1, 0], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const fieldIn = interpolate(t, [0, 0.25 * k], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const ringProgress = clamp01(interpolate(t, [0.35 * k, 1.35 * k], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'}));
+  const flourishProgress = clamp01(interpolate(t, [1.0 * k, 1.7 * k], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'}));
+  const wordScale = spring({frame: frame - 0.85 * k * fps, fps, config: compact ? {damping: 14, stiffness: 260, mass: 0.4} : {damping: 14, stiffness: 90, mass: 0.8}});
+  const wordOpacity = interpolate(t, [0.85 * k, 1.25 * k], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const wordBlur = interpolate(t, [0.85 * k, 1.4 * k], [10, 0], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const taglineOpacity = interpolate(t, [1.5 * k, 1.9 * k], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const holdOut = interpolate(t, [2.55 * k, 2.95 * k], [1, 0], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
 
   return (
     <AbsoluteFill style={{backgroundColor: INK}}>

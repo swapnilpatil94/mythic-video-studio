@@ -186,6 +186,21 @@ export function keywordFor(role: string): string | undefined {
   return KEYWORD_BY_ROLE[role];
 }
 
+/**
+ * Director default: which beats get a one-shot anticipation/action/settle gesture (see
+ * CutoutPuppet's gestureArcEase and puppet-regions.ts's gestureRegionIndex) instead of pure
+ * continuous idle sway. Kept to roles whose narrative beat is actually ABOUT a character doing
+ * something with their hands — reaching, offering, taking, saving — rather than every beat a
+ * character appears in; a gesture firing on every appearance would stop reading as a deliberate
+ * moment and become exactly the kind of unmotivated motion the spec explicitly rules out ("every
+ * animation must answer: why is this moving?"). Same substring-matching convention as
+ * `cameraForRole` in motion.ts, so an unfamiliar story's own role vocabulary still gets this for
+ * free when it fits.
+ */
+export function gestureTriggersFor(role: string): boolean {
+  return /decision|sacrifice|request|rescue|reach|offer|surrender|grant/.test(role.toLowerCase());
+}
+
 // Short, high-frequency Hindi function words — excluded when picking the "important" word out of
 // real speech so the kinetic flourish lands on a content word (a noun/concept) instead of a
 // grammatical particle that happens to be a similar length.

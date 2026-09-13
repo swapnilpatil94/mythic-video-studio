@@ -10,8 +10,8 @@ import {CutoutPuppet} from './CutoutPuppet';
 import {PUPPET_REGIONS} from './puppet-regions';
 import {KathayaCinematic} from './KathayaCinematic';
 import {AtmosphereParticles, type ParticleVariant} from './AtmosphereParticles';
-import {cameraMotion, parallaxOffset, revealProgress, entranceExitOpacity, entranceExitShiftY, type MotionFrame} from './motion';
-import {keywordFor, importantWordFor, subShotSequence, type ShotPreset} from './shots';
+import {cameraMotion, cameraForRole, parallaxOffset, revealProgress, entranceExitOpacity, entranceExitShiftY, type MotionFrame} from './motion';
+import {keywordFor, importantWordFor, subShotSequence, gestureTriggersFor, type ShotPreset} from './shots';
 import {profileFor, type FormatProfile} from './format';
 import {platformProfile, resolveSubtitleCenterY} from '../shared/platform-profiles';
 import {BRAND_NAME, BRAND_TAGLINE, BRAND_LOGO_PATH} from '../shared/brand';
@@ -102,7 +102,20 @@ function environmentSubShot(progress: number, beatDurationSeconds: number, targe
   const segDur = 1 / count;
   const index = Math.min(count - 1, Math.floor(progress / segDur));
   const segLocal = clamp01((progress - index * segDur) / segDur);
-  const shot = ENV_SHOT_CYCLE[index % ENV_SHOT_CYCLE.length];
+  const cycle = Math.floor(index / ENV_SHOT_CYCLE.length);
+  const base = ENV_SHOT_CYCLE[index % ENV_SHOT_CYCLE.length];
+  // Same anti-repeat jitter activeSubShot already applies to character sub-shots: a SHORT-format
+  // environment beat targeting ~1.25s/cut can need 10+ cuts from only 4 curated presets, and
+  // without this every 5th cut was pixel-identical to an earlier one — "repeated composition" is
+  // named directly in the acceptance criteria as a defect, not a style choice, and this is what a
+  // real render at that cut density actually showed once beats got long enough to wrap the cycle.
+  const jitterSign = cycle % 2 === 0 ? 1 : -1;
+  const jitterSteps = Math.min(cycle, 3);
+  const shot = cycle === 0 ? base : {
+    zoomMul: Math.min(1.55, base.zoomMul + jitterSteps * 0.05 * jitterSign),
+    focusX: Math.max(22, Math.min(78, base.focusX + jitterSteps * 6 * jitterSign)),
+    focusY: Math.max(28, Math.min(72, base.focusY + jitterSteps * 4 * -jitterSign)),
+  };
   return {shot, index, segLocal, segDur};
 }
 
@@ -111,8 +124,51 @@ function cutFlashOpacity(segLocal: number, index: number) {
   return interpolate(segLocal, [0, 0.05, 0.12], [0.3, 1, 1], {extrapolateRight: 'clamp'});
 }
 
-function FramedLayer({src, zoom, focusY, focusX = 50, camera, depth, progress, direction, reveal, opacity = 1, shiftY = 0, box, fit = 'cover', cameraWeight = 0.35, sway = 0, swayX = 28, swayY = 30, idleScale = 1, seed = 'layer', showPen = false, constructionRegions, puppetRef}: {
+/**
+ * A detail insert (a prop/object closeup — the poison pot, a weapon, a sacred object) used to
+ * render as a picture-in-picture rectangle alongside the main shot: both visible at once, in a
+ * corner box. That reads as "another image appeared", not as a director cutting to a close-up —
+ * the single most concrete complaint about detail shots in this project's own visual spec. The
+ * fix is temporal, not spatial: the detail gets the WHOLE frame for its own window
+ * (`DETAIL_START`-`DETAIL_END`), and the main shot (environment/characters) actually cuts away
+ * during that window instead of staying visible underneath it. `DETAIL_CUT_WIDTH` is a fast
+ * crossfade (a handful of frames) at each edge — fast enough to read as a cut, not a slow dissolve.
+ * `mainShotVisibility` and the detail's own opacity are exact complements of each other by
+ * construction (`1 - mainShotVisibility(...)`), so there's never a gap where both or neither are
+ * visible.
+ */
+const DETAIL_START = 0.40;
+const DETAIL_END = 0.76;
+const DETAIL_CUT_WIDTH = 0.025;
+
+// A gesture completes within the first 70% of its window and then holds the resting pose for the
+// beat's tail — leaving room for a reaction/settle read (per the spec's own "anticipation -> action
+// -> camera response -> reaction" shot grammar) instead of the arm still being mid-swing right as
+// the beat cuts away. Starting at 12% (not 0%) gives the shot a beat to establish before the
+// gesture begins, rather than the character reaching the instant the cut lands.
+const GESTURE_WINDOW_START = 0.12;
+const GESTURE_WINDOW_END = 0.7;
+
+function gestureLocalProgress(progress: number, active: boolean): number | undefined {
+  if (!active) return undefined;
+  return clamp01((progress - GESTURE_WINDOW_START) / (GESTURE_WINDOW_END - GESTURE_WINDOW_START));
+}
+
+function mainShotVisibility(progress: number, hasDetail: boolean): number {
+  if (!hasDetail) return 1;
+  if (progress < DETAIL_START - DETAIL_CUT_WIDTH) return 1;
+  if (progress < DETAIL_START + DETAIL_CUT_WIDTH) return interpolate(progress, [DETAIL_START - DETAIL_CUT_WIDTH, DETAIL_START + DETAIL_CUT_WIDTH], [1, 0], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  if (progress < DETAIL_END - DETAIL_CUT_WIDTH) return 0;
+  if (progress < DETAIL_END + DETAIL_CUT_WIDTH) return interpolate(progress, [DETAIL_END - DETAIL_CUT_WIDTH, DETAIL_END + DETAIL_CUT_WIDTH], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  return 1;
+}
+
+function FramedLayer({src, zoom, focusY, focusX = 50, camera, depth, progress, direction, reveal, opacity = 1, shiftY = 0, box, fit = 'cover', cameraWeight = 0.35, sway = 0, swayX = 28, swayY = 30, idleScale = 1, seed = 'layer', showPen = false, constructionRegions, puppetRef, gestureProgress}: {
   src: string; zoom: number; focusY: number; focusX?: number; camera: MotionFrame; depth: number; progress: number; direction: Direction; reveal?: number; opacity?: number; shiftY?: number; box?: React.CSSProperties; fit?: 'cover' | 'contain'; cameraWeight?: number; sway?: number; swayX?: number; swayY?: number; idleScale?: number; seed?: string; showPen?: boolean; constructionRegions?: ConstructionRegion[]; puppetRef?: string;
+  /** Beat-local 0..1 — see CutoutPuppet's own `gestureProgress` doc. Only meaningful when `puppet`
+   * (resolved below from `puppetRef`) has a `gestureRegionIndex`; otherwise silently has no effect,
+   * so callers can pass this unconditionally without checking which ref they're rendering. */
+  gestureProgress?: number;
 }) {
   const offset = parallaxOffset(depth, progress, direction);
   const idlePhase = focusY * 0.11 + depth * 2.4;
@@ -181,6 +237,8 @@ function FramedLayer({src, zoom, focusY, focusX = 50, camera, depth, progress, d
             focusX={focusX}
             focusY={focusY}
             progress={frame / fps}
+            gestureRegionIndex={puppet.gestureRegionIndex}
+            gestureProgress={puppet.gestureRegionIndex !== undefined ? gestureProgress : undefined}
             style={masterStyle}
             boxWidth={puppetBoxSize?.boxWidth}
             boxHeight={puppetBoxSize?.boxHeight}
@@ -203,7 +261,7 @@ function ShotFrameTreatment({label, opacity}: {label: string; opacity: number}) 
   return null;
 }
 
-function GeneratedArtwork({beat, progress, beatIndex, format, variant, assetKinds}: {beat: Beat; progress: number; beatIndex: number; format: FormatProfile; variant: number; assetKinds?: Record<string, string>}) {
+function GeneratedArtwork({beat, progress, beatIndex, format, variant, assetKinds, firstAppearanceBeat}: {beat: Beat; progress: number; beatIndex: number; format: FormatProfile; variant: number; assetKinds?: Record<string, string>; firstAppearanceBeat: Record<string, number>}) {
   const refs = beat.asset_refs.filter((ref) => runtimeAssets[ref]);
   if (refs.length === 0) return null;
   const kindOf = (ref: string) => assetKinds?.[ref];
@@ -211,12 +269,16 @@ function GeneratedArtwork({beat, progress, beatIndex, format, variant, assetKind
   const environment = refs.find((ref) => ref !== glow && (kindOf(ref) === 'environment' || /environment|background|battlefield|location/i.test(ref)));
   const characters = refs.filter((ref) => kindOf(ref) === 'character' || /character|\.master/i.test(ref) || /karna|indra/i.test(ref));
   const detail = refs.find((ref) => ref !== environment && ref !== glow && !characters.includes(ref));
-  const camera = cameraMotion(beat.camera, progress);
-  const direction: Direction = beat.camera === 'pan' ? {x: 130, y: 30} : {x: 84, y: 48};
+  const cameraPreset = beat.camera ?? cameraForRole(beat.visual_role);
+  const camera = cameraMotion(cameraPreset, progress);
+  const direction: Direction = cameraPreset === 'pan' ? {x: 130, y: 30} : {x: 84, y: 48};
   const shot = subShotSequence(beat.visual_role, variant)[0];
   const cameraWeight = 0.35 * format.cameraIntensity;
   const revealF = format.revealFraction;
-  const envOpacity = entranceExitOpacity(progress, 0.06, 0.92);
+  const hasDetail = Boolean(detail);
+  const mainVisible = mainShotVisibility(progress, hasDetail);
+  const gestureActive = gestureTriggersFor(beat.visual_role);
+  const envOpacity = entranceExitOpacity(progress, 0.06, 0.92) * mainVisible;
   // The psychology model's own pacing target (2-5s/cut for LONGFORM, 0.5-2s for SHORT — see
   // psychology.ts) drives the actual cut count now, not just the curated preset array length.
   const targetCutSeconds = (format.visualBeatRange.minSeconds + format.visualBeatRange.maxSeconds) / 2;
@@ -229,38 +291,41 @@ function GeneratedArtwork({beat, progress, beatIndex, format, variant, assetKind
       return <FramedLayer key={`${beat.beat_id}-env`} src={staticFile(runtimeAssets[environment])} zoom={baseZoom * envShot.zoomMul * cutSnapZoom(envSegLocal)} focusY={isRiver ? 92 : envShot.focusY} focusX={isRiver ? 50 : envShot.focusX} camera={camera} depth={0.16} progress={progress} direction={direction} opacity={envOpacity * 0.92} cameraWeight={cameraWeight} idleScale={format.idleAmpScale} seed={`${beat.beat_id}-env`} puppetRef={environment} />;
     })() : null}
 
-    {glow ? <div key={`${beat.beat_id}-glow`} style={{position: 'absolute', left: '60%', top: '18%', width: 560, height: 560, transform: `translate(-50%, -50%) scale(${1 + Math.sin(progress * Math.PI * 2.4) * 0.05})`, borderRadius: '50%', background: `radial-gradient(circle, ${GOLD}cc 0%, ${GOLD}66 32%, transparent 70%)`, filter: 'blur(34px)', opacity: entranceExitOpacity(progress, 0.08, 0.9) * 0.6, mixBlendMode: 'screen'}}/> : null}
+    {glow ? <div key={`${beat.beat_id}-glow`} style={{position: 'absolute', left: '60%', top: '18%', width: 560, height: 560, transform: `translate(-50%, -50%) scale(${1 + Math.sin(progress * Math.PI * 2.4) * 0.05})`, borderRadius: '50%', background: `radial-gradient(circle, ${GOLD}cc 0%, ${GOLD}66 32%, transparent 70%)`, filter: 'blur(34px)', opacity: entranceExitOpacity(progress, 0.08, 0.9) * 0.6 * mainVisible, mixBlendMode: 'screen'}}/> : null}
 
     {characters.length >= 2 ? characters.slice(0, 2).map((ref, index) => {
       const staggered = clamp01(progress - index * 0.05);
       const leftSide = (index === 0) !== (beatIndex % 2 === 1);
       const subShots = subShotSequence(beat.visual_role, variant + index);
       const {shot: subShot, index: cutIndex, segLocal, segDur} = activeSubShot(subShots, staggered, beat.duration_seconds, targetCutSeconds);
-      const reveal = cutIndex === 0 ? revealProgress(staggered, Math.min(revealF, segDur * 0.85)) : undefined;
-      const regions = cutIndex === 0 ? subjectRelativeConstruction({focusX: subShot.focusX, focusY: subShot.focusY}) : undefined;
-      return <FramedLayer key={`${beat.beat_id}-${ref}`} src={staticFile(runtimeAssets[ref])} fit="contain" zoom={Math.min(subShot.zoom * cutSnapZoom(segLocal), 1.3)} focusY={subShot.focusY} focusX={leftSide ? 38 : 62} camera={camera} depth={0.72 - index * 0.06} progress={progress} direction={direction} reveal={reveal} opacity={entranceExitOpacity(staggered) * cutFlashOpacity(segLocal, cutIndex)} shiftY={entranceExitShiftY(staggered)} sway={1.35 * format.swayScale} swayX={30} swayY={26} cameraWeight={cameraWeight} idleScale={format.idleAmpScale} seed={`${beat.beat_id}-${ref}`} showPen={index === 0 && cutIndex === 0} constructionRegions={regions} puppetRef={ref} box={{left: leftSide ? '-8%' : '38%', width: '70%', top: '12%', bottom: '2%'}}/>;
+      const isIntroduction = cutIndex === 0 && firstAppearanceBeat[ref] === beatIndex;
+      const reveal = isIntroduction ? revealProgress(staggered, Math.min(revealF, segDur * 0.85)) : undefined;
+      const regions = isIntroduction ? subjectRelativeConstruction({focusX: subShot.focusX, focusY: subShot.focusY}) : undefined;
+      return <FramedLayer key={`${beat.beat_id}-${ref}`} src={staticFile(runtimeAssets[ref])} fit="contain" zoom={Math.min(subShot.zoom * cutSnapZoom(segLocal), 1.3)} focusY={subShot.focusY} focusX={leftSide ? 38 : 62} camera={camera} depth={0.72 - index * 0.06} progress={progress} direction={direction} reveal={reveal} opacity={entranceExitOpacity(staggered) * cutFlashOpacity(segLocal, cutIndex) * mainShotVisibility(staggered, hasDetail)} shiftY={entranceExitShiftY(staggered)} sway={1.35 * format.swayScale} swayX={30} swayY={26} cameraWeight={cameraWeight} idleScale={format.idleAmpScale} seed={`${beat.beat_id}-${ref}`} showPen={index === 0 && isIntroduction} constructionRegions={regions} puppetRef={ref} gestureProgress={gestureLocalProgress(staggered, gestureActive)} box={{left: leftSide ? '-8%' : '38%', width: '70%', top: '12%', bottom: '2%'}}/>;
     }) : null}
 
-    {characters.length >= 2 ? <div style={{position: 'absolute', left: '50%', top: '7%', bottom: '7%', width: 2, background: INK, opacity: entranceExitOpacity(progress) * 0.22}}/> : null}
+    {characters.length >= 2 ? <div style={{position: 'absolute', left: '50%', top: '7%', bottom: '7%', width: 2, background: INK, opacity: entranceExitOpacity(progress) * 0.22 * mainVisible}}/> : null}
 
     {characters.length < 2 ? characters.slice(0, 1).map((ref) => {
       const fullBleed = !environment;
       const subShots = subShotSequence(beat.visual_role, variant);
       const {shot: subShot, index: cutIndex, segLocal, segDur} = activeSubShot(subShots, progress, beat.duration_seconds, targetCutSeconds);
-      const reveal = cutIndex === 0 ? revealProgress(progress, Math.min(revealF, segDur * 0.85)) : undefined;
-      const regions = cutIndex === 0 ? subjectRelativeConstruction({focusX: subShot.focusX, focusY: subShot.focusY}) : undefined;
-      const layerOpacity = entranceExitOpacity(progress) * cutFlashOpacity(segLocal, cutIndex);
-      return <React.Fragment key={`${beat.beat_id}-${ref}-frame`}><FramedLayer key={`${beat.beat_id}-${ref}`} src={staticFile(runtimeAssets[ref])} fit={fullBleed ? 'cover' : 'contain'} zoom={subShot.zoom * cutSnapZoom(segLocal)} focusY={subShot.focusY} focusX={subShot.focusX} camera={camera} depth={0.68} progress={progress} direction={direction} reveal={reveal} opacity={layerOpacity} shiftY={entranceExitShiftY(progress)} sway={2.1 * format.swayScale} swayX={28} swayY={24} cameraWeight={cameraWeight} idleScale={format.idleAmpScale} seed={`${beat.beat_id}-${ref}`} showPen={cutIndex === 0} constructionRegions={regions} puppetRef={ref} box={fullBleed ? undefined : {left: beatIndex % 2 === 1 ? '2%' : '26%', width: '72%', top: '8%', bottom: '0%'}}/><ShotFrameTreatment label={subShot.label} opacity={layerOpacity}/></React.Fragment>;
+      const isIntroduction = cutIndex === 0 && firstAppearanceBeat[ref] === beatIndex;
+      const reveal = isIntroduction ? revealProgress(progress, Math.min(revealF, segDur * 0.85)) : undefined;
+      const regions = isIntroduction ? subjectRelativeConstruction({focusX: subShot.focusX, focusY: subShot.focusY}) : undefined;
+      const layerOpacity = entranceExitOpacity(progress) * cutFlashOpacity(segLocal, cutIndex) * mainVisible;
+      return <React.Fragment key={`${beat.beat_id}-${ref}-frame`}><FramedLayer key={`${beat.beat_id}-${ref}`} src={staticFile(runtimeAssets[ref])} fit={fullBleed ? 'cover' : 'contain'} zoom={subShot.zoom * cutSnapZoom(segLocal)} focusY={subShot.focusY} focusX={subShot.focusX} camera={camera} depth={0.68} progress={progress} direction={direction} reveal={reveal} opacity={layerOpacity} shiftY={entranceExitShiftY(progress)} sway={2.1 * format.swayScale} swayX={28} swayY={24} cameraWeight={cameraWeight} idleScale={format.idleAmpScale} seed={`${beat.beat_id}-${ref}`} showPen={isIntroduction} constructionRegions={regions} puppetRef={ref} gestureProgress={gestureLocalProgress(progress, gestureActive)} box={fullBleed ? undefined : {left: beatIndex % 2 === 1 ? '2%' : '26%', width: '72%', top: '8%', bottom: '0%'}}/><ShotFrameTreatment label={subShot.label} opacity={layerOpacity}/></React.Fragment>;
     }) : null}
 
     {detail ? (() => {
-      const detailStart = 0.42;
-      const detailLocal = clamp01((progress - detailStart) / (1 - detailStart));
-      // No border/boxShadow here (a prior version drew a literal comic-panel frame — a hard black
-      // outline plus an offset drop shadow — which read as a picture pasted onto the screen rather
-      // than a shot in the same film as everything around it). A soft radial mask feathers this
-      // inset's edges into the frame instead, so it blends the way a real camera insert would.
-      return <FramedLayer key={`${beat.beat_id}-detail`} src={staticFile(runtimeAssets[detail])} fit="cover" zoom={1.35 * cutSnapZoom(detailLocal)} focusY={40} camera={camera} depth={0.5} progress={progress} direction={direction} opacity={entranceExitOpacity(detailLocal, 0.05, 0.85)} cameraWeight={cameraWeight} idleScale={format.idleAmpScale} seed={`${beat.beat_id}-detail`} box={{right: '3%', left: 'auto', width: '50%', bottom: '6%', top: 'auto', height: '52%', maskImage: 'radial-gradient(ellipse 78% 78% at 50% 50%, black 62%, transparent 100%)', WebkitMaskImage: 'radial-gradient(ellipse 78% 78% at 50% 50%, black 62%, transparent 100%)'}}/>;
+      // A detail insert now behaves like a real camera cut, not a picture-in-picture rectangle
+      // (see mainShotVisibility's own comment for the full rationale): full-bleed, its own quick
+      // punch-in at the cut point, a small continued push while it holds the frame, and an exact
+      // opacity complement of the main shot's own fade so there's never a moment with both or
+      // neither visible.
+      const detailLocal = clamp01((progress - DETAIL_START) / (DETAIL_END - DETAIL_START));
+      const detailOpacity = 1 - mainVisible;
+      return <FramedLayer key={`${beat.beat_id}-detail`} src={staticFile(runtimeAssets[detail])} fit="cover" zoom={(1.1 + detailLocal * 0.12) * cutSnapZoom(detailLocal)} focusY={44} focusX={50} camera={camera} depth={0.5} progress={progress} direction={direction} opacity={detailOpacity} cameraWeight={cameraWeight} idleScale={format.idleAmpScale} seed={`${beat.beat_id}-detail`}/>;
     })() : null}
 
     {/* Depth/atmosphere layer — embers/sparkle/dust/mist keyed to the beat's dramatic role (see
@@ -349,11 +414,19 @@ export const MythicShort: React.FC<{manifest: Manifest}> = ({manifest}) => {
   const subtitleCenterY = useMemo(() => resolveSubtitleCenterY(platformProfile(manifest.platform ?? defaultPlatform)).centerY, [manifest, defaultPlatform]);
   const beats = useMemo<Beat[]>(() => { let cursor = 0; return manifest.beats.map((beat) => {const start = cursor; cursor += beat.duration_seconds; return {...beat, start, end: cursor, label: labelForRole(beat.visual_role)};}); }, [manifest]);
   const variantByBeatId = useMemo(() => { const counts: Record<string, number> = {}; const map: Record<string, number> = {}; for (const beat of beats) {const key = primaryCharacterRef(beat, manifest.asset_kinds) ?? beat.visual_role; const variant = counts[key] ?? 0; map[beat.beat_id] = variant; counts[key] = variant + 1;} return map; }, [beats, manifest.asset_kinds]);
+  // The construction-drawing reveal (ink strokes -> pigment wash) is only true for a character's
+  // real, once-per-video introduction — re-triggering it every time a character reappears redrew
+  // them from a blank/invisible frame at the start of EVERY beat they're in (confirmed on a real
+  // render: Shiva vanished and redrew from scratch on beat after beat), which reads as "the
+  // character keeps disappearing", not as an intentional artistic choice. This tracks the first
+  // beat index each asset ref appears in at all, so GeneratedArtwork can gate the reveal to that
+  // one true introduction and render normally (already-drawn) on every later appearance.
+  const firstAppearanceBeat = useMemo(() => { const map: Record<string, number> = {}; beats.forEach((beat, i) => { for (const ref of beat.asset_refs) { if (!(ref in map)) map[ref] = i; } }); return map; }, [beats]);
   if (beats.length === 0) return <AbsoluteFill style={{backgroundColor: CREAM}}/>;
   const beatIndex = Math.max(0, beats.findIndex((beat) => t >= beat.start && t < beat.end));
   const beat = beats[beatIndex] ?? beats[beats.length - 1];
   const local = clamp01((t - beat.start) / Math.max(0.1, beat.end - beat.start));
-  const camera = cameraMotion(beat.camera, local);
+  const camera = cameraMotion(beat.camera ?? cameraForRole(beat.visual_role), local);
   const caption = (beat.narration ?? beat.text ?? '').trim();
   const beatWords = (runtimeCaptions as Record<string, CaptionWord[]>)[beat.beat_id] ?? [];
   const showStaticCaption = Boolean(caption && beatWords.length === 0 && beat.duration_seconds >= 6);
@@ -365,7 +438,7 @@ export const MythicShort: React.FC<{manifest: Manifest}> = ({manifest}) => {
 
   return <AbsoluteFill style={{backgroundColor: CREAM, fontFamily: 'Noto Sans Devanagari, Noto Sans, sans-serif', color: INK}}>
     {runtimeAudio ? <Audio src={staticFile(runtimeAudio)} volume={1}/> : null}
-    <GeneratedArtwork beat={beat} progress={local} beatIndex={beatIndex} format={format} variant={variant} assetKinds={manifest.asset_kinds}/>
+    <GeneratedArtwork beat={beat} progress={local} beatIndex={beatIndex} format={format} variant={variant} assetKinds={manifest.asset_kinds} firstAppearanceBeat={firstAppearanceBeat}/>
     <AbsoluteFill
 style={{transform: `translate(${camera.translateX * 0.18}px, ${camera.translateY * 0.18}px) scale(${camera.scale * 0.985})`, transformOrigin: '50% 50%'}}
 from={-150}>

@@ -1,6 +1,6 @@
 import React from 'react';
 import {Composition} from 'remotion';
-import {KathaayaFeature, IDENT_FRAMES} from './KathaayaFeature';
+import {KathaayaFeature, IDENT_FRAMES, identFramesFor} from './KathaayaFeature';
 import {KathaayaOpeningIdent} from './KathaayaOpeningIdent';
 import {DrawingStageTest} from './DrawingStageTest';
 import {ProductionDrawingTest} from './ProductionDrawingTest';
@@ -37,7 +37,7 @@ export const RemotionRoot: React.FC = () => {
         calculateMetadata={({props}) => {
           const manifest = props.manifest as {format?: 'SHORT' | 'LONGFORM'; duration_seconds: number};
           const {width, height} = resolveOrientation(manifest);
-          return {width, height, durationInFrames: IDENT_FRAMES + Math.round(manifest.duration_seconds * 30)};
+          return {width, height, durationInFrames: identFramesFor(manifest.format) + Math.round(manifest.duration_seconds * 30)};
         }}
       />
       <Composition

@@ -27,17 +27,27 @@ export type PuppetEntry = {
    * against each master image, not grid-measured like the regions below) — fine for a pivot point
    * since the tilt itself is only a few degrees. */
   faceAnchor?: {cx: number; cy: number};
+  /** Index into `regions` that a director-triggered gesture (see MythicShort's gestureTriggersFor
+   * usage) takes over for its one-shot anticipation/action/settle arc — always the character's
+   * most expressive free limb (a raised arm/hand), the region a viewer's eye would actually go to
+   * for "is this character doing something with intent". Left unset for a character with no region
+   * suited to carrying a gesture. */
+  gestureRegionIndex?: number;
 };
 
 export const PUPPET_REGIONS: Record<string, PuppetEntry> = {
   'karna.master': {
     kind: 'character',
     faceAnchor: {cx: 45, cy: 18},
+    gestureRegionIndex: 0,
     naturalWidth: 896,
     naturalHeight: 1584,
     regions: [
       // Raised left arm + star-tipped weapon (shoulder ~38%,36% up through the hand to the weapon
-      // tip near the top-left). A soft sway reads as the weapon/arm gently moving, not rigid.
+      // tip near the top-left). A soft sway reads as the weapon/arm gently moving, not rigid — and
+      // this is also the character's gestureRegionIndex (0): the same region carries a director-
+      // triggered reach/offer gesture on beats that call for it (see puppet-regions.ts's own
+      // gestureRegionIndex doc and MythicShort's gestureTriggersFor).
       {cx: 30, cy: 30, radius: 22, strength: 2.5, motion: 'sway', speedHz: 0.22, phase: 0},
       // Flowing hair strands, lower-left of the head — already drawn mid-flow in the source art, so
       // a sway here should read as continuation of that same flow, not new motion out of nowhere.
@@ -57,6 +67,7 @@ export const PUPPET_REGIONS: Record<string, PuppetEntry> = {
   'indra.master': {
     kind: 'character',
     faceAnchor: {cx: 40, cy: 20},
+    gestureRegionIndex: 2,
     naturalWidth: 896,
     naturalHeight: 1584,
     regions: [
@@ -78,6 +89,7 @@ export const PUPPET_REGIONS: Record<string, PuppetEntry> = {
   'shiva.master': {
     kind: 'character',
     faceAnchor: {cx: 48, cy: 18},
+    gestureRegionIndex: 1,
     naturalWidth: 896,
     naturalHeight: 1584,
     regions: [
@@ -97,6 +109,7 @@ export const PUPPET_REGIONS: Record<string, PuppetEntry> = {
   'parvati.master': {
     kind: 'character',
     faceAnchor: {cx: 40, cy: 14},
+    gestureRegionIndex: 2,
     naturalWidth: 896,
     naturalHeight: 1584,
     regions: [

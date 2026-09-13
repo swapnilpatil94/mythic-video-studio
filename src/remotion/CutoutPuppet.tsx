@@ -91,12 +91,43 @@ const NEUTRAL = 127.5;
  * alpha, so this reaches the same soft, color-encoded falloff a radial gradient would have given,
  * without any `feImage` anywhere in the chain.
  */
+/**
+ * Anticipation -> action (with a slight overshoot) -> settle, the shape any real one-shot gesture
+ * needs instead of a plain monotonic ease: a limb that just eases from 0 to 1 in a straight curve
+ * reads as sliding into place, not as *reaching* for something with intent. Returns a signed
+ * multiplier (dips slightly negative during the wind-up, rises past 1 at the peak, settles back to
+ * exactly 1 and holds) — the caller scales this by the region's own authored `strength`, same as
+ * every other motion type here. `gp` is expected to be a single beat-local 0..1 sweep, not a
+ * repeating phase (a gesture that looped would stop reading as a deliberate action and go back to
+ * looking like idle sway).
+ */
+function gestureArcEase(gp: number): number {
+  const p = Math.max(0, Math.min(1, gp));
+  if (p < 0.15) {
+    const t = p / 0.15;
+    return -0.22 * (t * t * (3 - 2 * t));
+  }
+  if (p < 0.55) {
+    const t = (p - 0.15) / 0.4;
+    const e = t * t * (3 - 2 * t);
+    return -0.22 * (1 - e) + 1.12 * e;
+  }
+  if (p < 0.8) {
+    const t = (p - 0.55) / 0.25;
+    const e = t * t * (3 - 2 * t);
+    return 1.12 - 0.12 * e;
+  }
+  return 1;
+}
+
 function buildDisplacementFilter(
   id: string,
   regions: PuppetRegion[],
   progress: number,
   naturalWidth: number,
-  naturalHeight: number
+  naturalHeight: number,
+  gestureRegionIndex?: number,
+  gestureProgress?: number
 ): {defs: React.ReactNode; filterId: string} {
   const clamp255 = (v: number) => Math.max(0, Math.min(255, v));
   const neutralRgb = `rgb(${NEUTRAL},${NEUTRAL},127)`;
@@ -106,7 +137,16 @@ function buildDisplacementFilter(
     const t = progress * Math.PI * 2 * speed + phase;
     let dx = 0;
     let dy = 0;
-    if (region.motion === 'sway') {
+    // A gesture always takes over its assigned region for this frame, regardless of that region's
+    // own authored `motion` — it's a director-triggered one-shot action for a specific narrative
+    // beat (see shots.ts's gestureTriggersFor), not a property of the region itself. Every other
+    // region keeps behaving exactly as authored, gesture or no gesture, which is what keeps this
+    // change additive rather than a rewrite of the existing idle-motion system.
+    if (gestureProgress !== undefined && i === gestureRegionIndex) {
+      const eased = gestureArcEase(gestureProgress);
+      dx = eased * region.strength;
+      dy = -eased * region.strength * 0.6;
+    } else if (region.motion === 'sway') {
       dx = Math.sin(t) * region.strength;
       dy = Math.cos(t * 0.6) * region.strength * 0.35;
     } else if (region.motion === 'breathe') {
@@ -114,9 +154,12 @@ function buildDisplacementFilter(
       dx = pulse * region.strength * 0.5;
       dy = pulse * region.strength * 0.5;
     } else {
-      // 'arc': progress is expected to be a single 0..1 sweep (not a repeating phase), giving a
-      // one-time gesture (e.g. a raised arm completing a small forward swing) rather than a loop.
-      const eased = progress * progress * (3 - 2 * progress);
+      // 'arc' with no active gesture driving it: same anticipation/action/settle shape, keyed off
+      // the continuous `progress` clamped to its own first unit — a fallback for a region authored
+      // as 'arc' but rendered outside of a director-triggered gesture window, so it still resolves
+      // to a sensible held pose (eased=1) rather than reinterpreting continuous elapsed seconds as
+      // a repeating sweep.
+      const eased = gestureArcEase(Math.min(1, progress));
       dx = eased * region.strength;
       dy = -eased * region.strength * 0.6;
     }
@@ -202,6 +245,8 @@ export function CutoutPuppet({
   focusY = 50,
   boxWidth,
   boxHeight,
+  gestureRegionIndex,
+  gestureProgress,
 }: {
   src: string;
   regions: PuppetRegion[];
@@ -234,9 +279,20 @@ export function CutoutPuppet({
    * computed exactly instead of approximated. */
   boxWidth?: number;
   boxHeight?: number;
+  /** Index into `regions` that gets a one-shot anticipation/action/settle gesture instead of its
+   * own authored idle motion this frame — see `gestureArcEase` and shots.ts's gestureTriggersFor.
+   * Both this and `gestureProgress` must be set for a gesture to actually apply; either omitted
+   * leaves every region exactly as it behaves today. */
+  gestureRegionIndex?: number;
+  /** Beat-local 0..1 sweep for the active gesture — deliberately a SEPARATE clock from `progress`
+   * (which stays continuous, for the idle sway/breathe regions): a gesture keyed to the same
+   * continuous clock as idle motion would either replay every beat forever after its region is
+   * first authored, or freeze mid-gesture depending on when in the beat it started, neither of
+   * which is a real one-shot action tied to a specific narrative moment. */
+  gestureProgress?: number;
 }) {
   const filterId = 'kathaaya-puppet-warp';
-  const {defs, filterId: id} = buildDisplacementFilter(filterId, regions, progress, naturalWidth, naturalHeight);
+  const {defs, filterId: id} = buildDisplacementFilter(filterId, regions, progress, naturalWidth, naturalHeight, gestureRegionIndex, gestureProgress);
   // Manual cover-crop: pick the natural-pixel-space window that exactly fills the target box's
   // aspect ratio, offset by focusX/focusY (0-100%) the same way object-position would. Left
   // undefined when the box's pixel size isn't known, or fit is 'contain' — 'contain' letterboxes

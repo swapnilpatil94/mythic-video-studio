@@ -23,6 +23,25 @@ const easeInOut = (value: number) => {
   return t * t * (3 - 2 * t);
 };
 
+/**
+ * Director default: which camera language a beat gets when the manifest itself doesn't specify
+ * one. A hand-tuned manifest (this project's own Shiva/Karna examples) authors `camera` per beat
+ * already and never touches this — it exists so a NEW story's manifest doesn't have to hand-author
+ * every beat's camera to get intentional-feeling movement instead of the same generic slow zoom
+ * everywhere (see KATHAAYA's own spec: "the director layer must be data-driven, not hardcoded to
+ * one story"). Keyed on substrings of `visual_role` rather than an exact-match table so it degrades
+ * gracefully for a story that invents its own role vocabulary, per the same convention shots.ts
+ * already uses for shot framing.
+ */
+export function cameraForRole(role: string): CameraPreset {
+  const r = role.toLowerCase();
+  if (/threat|danger|escalat|panic|urgency|climax|decision|sacrifice/.test(r)) return 'push_in';
+  if (/reveal|divine|payoff|wonder|resolve|aftermath/.test(r)) return 'pull_back';
+  if (/stakes|held|tension/.test(r)) return 'static';
+  if (/context|curiosity|backstory|explore|hook/.test(r)) return 'pan';
+  return 'slow_push';
+}
+
 export function cameraMotion(preset: string | undefined, progress: number): MotionFrame {
   const t = easeInOut(progress);
   switch (preset as CameraPreset) {

@@ -2,7 +2,7 @@ import {mkdir, readFile, writeFile} from 'node:fs/promises';
 import {execFile} from 'node:child_process';
 import {promisify} from 'node:util';
 import type {ProductionManifest} from './pipeline/types';
-import {IDENT_DURATION_SECONDS} from './shared/ident';
+import {identDurationSeconds} from './shared/ident';
 import {resolveOrientation} from './shared/orientation';
 
 const execFileAsync = promisify(execFile);
@@ -37,10 +37,12 @@ if (video) {
 }
 const duration = Number(probe.format?.duration ?? video?.duration ?? 0);
 // Every rendered feature opens with the KATHAAYA ident (see KathaayaFeature.tsx) before the story
-// begins, so the real video is always IDENT_DURATION_SECONDS longer than the manifest's own
+// begins, so the real video is always identDurationSeconds() longer than the manifest's own
 // duration_seconds — that offset belongs here, not in the manifest, since it's a constant part of
-// every render rather than something a story's own beats add up to.
-const expectedDuration = manifest.duration_seconds + IDENT_DURATION_SECONDS;
+// every render rather than something a story's own beats add up to. The ident itself is shorter
+// for SHORT than LONGFORM (see shared/ident.ts), so this has to read the manifest's own format.
+const identSeconds = identDurationSeconds((manifest as {format?: 'SHORT' | 'LONGFORM'}).format);
+const expectedDuration = manifest.duration_seconds + identSeconds;
 if (!duration || Math.abs(duration - expectedDuration) > 0.5) errors.push(`duration ${duration.toFixed(3)}s differs from manifest+ident ${expectedDuration}s by more than 0.5s`);
 
 try {
@@ -49,7 +51,7 @@ try {
   // tell that apart from a genuinely broken black frame, since its 98%-of-pixels-below-threshold
   // rule doesn't care whether the non-black pixels are meaningful, only how many there are. The
   // story content after the ident should never legitimately be black, so that's still checked.
-  const black = await run('ffmpeg', ['-hide_banner', '-ss', String(IDENT_DURATION_SECONDS), '-i', output, '-vf', 'blackdetect=d=0.5:pix_th=0.10', '-an', '-f', 'null', '-']);
+  const black = await run('ffmpeg', ['-hide_banner', '-ss', String(identSeconds), '-i', output, '-vf', 'blackdetect=d=0.5:pix_th=0.10', '-an', '-f', 'null', '-']);
   if (/black_start:\s*\d/m.test(black)) errors.push('black-frame interval detected by blackdetect');
 } catch (error) {
   errors.push(`black-frame check failed: ${error instanceof Error ? error.message : String(error)}`);
