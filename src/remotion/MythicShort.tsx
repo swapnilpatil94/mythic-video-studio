@@ -258,6 +258,7 @@ function FramedLayer({src, zoom, focusY, focusX = 50, camera, depth, progress, d
             gestureRegionIndex={puppet.gestureRegionIndex}
             gestureProgress={puppet.gestureRegionIndex !== undefined ? gestureProgress : undefined}
             gestureStyle={gestureStyle}
+            secondaryGestureRegionIndex={puppet.secondaryGestureRegionIndex}
             style={masterStyle}
             boxWidth={puppetBoxSize?.boxWidth}
             boxHeight={puppetBoxSize?.boxHeight}

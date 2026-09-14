@@ -132,6 +132,23 @@ function fadeEnvelope(p: number, inEnd: number, outStart: number): number {
   return 1;
 }
 
+/**
+ * The 'write' motion shape — sustained, irregular, two-frequency-per-axis small motion, not one
+ * clean sine (which would read as a graceful sway, not busy handwriting). `phaseOffset` and
+ * `strengthMul` let a second, secondary region (see secondaryGestureRegionIndex) follow the same
+ * activity at reduced amplitude and a slightly different phase — an elbow doesn't move in lockstep
+ * with the hand it's driving, it trails and compensates, which is what makes two coordinated
+ * regions read as "the arm is moving" rather than "two unrelated things are jittering".
+ */
+function writeMotion(progress: number, gestureProgress: number, strength: number, phaseOffset: number, strengthMul: number): {dx: number; dy: number} {
+  const env = fadeEnvelope(gestureProgress, 0.1, 0.88);
+  const WRITE_STRENGTH_BOOST = 1.9;
+  const wt = progress * Math.PI * 2 + phaseOffset;
+  const dx = (Math.sin(wt * 3.7) * 0.6 + Math.sin(wt * 7.9 + 1.3) * 0.4) * strength * env * WRITE_STRENGTH_BOOST * strengthMul;
+  const dy = (Math.cos(wt * 4.3 + 0.7) * 0.5 + Math.sin(wt * 9.1) * 0.3) * strength * 0.7 * env * WRITE_STRENGTH_BOOST * strengthMul;
+  return {dx, dy};
+}
+
 function buildDisplacementFilter(
   id: string,
   regions: PuppetRegion[],
@@ -140,7 +157,8 @@ function buildDisplacementFilter(
   naturalHeight: number,
   gestureRegionIndex?: number,
   gestureProgress?: number,
-  gestureStyle?: 'arc' | 'write'
+  gestureStyle?: 'arc' | 'write',
+  secondaryGestureRegionIndex?: number
 ): {defs: React.ReactNode; filterId: string} {
   const clamp255 = (v: number) => Math.max(0, Math.min(255, v));
   const neutralRgb = `rgb(${NEUTRAL},${NEUTRAL},127)`;
@@ -163,15 +181,15 @@ function buildDisplacementFilter(
       // real render: a beat whose role didn't even reach the gesture system at all (the "writing
       // accelerates" beat used 'threat', which isn't in gestureTriggersFor's vocabulary) showed no
       // hand motion beyond ambient idle sway, and even the beats that DID fire the one-shot arc
-      // read as a single twitch, not as ongoing writing. Two different frequencies per axis (not
-      // one sine, unlike 'sway') deliberately avoid a clean, graceful, periodic look — a real
-      // writing hand doesn't oscillate smoothly, it makes small irregular strokes. `fadeEnvelope`
-      // ramps this in/out at the beat's edges so it doesn't snap on exactly when the beat cuts in.
-      const env = fadeEnvelope(gestureProgress, 0.1, 0.88);
-      const WRITE_STRENGTH_BOOST = 1.9;
-      const wt = progress * Math.PI * 2;
-      dx = (Math.sin(wt * 3.7) * 0.6 + Math.sin(wt * 7.9 + 1.3) * 0.4) * region.strength * env * WRITE_STRENGTH_BOOST;
-      dy = (Math.cos(wt * 4.3 + 0.7) * 0.5 + Math.sin(wt * 9.1) * 0.3) * region.strength * 0.7 * env * WRITE_STRENGTH_BOOST;
+      // read as a single twitch, not as ongoing writing.
+      ({dx, dy} = writeMotion(progress, gestureProgress, region.strength, 0, 1));
+    } else if (gestureProgress !== undefined && i === secondaryGestureRegionIndex && gestureStyle === 'write') {
+      // The forearm/elbow companion to the hand above — same activity, reduced amplitude, phase-
+      // shifted so it trails rather than mirrors. This is what was missing when only the hand
+      // region moved: verified on a real render that "the hand shaking in place" was exactly the
+      // complaint, because nothing between the stationary torso and the moving hand ever
+      // participated — a real writing motion involves the whole forearm, not the wrist alone.
+      ({dx, dy} = writeMotion(progress, gestureProgress, region.strength, 1.1, 0.55));
     } else if (gestureProgress !== undefined && i === gestureRegionIndex) {
       // A director-triggered gesture is the one moment in a beat meant to read as "this character
       // is doing something with intent" — verified on a real render that the region's own authored
@@ -287,6 +305,7 @@ export function CutoutPuppet({
   gestureRegionIndex,
   gestureProgress,
   gestureStyle,
+  secondaryGestureRegionIndex,
 }: {
   src: string;
   regions: PuppetRegion[];
@@ -335,9 +354,13 @@ export function CutoutPuppet({
    * see buildDisplacementFilter's own comment on why these are different shapes, not just different
    * strengths. */
   gestureStyle?: 'arc' | 'write';
+  /** A second region that follows the primary gesture region during 'write' only (ignored for
+   * 'arc') — see buildDisplacementFilter's own comment on why a lone hand region read as "shaking
+   * in place" rather than an arm writing. */
+  secondaryGestureRegionIndex?: number;
 }) {
   const filterId = 'kathaaya-puppet-warp';
-  const {defs, filterId: id} = buildDisplacementFilter(filterId, regions, progress, naturalWidth, naturalHeight, gestureRegionIndex, gestureProgress, gestureStyle);
+  const {defs, filterId: id} = buildDisplacementFilter(filterId, regions, progress, naturalWidth, naturalHeight, gestureRegionIndex, gestureProgress, gestureStyle, secondaryGestureRegionIndex);
   // Manual cover-crop: pick the natural-pixel-space window that exactly fills the target box's
   // aspect ratio, offset by focusX/focusY (0-100%) the same way object-position would. Left
   // undefined when the box's pixel size isn't known, or fit is 'contain' — 'contain' letterboxes

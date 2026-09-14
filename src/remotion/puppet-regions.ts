@@ -33,6 +33,11 @@ export type PuppetEntry = {
    * for "is this character doing something with intent". Left unset for a character with no region
    * suited to carrying a gesture. */
   gestureRegionIndex?: number;
+  /** A second region driven alongside `gestureRegionIndex` during a 'write'-style gesture only (see
+   * CutoutPuppet's writeMotion) — the forearm/elbow between the torso and the writing hand, so the
+   * whole arm reads as participating instead of just the wrist. Left unset for a gesture region with
+   * nothing anatomically between it and the torso worth animating separately. */
+  secondaryGestureRegionIndex?: number;
 };
 
 export const PUPPET_REGIONS: Record<string, PuppetEntry> = {
@@ -170,6 +175,13 @@ export const PUPPET_REGIONS: Record<string, PuppetEntry> = {
     kind: 'character',
     faceAnchor: {cx: 50, cy: 27},
     gestureRegionIndex: 1,
+    // The forearm/elbow between the torso and the writing hand — driven together with the hand
+    // during a 'write' gesture (see secondaryGestureRegionIndex's own doc in animation-backend
+    // consumers) so the whole arm reads as participating in the writing motion, not just the
+    // wrist. Without this, a real render showed "the hand shaking in place" rather than an arm
+    // actually writing — the single-region version had nothing between the stationary torso and
+    // the moving hand, so there was no visible elbow/forearm articulation at all.
+    secondaryGestureRegionIndex: 4,
     naturalWidth: 896,
     naturalHeight: 1584,
     regions: [
@@ -182,6 +194,30 @@ export const PUPPET_REGIONS: Record<string, PuppetEntry> = {
       {cx: 50, cy: 55, radius: 24, strength: 0.8, motion: 'breathe', speedHz: 0.11, phase: 0.6},
       // Lower dhoti — the largest static mass, otherwise completely inert.
       {cx: 48, cy: 82, radius: 22, strength: 1.3, motion: 'sway', speedHz: 0.09, phase: 3.0},
+      // Forearm/elbow, between the torso and the writing hand — see secondaryGestureRegionIndex.
+      {cx: 57, cy: 58, radius: 13, strength: 1.1, motion: 'sway', speedHz: 0.15, phase: 0.8},
+    ],
+  },
+  // Placed against projects/ganesha-mahabharata/assets/characters/ganesha_reacting.png (896x1584)
+  // — the interrupted-reaction state: seated, head tilted down and to the side looking at the
+  // broken stylus, writing hand lowered near the shoulder rather than raised. Deliberately NO
+  // gestureRegionIndex: the whole point of this pose is that the writing hand has STOPPED — an
+  // active gesture here would fight the "the character just froze" read the art itself is doing.
+  // Only ambient idle life (sway/breathe), never a directed motion, for this one state.
+  'ganesha.reacting': {
+    kind: 'character',
+    faceAnchor: {cx: 48, cy: 42},
+    naturalWidth: 896,
+    naturalHeight: 1584,
+    regions: [
+      // Lowered hand near the shoulder, held still.
+      {cx: 18, cy: 52, radius: 16, strength: 1.0, motion: 'sway', speedHz: 0.12, phase: 0},
+      // Head/trunk — very subtle, this pose is meant to read as a held moment, not idle chatter.
+      {cx: 48, cy: 42, radius: 20, strength: 0.6, motion: 'breathe', speedHz: 0.09, phase: 1.0},
+      // Torso.
+      {cx: 48, cy: 68, radius: 24, strength: 0.7, motion: 'breathe', speedHz: 0.1, phase: 0.5},
+      // Lower robe and seated legs.
+      {cx: 48, cy: 88, radius: 22, strength: 1.0, motion: 'sway', speedHz: 0.08, phase: 2.4},
     ],
   },
   // Placed against projects/ganesha-mahabharata/assets/characters/ganesha_broken.png (768x1360) —
