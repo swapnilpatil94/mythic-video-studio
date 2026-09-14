@@ -35,7 +35,7 @@ const easeInOut = (value: number) => {
  */
 export function cameraForRole(role: string): CameraPreset {
   const r = role.toLowerCase();
-  if (/threat|danger|escalat|panic|urgency|climax|decision|sacrifice/.test(r)) return 'push_in';
+  if (/threat|danger|escalat|panic|urgency|climax|decision|sacrifice|impact/.test(r)) return 'push_in';
   if (/reveal|divine|payoff|wonder|resolve|aftermath/.test(r)) return 'pull_back';
   if (/stakes|held|tension/.test(r)) return 'static';
   if (/context|curiosity|backstory|explore|hook/.test(r)) return 'pan';

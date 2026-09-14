@@ -162,4 +162,68 @@ export const PUPPET_REGIONS: Record<string, PuppetEntry> = {
       {cx: 22, cy: 88, radius: 30, strength: 1.7, motion: 'sway', speedHz: 0.1, phase: 3.1},
     ],
   },
+  // Placed against projects/ganesha-mahabharata/assets/characters/ganesha_master.png (896x1584) —
+  // a standing figure, one foot forward, raised left hand holding a staff, lowered right hand
+  // holding the writing stylus. gestureRegionIndex (1) is the stylus hand, not the staff hand: the
+  // story's actual action ("write") happens there, not in the held staff.
+  'ganesha.master': {
+    kind: 'character',
+    faceAnchor: {cx: 50, cy: 27},
+    gestureRegionIndex: 1,
+    naturalWidth: 896,
+    naturalHeight: 1584,
+    regions: [
+      // Raised left arm + staff, upper-left of frame.
+      {cx: 32, cy: 35, radius: 18, strength: 1.8, motion: 'sway', speedHz: 0.18, phase: 0},
+      // Lowered right hand + stylus, mid-right — the writing hand, and this character's gesture
+      // region (see gestureRegionIndex above).
+      {cx: 62, cy: 62, radius: 16, strength: 1.6, motion: 'sway', speedHz: 0.16, phase: 1.5},
+      // Torso — subtle idle breathing.
+      {cx: 50, cy: 55, radius: 24, strength: 0.8, motion: 'breathe', speedHz: 0.11, phase: 0.6},
+      // Lower dhoti — the largest static mass, otherwise completely inert.
+      {cx: 48, cy: 82, radius: 22, strength: 1.3, motion: 'sway', speedHz: 0.09, phase: 3.0},
+    ],
+  },
+  // Placed against projects/ganesha-mahabharata/assets/characters/ganesha_broken.png (768x1360) —
+  // the sacrifice-state variant: seated cross-legged, single-tusked, one fist raised near the
+  // shoulder, the other hand resting near the knee. Deliberately its own natural dimensions (this
+  // asset generated at a different aspect than ganesha.master) rather than forcing a shared size.
+  'ganesha.broken': {
+    kind: 'character',
+    faceAnchor: {cx: 48, cy: 33},
+    gestureRegionIndex: 0,
+    naturalWidth: 768,
+    naturalHeight: 1360,
+    regions: [
+      // Raised left fist near the shoulder — the most expressive point in this pose, and this
+      // character's gesture region.
+      {cx: 25, cy: 42, radius: 16, strength: 1.7, motion: 'sway', speedHz: 0.17, phase: 0},
+      // Resting hand near the knee.
+      {cx: 55, cy: 60, radius: 16, strength: 1.3, motion: 'sway', speedHz: 0.14, phase: 1.8},
+      // Torso — idle breathing, the "stillness after the sacrifice" cue.
+      {cx: 45, cy: 55, radius: 22, strength: 0.8, motion: 'breathe', speedHz: 0.1, phase: 0.4},
+      // Lower robe and seated legs.
+      {cx: 48, cy: 78, radius: 22, strength: 1.1, motion: 'sway', speedHz: 0.08, phase: 2.6},
+    ],
+  },
+  // Placed against projects/ganesha-mahabharata/assets/characters/vyasa_master.png (896x1584) —
+  // seated, both hands clasped together near the chest holding a small stylus.
+  'vyasa.master': {
+    kind: 'character',
+    faceAnchor: {cx: 50, cy: 22},
+    gestureRegionIndex: 0,
+    naturalWidth: 896,
+    naturalHeight: 1584,
+    regions: [
+      // Clasped hands + stylus at chest height — the composing/reciting gesture, and this
+      // character's gesture region.
+      {cx: 48, cy: 62, radius: 18, strength: 1.5, motion: 'sway', speedHz: 0.15, phase: 0},
+      // Flowing beard and hair, framing the face.
+      {cx: 50, cy: 40, radius: 20, strength: 1.6, motion: 'sway', speedHz: 0.2, phase: 1.6},
+      // Torso — idle breathing.
+      {cx: 45, cy: 50, radius: 24, strength: 0.8, motion: 'breathe', speedHz: 0.12, phase: 0.5},
+      // Lower draped robe.
+      {cx: 45, cy: 80, radius: 24, strength: 1.2, motion: 'sway', speedHz: 0.09, phase: 3.2},
+    ],
+  },
 };

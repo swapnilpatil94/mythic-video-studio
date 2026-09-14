@@ -89,6 +89,19 @@ export type ProductionManifest = {
   asset_kinds?: Record<string, AssetKind>;
   asset_sacred?: Record<string, boolean>;
   asset_visual_direction?: Record<string, string>;
+  /** Maps a character asset ref to the ref it's a mid-story continuity variant of (a costume
+   * change, an injury, a transformation — anything where the SAME character needs a second master
+   * asset because their appearance genuinely changes partway through the story, not because a new
+   * character has entered). Found necessary by rendering a real story and inspecting the actual
+   * output: without this, the compositor's construction-drawing reveal (see MythicShort.tsx's
+   * firstAppearanceBeat) treats the variant's own first appearance as a brand-new character's
+   * introduction and draws it from a blank parchment circle — correct for an actual new character,
+   * but jarring and anti-climactic when the "new" asset is really the same character studied a
+   * moment before, mid-scene (a sacrifice, a wound, a transformation): the viewer sees the
+   * character vanish and get redrawn from scratch at the exact moment they should be watching an
+   * unbroken reaction. Listing the variant here makes the compositor treat it as already
+   * introduced, inheriting its predecessor's first-appearance beat instead of triggering its own. */
+  asset_continuity?: Record<string, string>;
   psychology?: {
     mode: 'high_density' | 'sustained' | 'cinematic';
     curiosity: number;

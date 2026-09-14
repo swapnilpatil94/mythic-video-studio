@@ -25,7 +25,7 @@ const clamp01 = (value: number) => Math.max(0, Math.min(1, value));
 
 type Psychology = {tension_level?: number; emotional_level?: number; pattern_interrupt?: boolean};
 type ManifestBeat = {beat_id: string; duration_seconds: number; visual_role: string; asset_refs: string[]; camera?: string; animation?: string; text?: string; narration?: string; psychology?: Psychology};
-type Manifest = {title: string; duration_seconds: number; platform?: string; format?: 'SHORT' | 'LONGFORM'; asset_kinds?: Record<string, string>; beats: ManifestBeat[]};
+type Manifest = {title: string; duration_seconds: number; platform?: string; format?: 'SHORT' | 'LONGFORM'; asset_kinds?: Record<string, string>; asset_continuity?: Record<string, string>; beats: ManifestBeat[]};
 type Beat = ManifestBeat & {start: number; end: number; label: string};
 type Direction = {x: number; y: number};
 type CaptionWord = {word: string; start: number; end: number; score: number};
@@ -439,7 +439,24 @@ export const MythicShort: React.FC<{manifest: Manifest}> = ({manifest}) => {
   // character keeps disappearing", not as an intentional artistic choice. This tracks the first
   // beat index each asset ref appears in at all, so GeneratedArtwork can gate the reveal to that
   // one true introduction and render normally (already-drawn) on every later appearance.
-  const firstAppearanceBeat = useMemo(() => { const map: Record<string, number> = {}; beats.forEach((beat, i) => { for (const ref of beat.asset_refs) { if (!(ref in map)) map[ref] = i; } }); return map; }, [beats]);
+  // A continuity variant (see ProductionManifest's own asset_continuity doc — a costume change, an
+  // injury, a transformation asset for the same character) inherits its predecessor's first-
+  // appearance beat instead of registering its own: since a variant's ref never literally appears
+  // in the SAME beat as its predecessor's true introduction, `firstAppearanceBeat[variant] ===
+  // beatIndex` can never be true for it, so it never triggers its own construction-drawing reveal —
+  // it just appears already-drawn, the same as any other later appearance of an established
+  // character, which is what "the same character, studied a moment later" should look like.
+  const firstAppearanceBeat = useMemo(() => {
+    const map: Record<string, number> = {};
+    beats.forEach((beat, i) => { for (const ref of beat.asset_refs) { if (!(ref in map)) map[ref] = i; } });
+    const continuity = manifest.asset_continuity;
+    if (continuity) {
+      for (const [variant, predecessor] of Object.entries(continuity)) {
+        if (predecessor in map) map[variant] = map[predecessor];
+      }
+    }
+    return map;
+  }, [beats, manifest.asset_continuity]);
   if (beats.length === 0) return <AbsoluteFill style={{backgroundColor: CREAM}}/>;
   const beatIndex = Math.max(0, beats.findIndex((beat) => t >= beat.start && t < beat.end));
   const beat = beats[beatIndex] ?? beats[beats.length - 1];

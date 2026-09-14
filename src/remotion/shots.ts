@@ -32,6 +32,11 @@ const SHOT_BY_ROLE: Record<string, ShotPreset> = {
   sacrifice: {zoom: 1.5, focusY: 42, focusX: 62, label: 'hand/detail'},
   reveal: {zoom: 1.05, focusY: 30, focusX: 50, label: 'wide two-shot'},
   payoff: {zoom: 0.96, focusY: 38, focusX: 46, label: 'wide'},
+  // A sudden disruption/break beat (a weapon shattering, an implement snapping, any single-instant
+  // "something just happened") — generic cinematic vocabulary, not tied to any one story. Opens
+  // already tight rather than easing in from a wide shot, since the whole point of this beat is
+  // that it's abrupt.
+  impact: {zoom: 1.62, focusY: 40, focusX: 52, label: 'detail-impact'},
 };
 
 /** Generic shot archetypes (face / chest / hand-detail / wide) cycled by appearance order for
@@ -110,6 +115,10 @@ const SUB_SHOTS_BY_ROLE: Record<string, ShotPreset[]> = {
   ],
   reveal: [{zoom: 1.0, focusY: 30, focusX: 42, label: 'wide-two-shot'}, {zoom: 1.4, focusY: 18, focusX: 62, label: 'face'}],
   payoff: [{zoom: 0.95, focusY: 40, focusX: 45, label: 'wide'}, {zoom: 1.25, focusY: 20, focusX: 58, label: 'face-settle'}],
+  impact: [
+    {zoom: 1.62, focusY: 40, focusX: 52, label: 'detail-impact'},
+    {zoom: 1.3, focusY: 20, focusX: 42, label: 'face-reaction'},
+  ],
   // These five roles previously had no curated entry and fell to the generic rotation — most
   // visibly, `T2`'s `loyalty` landing on a similarly wide framing to `T1`'s `decision` at the same
   // point in their beats, reading as a near-repeat of the same shot. Each below is deliberately a
