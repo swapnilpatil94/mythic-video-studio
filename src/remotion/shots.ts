@@ -207,7 +207,20 @@ export function keywordFor(role: string): string | undefined {
  * free when it fits.
  */
 export function gestureTriggersFor(role: string): boolean {
-  return /decision|sacrifice|request|rescue|reach|offer|surrender|grant/.test(role.toLowerCase());
+  return /decision|sacrifice|request|rescue|reach|offer|surrender|grant|escalation|write|labor|craft/.test(role.toLowerCase());
+}
+
+/**
+ * Which SHAPE of gesture a triggering role gets — see CutoutPuppet's own comment on why 'write'
+ * (sustained, busy, irregular small motion for as long as the beat holds) is a structurally
+ * different animation from 'arc' (one deliberate anticipation/action/settle sweep), not just a
+ * different strength. Generic by design: 'write'/'escalation'/'labor'/'craft' are beats ABOUT an
+ * ongoing repeated physical activity (writing, forging, rowing, any sustained handiwork) in any
+ * story, not specific to this one; 'decision'/'sacrifice'/'request'/etc are beats about a single
+ * decisive action and keep the one-shot arc.
+ */
+export function gestureStyleFor(role: string): 'arc' | 'write' {
+  return /escalation|write|labor|craft/.test(role.toLowerCase()) ? 'write' : 'arc';
 }
 
 // Short, high-frequency Hindi function words — excluded when picking the "important" word out of

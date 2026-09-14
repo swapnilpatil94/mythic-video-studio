@@ -120,6 +120,18 @@ function gestureArcEase(gp: number): number {
   return 1;
 }
 
+/** Smoothstep-based fade envelope so a continuous activity (like 'write' below) ramps in/out at a
+ * beat's edges instead of snapping on/off — the same beat-local 0..1 progress the one-shot gesture
+ * arc uses, just consumed differently (as a hold envelope around a continuous pattern, not as the
+ * pattern's own timeline). */
+function fadeEnvelope(p: number, inEnd: number, outStart: number): number {
+  const clamped = Math.max(0, Math.min(1, p));
+  const smooth = (t: number) => t * t * (3 - 2 * t);
+  if (clamped < inEnd) return smooth(clamped / inEnd);
+  if (clamped > outStart) return smooth((1 - clamped) / (1 - outStart));
+  return 1;
+}
+
 function buildDisplacementFilter(
   id: string,
   regions: PuppetRegion[],
@@ -127,7 +139,8 @@ function buildDisplacementFilter(
   naturalWidth: number,
   naturalHeight: number,
   gestureRegionIndex?: number,
-  gestureProgress?: number
+  gestureProgress?: number,
+  gestureStyle?: 'arc' | 'write'
 ): {defs: React.ReactNode; filterId: string} {
   const clamp255 = (v: number) => Math.max(0, Math.min(255, v));
   const neutralRgb = `rgb(${NEUTRAL},${NEUTRAL},127)`;
@@ -142,7 +155,24 @@ function buildDisplacementFilter(
     // beat (see shots.ts's gestureTriggersFor), not a property of the region itself. Every other
     // region keeps behaving exactly as authored, gesture or no gesture, which is what keeps this
     // change additive rather than a rewrite of the existing idle-motion system.
-    if (gestureProgress !== undefined && i === gestureRegionIndex) {
+    if (gestureProgress !== undefined && i === gestureRegionIndex && gestureStyle === 'write') {
+      // 'write' is a genuinely different shape of motion from the one-shot gesture arc below, not
+      // a stronger version of it: a single anticipation/action/settle sweep reads as ONE deliberate
+      // motion (a reach, a decisive gesture), but "this hand is actively writing" needs SUSTAINED,
+      // small, busy motion for as long as the activity lasts — confirmed necessary by inspecting a
+      // real render: a beat whose role didn't even reach the gesture system at all (the "writing
+      // accelerates" beat used 'threat', which isn't in gestureTriggersFor's vocabulary) showed no
+      // hand motion beyond ambient idle sway, and even the beats that DID fire the one-shot arc
+      // read as a single twitch, not as ongoing writing. Two different frequencies per axis (not
+      // one sine, unlike 'sway') deliberately avoid a clean, graceful, periodic look — a real
+      // writing hand doesn't oscillate smoothly, it makes small irregular strokes. `fadeEnvelope`
+      // ramps this in/out at the beat's edges so it doesn't snap on exactly when the beat cuts in.
+      const env = fadeEnvelope(gestureProgress, 0.1, 0.88);
+      const WRITE_STRENGTH_BOOST = 1.9;
+      const wt = progress * Math.PI * 2;
+      dx = (Math.sin(wt * 3.7) * 0.6 + Math.sin(wt * 7.9 + 1.3) * 0.4) * region.strength * env * WRITE_STRENGTH_BOOST;
+      dy = (Math.cos(wt * 4.3 + 0.7) * 0.5 + Math.sin(wt * 9.1) * 0.3) * region.strength * 0.7 * env * WRITE_STRENGTH_BOOST;
+    } else if (gestureProgress !== undefined && i === gestureRegionIndex) {
       // A director-triggered gesture is the one moment in a beat meant to read as "this character
       // is doing something with intent" — verified on a real render that the region's own authored
       // idle `strength` (tuned for a subtle, ambient sway) made the actual arm displacement too
@@ -256,6 +286,7 @@ export function CutoutPuppet({
   boxHeight,
   gestureRegionIndex,
   gestureProgress,
+  gestureStyle,
 }: {
   src: string;
   regions: PuppetRegion[];
@@ -299,9 +330,14 @@ export function CutoutPuppet({
    * first authored, or freeze mid-gesture depending on when in the beat it started, neither of
    * which is a real one-shot action tied to a specific narrative moment. */
   gestureProgress?: number;
+  /** 'arc' (default) is the one-shot anticipation/action/settle sweep — one deliberate motion.
+   * 'write' is sustained busy small motion for as long as the beat holds `gestureProgress` active —
+   * see buildDisplacementFilter's own comment on why these are different shapes, not just different
+   * strengths. */
+  gestureStyle?: 'arc' | 'write';
 }) {
   const filterId = 'kathaaya-puppet-warp';
-  const {defs, filterId: id} = buildDisplacementFilter(filterId, regions, progress, naturalWidth, naturalHeight, gestureRegionIndex, gestureProgress);
+  const {defs, filterId: id} = buildDisplacementFilter(filterId, regions, progress, naturalWidth, naturalHeight, gestureRegionIndex, gestureProgress, gestureStyle);
   // Manual cover-crop: pick the natural-pixel-space window that exactly fills the target box's
   // aspect ratio, offset by focusX/focusY (0-100%) the same way object-position would. Left
   // undefined when the box's pixel size isn't known, or fit is 'contain' — 'contain' letterboxes

@@ -11,7 +11,7 @@ import {PUPPET_REGIONS} from './puppet-regions';
 import {KathayaCinematic} from './KathayaCinematic';
 import {AtmosphereParticles, type ParticleVariant} from './AtmosphereParticles';
 import {cameraMotion, cameraForRole, parallaxOffset, revealProgress, entranceExitOpacity, entranceExitShiftY, type MotionFrame} from './motion';
-import {keywordFor, importantWordFor, subShotSequence, gestureTriggersFor, type ShotPreset} from './shots';
+import {keywordFor, importantWordFor, subShotSequence, gestureTriggersFor, gestureStyleFor, type ShotPreset} from './shots';
 import {profileFor, type FormatProfile} from './format';
 import {platformProfile, resolveSubtitleCenterY} from '../shared/platform-profiles';
 import {BRAND_NAME, BRAND_TAGLINE, BRAND_LOGO_PATH} from '../shared/brand';
@@ -179,12 +179,14 @@ function mainShotVisibility(progress: number, hasDetail: boolean): number {
   return 1;
 }
 
-function FramedLayer({src, zoom, focusY, focusX = 50, camera, depth, progress, direction, reveal, opacity = 1, shiftY = 0, box, fit = 'cover', cameraWeight = 0.35, sway = 0, swayX = 28, swayY = 30, idleScale = 1, seed = 'layer', showPen = false, constructionRegions, puppetRef, gestureProgress}: {
+function FramedLayer({src, zoom, focusY, focusX = 50, camera, depth, progress, direction, reveal, opacity = 1, shiftY = 0, box, fit = 'cover', cameraWeight = 0.35, sway = 0, swayX = 28, swayY = 30, idleScale = 1, seed = 'layer', showPen = false, constructionRegions, puppetRef, gestureProgress, gestureStyle}: {
   src: string; zoom: number; focusY: number; focusX?: number; camera: MotionFrame; depth: number; progress: number; direction: Direction; reveal?: number; opacity?: number; shiftY?: number; box?: React.CSSProperties; fit?: 'cover' | 'contain'; cameraWeight?: number; sway?: number; swayX?: number; swayY?: number; idleScale?: number; seed?: string; showPen?: boolean; constructionRegions?: ConstructionRegion[]; puppetRef?: string;
   /** Beat-local 0..1 — see CutoutPuppet's own `gestureProgress` doc. Only meaningful when `puppet`
    * (resolved below from `puppetRef`) has a `gestureRegionIndex`; otherwise silently has no effect,
    * so callers can pass this unconditionally without checking which ref they're rendering. */
   gestureProgress?: number;
+  /** See CutoutPuppet's own doc — 'arc' (default) or 'write'. */
+  gestureStyle?: 'arc' | 'write';
 }) {
   const offset = parallaxOffset(depth, progress, direction);
   const idlePhase = focusY * 0.11 + depth * 2.4;
@@ -255,6 +257,7 @@ function FramedLayer({src, zoom, focusY, focusX = 50, camera, depth, progress, d
             progress={frame / fps}
             gestureRegionIndex={puppet.gestureRegionIndex}
             gestureProgress={puppet.gestureRegionIndex !== undefined ? gestureProgress : undefined}
+            gestureStyle={gestureStyle}
             style={masterStyle}
             boxWidth={puppetBoxSize?.boxWidth}
             boxHeight={puppetBoxSize?.boxHeight}
@@ -294,6 +297,7 @@ function GeneratedArtwork({beat, progress, beatIndex, format, variant, assetKind
   const hasDetail = Boolean(detail);
   const mainVisible = mainShotVisibility(progress, hasDetail);
   const gestureActive = gestureTriggersFor(beat.visual_role);
+  const gestureStyle = gestureStyleFor(beat.visual_role);
   const envOpacity = entranceExitOpacity(progress, 0.06, 0.92) * mainVisible;
   // The psychology model's own pacing target (2-5s/cut for LONGFORM, 0.5-2s for SHORT — see
   // psychology.ts) drives the actual cut count now, not just the curated preset array length.
@@ -318,7 +322,7 @@ function GeneratedArtwork({beat, progress, beatIndex, format, variant, assetKind
       const reveal = isIntroduction ? revealProgress(staggered, Math.min(revealF, segDur * 0.85)) : undefined;
       const regions = isIntroduction ? subjectRelativeConstruction({focusX: subShot.focusX, focusY: subShot.focusY}) : undefined;
       const gestureProgress = gestureLocalProgress(staggered, gestureActive);
-      return <FramedLayer key={`${beat.beat_id}-${ref}`} src={staticFile(runtimeAssets[ref])} fit="contain" zoom={Math.min(subShot.zoom * cutSnapZoom(segLocal) * gestureZoomPush(gestureProgress), 1.3)} focusY={subShot.focusY} focusX={leftSide ? 38 : 62} camera={camera} depth={0.72 - index * 0.06} progress={progress} direction={direction} reveal={reveal} opacity={entranceExitOpacity(staggered) * cutFlashOpacity(segLocal, cutIndex) * mainShotVisibility(staggered, hasDetail)} shiftY={entranceExitShiftY(staggered)} sway={1.35 * format.swayScale} swayX={30} swayY={26} cameraWeight={cameraWeight} idleScale={format.idleAmpScale} seed={`${beat.beat_id}-${ref}`} showPen={index === 0 && isIntroduction} constructionRegions={regions} puppetRef={ref} gestureProgress={gestureProgress} box={{left: leftSide ? '-8%' : '38%', width: '70%', top: '12%', bottom: '2%'}}/>;
+      return <FramedLayer key={`${beat.beat_id}-${ref}`} src={staticFile(runtimeAssets[ref])} fit="contain" zoom={Math.min(subShot.zoom * cutSnapZoom(segLocal) * gestureZoomPush(gestureProgress), 1.3)} focusY={subShot.focusY} focusX={leftSide ? 38 : 62} camera={camera} depth={0.72 - index * 0.06} progress={progress} direction={direction} reveal={reveal} opacity={entranceExitOpacity(staggered) * cutFlashOpacity(segLocal, cutIndex) * mainShotVisibility(staggered, hasDetail)} shiftY={entranceExitShiftY(staggered)} sway={1.35 * format.swayScale} swayX={30} swayY={26} cameraWeight={cameraWeight} idleScale={format.idleAmpScale} seed={`${beat.beat_id}-${ref}`} showPen={index === 0 && isIntroduction} constructionRegions={regions} puppetRef={ref} gestureProgress={gestureProgress} gestureStyle={gestureStyle} box={{left: leftSide ? '-8%' : '38%', width: '70%', top: '12%', bottom: '2%'}}/>;
     }) : null}
 
     {characters.length >= 2 ? <div style={{position: 'absolute', left: '50%', top: '7%', bottom: '7%', width: 2, background: INK, opacity: entranceExitOpacity(progress) * 0.22 * mainVisible}}/> : null}
@@ -332,7 +336,7 @@ function GeneratedArtwork({beat, progress, beatIndex, format, variant, assetKind
       const regions = isIntroduction ? subjectRelativeConstruction({focusX: subShot.focusX, focusY: subShot.focusY}) : undefined;
       const layerOpacity = entranceExitOpacity(progress) * cutFlashOpacity(segLocal, cutIndex) * mainVisible;
       const gestureProgress = gestureLocalProgress(progress, gestureActive);
-      return <React.Fragment key={`${beat.beat_id}-${ref}-frame`}><FramedLayer key={`${beat.beat_id}-${ref}`} src={staticFile(runtimeAssets[ref])} fit={fullBleed ? 'cover' : 'contain'} zoom={subShot.zoom * cutSnapZoom(segLocal) * gestureZoomPush(gestureProgress)} focusY={subShot.focusY} focusX={subShot.focusX} camera={camera} depth={0.68} progress={progress} direction={direction} reveal={reveal} opacity={layerOpacity} shiftY={entranceExitShiftY(progress)} sway={2.1 * format.swayScale} swayX={28} swayY={24} cameraWeight={cameraWeight} idleScale={format.idleAmpScale} seed={`${beat.beat_id}-${ref}`} showPen={isIntroduction} constructionRegions={regions} puppetRef={ref} gestureProgress={gestureProgress} box={fullBleed ? undefined : {left: beatIndex % 2 === 1 ? '2%' : '26%', width: '72%', top: '8%', bottom: '0%'}}/><ShotFrameTreatment label={subShot.label} opacity={layerOpacity}/></React.Fragment>;
+      return <React.Fragment key={`${beat.beat_id}-${ref}-frame`}><FramedLayer key={`${beat.beat_id}-${ref}`} src={staticFile(runtimeAssets[ref])} fit={fullBleed ? 'cover' : 'contain'} zoom={subShot.zoom * cutSnapZoom(segLocal) * gestureZoomPush(gestureProgress)} focusY={subShot.focusY} focusX={subShot.focusX} camera={camera} depth={0.68} progress={progress} direction={direction} reveal={reveal} opacity={layerOpacity} shiftY={entranceExitShiftY(progress)} sway={2.1 * format.swayScale} swayX={28} swayY={24} cameraWeight={cameraWeight} idleScale={format.idleAmpScale} seed={`${beat.beat_id}-${ref}`} showPen={isIntroduction} constructionRegions={regions} puppetRef={ref} gestureProgress={gestureProgress} gestureStyle={gestureStyle} box={fullBleed ? undefined : {left: beatIndex % 2 === 1 ? '2%' : '26%', width: '72%', top: '8%', bottom: '0%'}}/><ShotFrameTreatment label={subShot.label} opacity={layerOpacity}/></React.Fragment>;
     }) : null}
 
     {detail ? (() => {
