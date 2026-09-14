@@ -12,6 +12,7 @@ import {KathayaCinematic} from './KathayaCinematic';
 import {AtmosphereParticles, type ParticleVariant} from './AtmosphereParticles';
 import {cameraMotion, cameraForRole, parallaxOffset, revealProgress, entranceExitOpacity, entranceExitShiftY, type MotionFrame} from './motion';
 import {keywordFor, importantWordFor, subShotSequence, gestureTriggersFor, gestureStyleFor, type ShotPreset} from './shots';
+import type {StateCutaway} from '../character/states';
 import {profileFor, type FormatProfile} from './format';
 import {platformProfile, resolveSubtitleCenterY} from '../shared/platform-profiles';
 import {BRAND_NAME, BRAND_TAGLINE, BRAND_LOGO_PATH} from '../shared/brand';
@@ -24,7 +25,7 @@ const RED = '#8E2F24';
 const clamp01 = (value: number) => Math.max(0, Math.min(1, value));
 
 type Psychology = {tension_level?: number; emotional_level?: number; pattern_interrupt?: boolean};
-type ManifestBeat = {beat_id: string; duration_seconds: number; visual_role: string; asset_refs: string[]; camera?: string; animation?: string; text?: string; narration?: string; psychology?: Psychology};
+type ManifestBeat = {beat_id: string; duration_seconds: number; visual_role: string; asset_refs: string[]; camera?: string; animation?: string; text?: string; narration?: string; psychology?: Psychology; state_cutaway?: StateCutaway};
 type Manifest = {title: string; duration_seconds: number; platform?: string; format?: 'SHORT' | 'LONGFORM'; asset_kinds?: Record<string, string>; asset_continuity?: Record<string, string>; beats: ManifestBeat[]};
 type Beat = ManifestBeat & {start: number; end: number; label: string};
 type Direction = {x: number; y: number};
@@ -329,15 +330,23 @@ function GeneratedArtwork({beat, progress, beatIndex, format, variant, assetKind
     {characters.length >= 2 ? <div style={{position: 'absolute', left: '50%', top: '7%', bottom: '7%', width: 2, background: INK, opacity: entranceExitOpacity(progress) * 0.22 * mainVisible}}/> : null}
 
     {characters.length < 2 ? characters.slice(0, 1).map((ref) => {
+      // A mid-beat pose swap (see character/states.ts's StateCutaway doc): the character renders
+      // as `ref` normally, then — at a specific beat-local moment a story event calls for, e.g. a
+      // tool physically breaking — switches to a different, already-generated asset for the rest
+      // of the beat. An instant switch (no crossfade), deliberately: this is meant to read as a
+      // sudden disruption, matching the hard-cut treatment this beat already uses elsewhere, not a
+      // graceful dissolve between two states.
+      const cutaway = beat.state_cutaway;
+      const activeRef = cutaway && progress >= cutaway.at && runtimeAssets[cutaway.ref] ? cutaway.ref : ref;
       const fullBleed = !environment;
       const subShots = subShotSequence(beat.visual_role, variant);
       const {shot: subShot, index: cutIndex, segLocal, segDur} = activeSubShot(subShots, progress, beat.duration_seconds, targetCutSeconds);
-      const isIntroduction = cutIndex === 0 && firstAppearanceBeat[ref] === beatIndex;
+      const isIntroduction = cutIndex === 0 && firstAppearanceBeat[activeRef] === beatIndex;
       const reveal = isIntroduction ? revealProgress(progress, Math.min(revealF, segDur * 0.85)) : undefined;
       const regions = isIntroduction ? subjectRelativeConstruction({focusX: subShot.focusX, focusY: subShot.focusY}) : undefined;
       const layerOpacity = entranceExitOpacity(progress) * cutFlashOpacity(segLocal, cutIndex) * mainVisible;
       const gestureProgress = gestureLocalProgress(progress, gestureActive);
-      return <React.Fragment key={`${beat.beat_id}-${ref}-frame`}><FramedLayer key={`${beat.beat_id}-${ref}`} src={staticFile(runtimeAssets[ref])} fit={fullBleed ? 'cover' : 'contain'} zoom={subShot.zoom * cutSnapZoom(segLocal) * gestureZoomPush(gestureProgress)} focusY={subShot.focusY} focusX={subShot.focusX} camera={camera} depth={0.68} progress={progress} direction={direction} reveal={reveal} opacity={layerOpacity} shiftY={entranceExitShiftY(progress)} sway={2.1 * format.swayScale} swayX={28} swayY={24} cameraWeight={cameraWeight} idleScale={format.idleAmpScale} seed={`${beat.beat_id}-${ref}`} showPen={isIntroduction} constructionRegions={regions} puppetRef={ref} gestureProgress={gestureProgress} gestureStyle={gestureStyle} box={fullBleed ? undefined : {left: beatIndex % 2 === 1 ? '2%' : '26%', width: '72%', top: '8%', bottom: '0%'}}/><ShotFrameTreatment label={subShot.label} opacity={layerOpacity}/></React.Fragment>;
+      return <React.Fragment key={`${beat.beat_id}-${ref}-frame`}><FramedLayer key={`${beat.beat_id}-${activeRef}`} src={staticFile(runtimeAssets[activeRef])} fit={fullBleed ? 'cover' : 'contain'} zoom={subShot.zoom * cutSnapZoom(segLocal) * gestureZoomPush(gestureProgress)} focusY={subShot.focusY} focusX={subShot.focusX} camera={camera} depth={0.68} progress={progress} direction={direction} reveal={reveal} opacity={layerOpacity} shiftY={entranceExitShiftY(progress)} sway={2.1 * format.swayScale} swayX={28} swayY={24} cameraWeight={cameraWeight} idleScale={format.idleAmpScale} seed={`${beat.beat_id}-${activeRef}`} showPen={isIntroduction} constructionRegions={regions} puppetRef={activeRef} gestureProgress={gestureProgress} gestureStyle={gestureStyle} box={fullBleed ? undefined : {left: beatIndex % 2 === 1 ? '2%' : '26%', width: '72%', top: '8%', bottom: '0%'}}/><ShotFrameTreatment label={subShot.label} opacity={layerOpacity}/></React.Fragment>;
     }) : null}
 
     {detail ? (() => {

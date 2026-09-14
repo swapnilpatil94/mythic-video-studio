@@ -207,7 +207,7 @@ export function keywordFor(role: string): string | undefined {
  * free when it fits.
  */
 export function gestureTriggersFor(role: string): boolean {
-  return /decision|sacrifice|request|rescue|reach|offer|surrender|grant|escalation|write|labor|craft/.test(role.toLowerCase());
+  return /decision|sacrifice|request|rescue|reach|offer|surrender|grant|escalation|write|labor|craft|impact/.test(role.toLowerCase());
 }
 
 /**
@@ -217,10 +217,15 @@ export function gestureTriggersFor(role: string): boolean {
  * different strength. Generic by design: 'write'/'escalation'/'labor'/'craft' are beats ABOUT an
  * ongoing repeated physical activity (writing, forging, rowing, any sustained handiwork) in any
  * story, not specific to this one; 'decision'/'sacrifice'/'request'/etc are beats about a single
- * decisive action and keep the one-shot arc.
+ * decisive action and keep the one-shot arc. 'impact' also gets 'write': the beat LEADING UP TO an
+ * impact (the moments right before a tool breaks, a collision, any sudden disruption) is typically
+ * still the ongoing activity that impact interrupts — a character isn't idle right up until the
+ * instant something hits, they're still doing whatever they were doing. Harmless where a beat's
+ * own state_cutaway (see character/states.ts) switches to a pose with no gesture region defined:
+ * the gesture simply has nothing to drive after the switch, not an error.
  */
 export function gestureStyleFor(role: string): 'arc' | 'write' {
-  return /escalation|write|labor|craft/.test(role.toLowerCase()) ? 'write' : 'arc';
+  return /escalation|write|labor|craft|impact/.test(role.toLowerCase()) ? 'write' : 'arc';
 }
 
 // Short, high-frequency Hindi function words — excluded when picking the "important" word out of

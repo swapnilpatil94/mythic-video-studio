@@ -70,6 +70,11 @@ export type ProductionBeat = {
   keyword_text?: string;
   transition?: string;
   psychology?: BeatPsychology;
+  /** See character/states.ts's StateCutaway doc — an in-beat pose swap for a single-character
+   * beat's primary character, at a specific beat-local moment (a tool breaking, an object
+   * received, any story event that should visibly change what the character is doing without
+   * this needing its own separate beat). */
+  state_cutaway?: {ref: string; at: number};
 };
 
 export type ProductionManifest = {
