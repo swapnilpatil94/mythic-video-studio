@@ -133,14 +133,29 @@ def main() -> int:
     raw_segments: list[dict] = []
     cursor_samples = 0
 
-    for index, segment in enumerate(segments):
-        text = (segment.get("text") or "").strip()
-        if not text:
+    group_lines = bool(job.get("group_lines", False))
+    groups: list[list[dict]] = []
+    current: list[dict] = []
+    current_words = 0
+    for segment in segments:
+        segment_text = (segment.get("text") or "").strip()
+        if not segment_text:
             continue
-        torch.manual_seed(seed + index)
+        word_count = max(len(segment_text.split()), 1)
+        if group_lines and current and (len(current) >= 3 or current_words + word_count > 28):
+            groups.append(current)
+            current, current_words = [], 0
+        current.append(segment)
+        current_words += word_count
+    if current:
+        groups.append(current)
+
+    for group_index, group in enumerate(groups):
+        combined_text = " ".join((segment.get("text") or "").strip() for segment in group)
+        torch.manual_seed(seed + group_index)
         t1 = time.time()
         wav = model.generate(
-            text,
+            combined_text,
             language_id="hi",
             audio_prompt_path=str(reference_path),
             exaggeration=exaggeration,
@@ -148,19 +163,29 @@ def main() -> int:
             temperature=temperature,
         )
         clip = trim_silence(wav.squeeze(0).detach().cpu().numpy().astype(np.float32), model.sr)
+        chunk_start = cursor_samples / model.sr
+        chunk_duration = len(clip) / model.sr
         clips.append(clip)
-        raw_segments.append({
-            "beat_id": segment.get("beat_id", str(index)),
-            "text": text,
-            "start_seconds": cursor_samples / model.sr,
-            "end_seconds": (cursor_samples + len(clip)) / model.sr,
-        })
+        weights = [max(len((segment.get("text") or "").split()), 1) for segment in group]
+        total_weight = sum(weights) or 1
+        cumulative = 0
+        # Generation is chunked for natural sentence-to-sentence prosody. These are
+        # rough per-line bounds only; WhisperX subsequently aligns each original line.
+        for segment, weight in zip(group, weights):
+            raw_start = chunk_start + chunk_duration * cumulative / total_weight
+            cumulative += weight
+            raw_end = chunk_start + chunk_duration * cumulative / total_weight
+            raw_segments.append({
+                "beat_id": segment.get("beat_id", str(len(raw_segments))),
+                "text": (segment.get("text") or "").strip(),
+                "start_seconds": round(max(chunk_start, raw_start - 0.18), 3),
+                "end_seconds": round(min(chunk_start + chunk_duration, raw_end + 0.18), 3),
+            })
         cursor_samples += len(clip)
-        if index < len(segments) - 1:
+        if group_index < len(groups) - 1:
             clips.append(pad)
             cursor_samples += len(pad)
-        log(f"segment {segment.get('beat_id', index)}: {len(clip) / model.sr:.2f}s in {time.time() - t1:.1f}s")
-
+        log(f"take {group_index + 1}/{len(groups)} ({len(group)} line(s)): {chunk_duration:.2f}s in {time.time() - t1:.1f}s")
     if not clips:
         log("no audio generated")
         return 1
