@@ -169,7 +169,7 @@ def main() -> int:
     pre_tempo_path = output_path if tempo == 1.0 else output_path.with_suffix(".pretempo.wav")
     sf.write(str(pre_tempo_path), full, model.sr)
 
-    if TEMPO != 1.0:
+    if tempo != 1.0:
         result = subprocess.run(
             ["ffmpeg", "-y", "-i", str(pre_tempo_path), "-filter:a", f"atempo={tempo}", str(output_path)],
             capture_output=True, text=True,
