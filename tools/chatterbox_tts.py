@@ -26,7 +26,7 @@ TOOLS_DIR = Path(__file__).resolve().parent
 REPO_ROOT = TOOLS_DIR.parent
 DEFAULT_REFERENCE = REPO_ROOT / "assets" / "reference-voices" / "hindi-male-narrator.wav"
 
-SILENCE_PAD_SECONDS = 0.16
+SILENCE_PAD_SECONDS = 0.18
 TRIM_THRESHOLD = 0.02  # relative to each clip's own peak amplitude
 TRIM_MARGIN_SECONDS = 0.03
 # Post-generation tempo multiplier (ffmpeg atempo). Trimming Chatterbox's own boundary silence
@@ -36,7 +36,7 @@ TRIM_MARGIN_SECONDS = 0.03
 # room. 1.0 disables it. Measured on this voice/reference, after both trim and gap-tightening:
 # 0.92x -> ~165.5 WPM (over target); 0.90x -> see PROGRESS.md for the re-measured value.
 import os as _os
-TEMPO = float(_os.environ.get("TTS_ATEMPO", "0.84"))
+TEMPO = float(_os.environ.get("TTS_ATEMPO", "0.90"))
 
 
 def log(message: str) -> None:
@@ -81,10 +81,10 @@ def main() -> int:
         log(f"reference voice not found: {reference_path}")
         return 1
 
-    # Storytelling defaults: more expressive, less rushed, and deterministic per beat.
-    exaggeration = float(job.get("exaggeration", 0.68))
-    cfg_weight = float(job.get("cfg_weight", 0.30))
-    temperature = float(job.get("temperature", 0.65))
+    # Reels storytelling defaults: prioritize intelligibility, controlled emphasis, and consistent delivery.
+    exaggeration = float(job.get("exaggeration", 0.60))
+    cfg_weight = float(job.get("cfg_weight", 0.35))
+    temperature = float(job.get("temperature", 0.55))
     tempo = float(job.get("tempo", TEMPO))
     silence_pad_seconds = float(job.get("silence_pad_seconds", SILENCE_PAD_SECONDS))
     seed = int(job.get("seed", 42))
