@@ -137,16 +137,20 @@ def main() -> int:
     groups: list[list[dict]] = []
     current: list[dict] = []
     current_words = 0
+    current_delivery = None
     for segment in segments:
         segment_text = (segment.get("text") or "").strip()
         if not segment_text:
             continue
+        delivery = segment.get("delivery") or "explanation"
         word_count = max(len(segment_text.split()), 1)
-        if group_lines and current and (len(current) >= 3 or current_words + word_count > 28):
+        # Keep different delivery intentions in separate generation takes.
+        if current and (delivery != current_delivery or (group_lines and (len(current) >= 3 or current_words + word_count > 28))):
             groups.append(current)
             current, current_words = [], 0
         current.append(segment)
         current_words += word_count
+        current_delivery = delivery
     if current:
         groups.append(current)
 
@@ -154,15 +158,41 @@ def main() -> int:
         combined_text = " ".join((segment.get("text") or "").strip() for segment in group)
         torch.manual_seed(seed + group_index)
         t1 = time.time()
+        delivery = group[0].get("delivery") or "explanation"
+        # Conservative per-delivery offsets from the base preset.
+        delivery_settings = {
+            "hook": (min(1.0, exaggeration + 0.08), max(0.20, cfg_weight - 0.03), 1.06, 0.12),
+            "explanation": (exaggeration, cfg_weight, 1.02, 0.16),
+            "reveal": (min(1.0, exaggeration + 0.12), max(0.20, cfg_weight - 0.06), 0.96, 0.30),
+            "twist": (min(1.05, exaggeration + 0.14), max(0.20, cfg_weight - 0.05), 1.08, 0.32),
+        }
+        local_exaggeration, local_cfg, local_tempo, pad_after = delivery_settings.get(delivery, delivery_settings["explanation"])
         wav = model.generate(
             combined_text,
             language_id="hi",
             audio_prompt_path=str(reference_path),
-            exaggeration=exaggeration,
-            cfg_weight=cfg_weight,
+            exaggeration=local_exaggeration,
+            cfg_weight=local_cfg,
             temperature=temperature,
         )
         clip = trim_silence(wav.squeeze(0).detach().cpu().numpy().astype(np.float32), model.sr)
+        # Vary pace per delivery before the global atempo master pass.
+        if local_tempo != 1.0 and len(clip):
+            temp_in = output_path.with_name(f".{output_path.stem}.delivery-{group_index}.wav")
+            temp_out = output_path.with_name(f".{output_path.stem}.delivery-{group_index}.tmp.wav")
+            sf.write(str(temp_in), clip, model.sr)
+            tempo_result = subprocess.run(
+                ["ffmpeg", "-y", "-loglevel", "error", "-i", str(temp_in),
+                 "-filter:a", f"atempo={local_tempo}", str(temp_out)],
+                capture_output=True, text=True,
+            )
+            temp_in.unlink(missing_ok=True)
+            if tempo_result.returncode != 0 or not temp_out.exists():
+                temp_out.unlink(missing_ok=True)
+                log(f"delivery tempo failed for {delivery}; keeping original clip")
+            else:
+                clip, _ = sf.read(str(temp_out), dtype="float32")
+                temp_out.unlink(missing_ok=True)
         chunk_start = cursor_samples / model.sr
         chunk_duration = len(clip) / model.sr
         clips.append(clip)
@@ -183,9 +213,10 @@ def main() -> int:
             })
         cursor_samples += len(clip)
         if group_index < len(groups) - 1:
-            clips.append(pad)
-            cursor_samples += len(pad)
-        log(f"take {group_index + 1}/{len(groups)} ({len(group)} line(s)): {chunk_duration:.2f}s in {time.time() - t1:.1f}s")
+            group_pad = np.zeros(int(pad_after * model.sr), dtype=np.float32)
+            clips.append(group_pad)
+            cursor_samples += len(group_pad)
+        log(f"take {group_index + 1}/{len(groups)} [{delivery}] ({len(group)} line(s)): {chunk_duration:.2f}s in {time.time() - t1:.1f}s")
     if not clips:
         log("no audio generated")
         return 1
