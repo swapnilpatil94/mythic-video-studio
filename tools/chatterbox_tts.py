@@ -27,8 +27,8 @@ REPO_ROOT = TOOLS_DIR.parent
 DEFAULT_REFERENCE = REPO_ROOT / "assets" / "reference-voices" / "hindi-male-narrator.wav"
 
 SILENCE_PAD_SECONDS = 0.18
-TRIM_THRESHOLD = 0.02  # relative to each clip's own peak amplitude
-TRIM_MARGIN_SECONDS = 0.03
+TRIM_THRESHOLD = 0.01  # preserve quieter consonants and sentence tails
+TRIM_MARGIN_SECONDS = 0.06
 # Post-generation tempo multiplier (ffmpeg atempo). Trimming Chatterbox's own boundary silence
 # (see trim_silence) already pushes the natural pace to ~170 WPM on its own, and the downstream
 # Whisper-driven dead-air tightening (tools/whisper_align.py) removes further inter-word gaps —
@@ -174,6 +174,8 @@ def main() -> int:
             "tempo": tempo, "exaggeration": exaggeration, "cfg_weight": cfg_weight,
             "temperature": temperature, "silence_pad_seconds": silence_pad_seconds,
             "seed": seed, "group_lines": bool(job.get("group_lines", False)),
+            "group_max_lines": int(job.get("group_max_lines", 5)),
+            "group_max_words": int(job.get("group_max_words", 45)),
         },
     }
     info_path = output_path.with_name("model_info.json")
@@ -189,6 +191,8 @@ def main() -> int:
     cursor_samples = 0
 
     group_lines = bool(job.get("group_lines", False))
+    group_max_lines = max(1, int(job.get("group_max_lines", 5)))
+    group_max_words = max(1, int(job.get("group_max_words", 45)))
     groups: list[list[dict]] = []
     current: list[dict] = []
     current_words = 0
@@ -197,7 +201,7 @@ def main() -> int:
         if not segment_text:
             continue
         word_count = max(len(segment_text.split()), 1)
-        if current and group_lines and (len(current) >= 3 or current_words + word_count > 28):
+        if current and group_lines and (len(current) >= group_max_lines or current_words + word_count > group_max_words):
             groups.append(current)
             current, current_words = [], 0
         current.append(segment)
@@ -239,7 +243,7 @@ def main() -> int:
         if group_index < len(groups) - 1:
             clips.append(pad)
             cursor_samples += len(pad)
-        log(f"take {group_index + 1}/{len(groups)} ({len(group)} line(s)): {chunk_duration:.2f}s in {time.time() - t1:.1f}s")
+        log(f"take {group_index + 1}/{len(groups)} ({len(group)} line(s), {len(combined_text.split())} words): {chunk_duration:.2f}s in {time.time() - t1:.1f}s")
     if not clips:
         log("no audio generated")
         return 1
