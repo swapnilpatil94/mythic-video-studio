@@ -107,24 +107,79 @@ def main() -> int:
     import numpy as np
     import soundfile as sf
     import torch
-    from chatterbox.mtl_tts import ChatterboxMultilingualTTS
     import inspect
+    import importlib.metadata
+    from chatterbox.mtl_tts import ChatterboxMultilingualTTS
 
     device = "mps" if torch.backends.mps.is_available() else "cpu"
-    log(f"device={device}, reference={reference_path}, tempo={tempo}, exaggeration={exaggeration}, cfg_weight={cfg_weight}, temperature={temperature}")
-
-    t0 = time.time()
-    # Prefer V3 where this installed package exposes the selector. Some current
-    # releases removed t3_model; in that case use their installed default safely.
+    try:
+        package_version = importlib.metadata.version("chatterbox-tts")
+    except importlib.metadata.PackageNotFoundError:
+        package_version = "unknown"
     loader = ChatterboxMultilingualTTS.from_pretrained
     try:
-        if "t3_model" in inspect.signature(loader).parameters:
+        selector_available = "t3_model" in inspect.signature(loader).parameters
+    except (TypeError, ValueError):
+        selector_available = False
+    requested_selector = "v3" if selector_available else None
+    log(f"CONFIG device={device} package=chatterbox-tts@{package_version} class={ChatterboxMultilingualTTS.__module__}.{ChatterboxMultilingualTTS.__name__}")
+    log(f"CONFIG language_id=hi reference={reference_path} reference_exists={reference_path.exists()}")
+    log(f"CONFIG checkpoint_selector={requested_selector or 'not supported by installed loader; package default will be used'}")
+    log(f"CONFIG tempo={tempo} exaggeration={exaggeration} cfg_weight={cfg_weight} temperature={temperature} silence_pad_seconds={silence_pad_seconds} seed={seed}")
+
+    t0 = time.time()
+    # Prefer the package's V3 selector when available. This is the multilingual
+    # V3 family with Hindi selected at inference; it is NOT the dedicated
+    # ResembleAI/Chatterbox-Multilingual-hi checkpoint.
+    try:
+        if selector_available:
             model = loader(device=device, t3_model="v3")
+            selector_used = "v3"
         else:
             model = loader(device=device)
+            selector_used = "installed-default"
     except (TypeError, ValueError) as exc:
-        log(f"V3 selector unavailable ({exc}); loading installed default checkpoint")
+        log(f"V3 selector call failed ({exc}); loading installed default checkpoint")
         model = loader(device=device)
+        selector_used = "installed-default-after-selector-failure"
+
+    def _class_name(value):
+        cls = type(value)
+        return f"{cls.__module__}.{cls.__name__}"
+
+    submodels = {}
+    for attr in ("t3", "s3gen", "ve", "tokenizer", "conds"):
+        try:
+            value = getattr(model, attr, None)
+            if value is not None:
+                submodels[attr] = _class_name(value)
+        except Exception:
+            pass
+    model_info = {
+        "model_family": "ChatterboxMultilingualTTS",
+        "loader_class": f"{ChatterboxMultilingualTTS.__module__}.{ChatterboxMultilingualTTS.__name__}",
+        "package_version": package_version,
+        "device": device,
+        "language_id": "hi",
+        "selector_requested": requested_selector,
+        "selector_used": selector_used,
+        "dedicated_hindi_checkpoint": False,
+        "checkpoint_note": "Multilingual Chatterbox loader with Hindi language_id; not the dedicated ResembleAI/Chatterbox-Multilingual-hi checkpoint.",
+        "sample_rate": int(getattr(model, "sr", 0) or 0),
+        "reference_audio": str(reference_path.resolve()),
+        "reference_bytes": reference_path.stat().st_size if reference_path.exists() else None,
+        "reference_mtime": reference_path.stat().st_mtime if reference_path.exists() else None,
+        "submodels": submodels,
+        "settings": {
+            "tempo": tempo, "exaggeration": exaggeration, "cfg_weight": cfg_weight,
+            "temperature": temperature, "silence_pad_seconds": silence_pad_seconds,
+            "seed": seed, "group_lines": bool(job.get("group_lines", False)),
+        },
+    }
+    info_path = output_path.with_name("model_info.json")
+    info_path.write_text(json.dumps(model_info, ensure_ascii=False, indent=2), encoding="utf-8")
+    log(f"MODEL family={model_info['model_family']} selector={selector_used} dedicated_hindi_checkpoint=false sample_rate={model_info['sample_rate']} submodels={submodels}")
+    log(f"MODEL_INFO path={info_path}")
     log(f"model loaded in {time.time() - t0:.1f}s")
 
     pad = np.zeros(int(silence_pad_seconds * model.sr), dtype=np.float32)
