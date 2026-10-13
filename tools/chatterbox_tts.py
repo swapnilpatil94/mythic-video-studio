@@ -87,6 +87,8 @@ def main() -> int:
     temperature = float(job.get("temperature", 0.55))
     tempo = float(job.get("tempo", TEMPO))
     silence_pad_seconds = float(job.get("silence_pad_seconds", SILENCE_PAD_SECONDS))
+    performance_mode = bool(job.get("performance_mode", False))
+    expression_intensity = max(0, min(100, int(job.get("expression_intensity", 65))))
     seed = int(job.get("seed", 42))
     if not 0.0 <= exaggeration <= 1.5:
         log("exaggeration must be between 0 and 1.5")
@@ -125,7 +127,7 @@ def main() -> int:
     log(f"CONFIG device={device} package=chatterbox-tts@{package_version} class={ChatterboxMultilingualTTS.__module__}.{ChatterboxMultilingualTTS.__name__}")
     log(f"CONFIG language_id=hi reference={reference_path} reference_exists={reference_path.exists()}")
     log(f"CONFIG checkpoint_selector={requested_selector or 'not supported by installed loader; package default will be used'}")
-    log(f"CONFIG tempo={tempo} exaggeration={exaggeration} cfg_weight={cfg_weight} temperature={temperature} silence_pad_seconds={silence_pad_seconds} seed={seed}")
+    log(f"CONFIG tempo={tempo} exaggeration={exaggeration} cfg_weight={cfg_weight} temperature={temperature} silence_pad_seconds={silence_pad_seconds} seed={seed} performance_mode={performance_mode} expression_intensity={expression_intensity}")
 
     t0 = time.time()
     # Prefer the package's V3 selector when available. This is the multilingual
@@ -174,6 +176,7 @@ def main() -> int:
             "tempo": tempo, "exaggeration": exaggeration, "cfg_weight": cfg_weight,
             "temperature": temperature, "silence_pad_seconds": silence_pad_seconds,
             "seed": seed, "group_lines": bool(job.get("group_lines", False)),
+            "performance_mode": performance_mode, "expression_intensity": expression_intensity,
             "group_max_lines": int(job.get("group_max_lines", 5)),
             "group_max_words": int(job.get("group_max_words", 45)),
         },
@@ -193,33 +196,57 @@ def main() -> int:
     group_lines = bool(job.get("group_lines", False))
     group_max_lines = max(1, int(job.get("group_max_lines", 5)))
     group_max_words = max(1, int(job.get("group_max_words", 45)))
-    groups: list[list[dict]] = []
+    groups: list[tuple[list[dict], str]] = []
     current: list[dict] = []
     current_words = 0
+    current_performance = "default"
     for segment in segments:
         segment_text = (segment.get("text") or "").strip()
         if not segment_text:
             continue
+        performance = str(segment.get("performance") or "default").lower() if performance_mode else "default"
+        if performance not in {"hook", "suspense", "reveal", "explain", "calm", "default"}:
+            performance = "default"
         word_count = max(len(segment_text.split()), 1)
-        if current and group_lines and (len(current) >= group_max_lines or current_words + word_count > group_max_words):
-            groups.append(current)
+        limit_reached = group_lines and (len(current) >= group_max_lines or current_words + word_count > group_max_words)
+        if current and (limit_reached or performance != current_performance):
+            groups.append((current, current_performance))
             current, current_words = [], 0
+        if not current:
+            current_performance = performance
         current.append(segment)
         current_words += word_count
     if current:
-        groups.append(current)
+        groups.append((current, current_performance))
 
-    for group_index, group in enumerate(groups):
+    # These are targets, not magical emotion labels: they only adjust controls the
+    # installed Chatterbox model already supports. The reference voice still matters.
+    performance_targets = {
+        "hook": (0.85, 0.30, 0.62),
+        "suspense": (0.70, 0.30, 0.48),
+        "reveal": (0.95, 0.28, 0.65),
+        "explain": (0.50, 0.40, 0.45),
+        "calm": (0.48, 0.40, 0.45),
+    }
+    blend = expression_intensity / 100.0
+
+    for group_index, (group, performance) in enumerate(groups):
         combined_text = " ".join((segment.get("text") or "").strip() for segment in group)
         torch.manual_seed(seed + group_index)
         t1 = time.time()
+        take_exaggeration, take_cfg, take_temperature = exaggeration, cfg_weight, temperature
+        if performance_mode and performance in performance_targets:
+            target_exaggeration, target_cfg, target_temperature = performance_targets[performance]
+            take_exaggeration = exaggeration + (target_exaggeration - exaggeration) * blend
+            take_cfg = cfg_weight + (target_cfg - cfg_weight) * blend
+            take_temperature = temperature + (target_temperature - temperature) * blend
         wav = model.generate(
             combined_text,
             language_id="hi",
             audio_prompt_path=str(reference_path),
-            exaggeration=exaggeration,
-            cfg_weight=cfg_weight,
-            temperature=temperature,
+            exaggeration=take_exaggeration,
+            cfg_weight=take_cfg,
+            temperature=take_temperature,
         )
         clip = trim_silence(wav.squeeze(0).detach().cpu().numpy().astype(np.float32), model.sr)
         chunk_start = cursor_samples / model.sr
@@ -243,7 +270,7 @@ def main() -> int:
         if group_index < len(groups) - 1:
             clips.append(pad)
             cursor_samples += len(pad)
-        log(f"take {group_index + 1}/{len(groups)} ({len(group)} line(s), {len(combined_text.split())} words): {chunk_duration:.2f}s in {time.time() - t1:.1f}s")
+        log(f"take {group_index + 1}/{len(groups)} [{performance}] (exaggeration={take_exaggeration:.2f}, cfg={take_cfg:.2f}, temp={take_temperature:.2f}; {len(group)} line(s), {len(combined_text.split())} words): {chunk_duration:.2f}s in {time.time() - t1:.1f}s")
     if not clips:
         log("no audio generated")
         return 1
